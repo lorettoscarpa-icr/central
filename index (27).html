@@ -1,0 +1,1601 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Loretto Scarpa · Central de Dashboards</title>
+
+<!-- ===========================================================
+     PWA · Instalável como app na tela inicial
+     =========================================================== -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1d2516">
+<meta name="description" content="Central de gestão Loretto Scarpa">
+<!-- iOS -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Loretto">
+<link rel="apple-touch-icon" href="SI_MBOLO_10.png">
+
+<!-- ===========================================================
+     FIREBASE · Sincronização em tempo real entre dispositivos
+     =========================================================== -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+  // Configuração do projeto loretto-scarpa-l-icr
+  const firebaseConfig = {
+    apiKey: "AIzaSyCogQoTSULCdC1JhTb0IUilWAIA1itBJ8U",
+    authDomain: "loretto-scarpa-l-icr.firebaseapp.com",
+    projectId: "loretto-scarpa-l-icr",
+    storageBucket: "loretto-scarpa-l-icr.firebasestorage.app",
+    messagingSenderId: "428188657366",
+    appId: "1:428188657366:web:fb21e0b748b7e34283cb77"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  // Persistência offline — equipe vê última versão mesmo sem net
+  db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+</script>
+
+<!-- ===========================================================
+     CONFIGURAÇÃO DE LINKS — EDITE AQUI AS URLs DOS DASHBOARDS
+     Cole a URL de cada painel online entre as aspas.
+     Se um painel ainda não estiver online, deixe em "" (vazio)
+     que o card aparecerá automaticamente como "Em breve".
+     =========================================================== -->
+<script>
+  const DASHBOARD_LINKS = {
+    /* 01 Estratégia */
+    metas:           "https://lorettoscarpa-icr.github.io/metas/",
+    colecoes:        "",  // Coleções — aguardando publicação
+
+    /* 02 Financeiro */
+    icrControle:     "https://lorettoscarpa-icr.github.io/loretto-icr/",
+    caixaOperacional:"",  // Caixa Operacional — aguardando publicação
+
+    /* 03 Compras */
+    comprasProduto:  "",  // Compras (Reposições e Coleções) — aguardando publicação
+    suprimentos:     "https://lorettoscarpa-icr.github.io/suprimentos_dashboard/"
+  };
+  // Abre em nova aba? true = sim (recomendado), false = mesma aba
+  const ABRIR_NOVA_ABA = true;
+
+  // ===========================================================
+  // MODO ADMIN — Edição com Firebase Auth + Firestore
+  // ===========================================================
+  // Email autorizado (deve ser cadastrado no Firebase Authentication)
+  // Troque pelo seu email real:
+  const ADMIN_EMAIL = "lorettoscarpa@gmail.com";
+
+  // Para entrar no Modo Admin: clique no botão "Admin" no topo da tela
+  // e faça login com o email e senha cadastrados no Firebase.
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Barlow:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --gold:        #dcbd60;
+    --gold-soft:   #ead08a;
+    --gold-deep:   #a78c40;
+    --green:       #6a8240;
+    --green-deep:  #455628;
+    --bg:          #1d2516;
+    --bg-card:     #272f20;
+    --bg-card-hi:  #313a28;
+    --line:        #4d5840;
+    --line-hi:     #647057;
+    --ink:         #fbf9ed;
+    --ink-mute:    #cec8b1;
+    --ink-faint:   #9b9783;
+
+    --r-card: 14px;
+    --r-pill: 999px;
+    --shadow-card: 0 1px 0 rgba(255,255,255,0.03) inset, 0 30px 60px -30px rgba(0,0,0,.7);
+  }
+
+  *{ box-sizing:border-box; }
+  html, body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Barlow', system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.55;
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    background-image:
+      radial-gradient(1100px 600px at 85% -10%, rgba(220,189,96,0.10), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(106,130,64,0.14), transparent 60%),
+      linear-gradient(180deg, #1d2516 0%, #181f12 100%);
+    background-attachment: fixed;
+  }
+
+  body::before{
+    content:"";
+    position: fixed; inset:0;
+    pointer-events:none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.86  0 0 0 0 0.74  0 0 0 0 0.38  0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    opacity: .25;
+    mix-blend-mode: overlay;
+    z-index: 0;
+  }
+
+  .wrap{
+    position: relative;
+    z-index: 1;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 56px 32px 80px;
+  }
+
+  header.top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 32px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 48px;
+    animation: fadeUp .8s ease both;
+  }
+  .brand{
+    display:flex; align-items:center; gap: 16px;
+    text-decoration:none; color: inherit;
+  }
+  .brand__logo{
+    height: 56px; width:auto;
+    filter: drop-shadow(0 4px 14px rgba(201,169,80,0.15));
+  }
+  .brand__fallback{
+    display:none;
+    flex-direction:column;
+    line-height:1;
+  }
+  .brand__fallback .l1{
+    font-family:'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 26px;
+    color: var(--gold);
+    letter-spacing: .02em;
+  }
+  .brand__fallback .l2{
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .35em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .brand__logo.failed{ display:none; }
+  .brand__logo.failed + .brand__fallback{ display:flex; }
+
+  .top__meta{
+    text-align:right;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .18em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+  }
+  .top__meta .dot{
+    display:inline-block; width:6px; height:6px;
+    border-radius:50%;
+    background: var(--gold);
+    box-shadow: 0 0 0 4px rgba(201,169,80,0.12);
+    vertical-align: middle;
+    margin-right: 8px;
+    animation: pulse 2.6s ease-in-out infinite;
+  }
+  .top__meta .now{
+    color: var(--ink);
+    margin-top: 4px;
+    display:block;
+  }
+
+  /* Botão Instalar PWA */
+  .top__meta-actions{
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .install-btn{
+    display:inline-flex;
+    align-items:center;
+    gap: 7px;
+    background: rgba(220,189,96,0.08);
+    border: 1px solid rgba(220,189,96,0.4);
+    color: var(--gold);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    padding: 7px 12px;
+    border-radius: var(--r-pill);
+    cursor: pointer;
+    transition: all .25s ease;
+  }
+  .install-btn:hover{
+    background: rgba(220,189,96,0.16);
+    border-color: var(--gold);
+    transform: translateY(-1px);
+  }
+  .install-btn svg{ flex-shrink: 0; }
+  /* Variante admin: levemente diferente para distinguir */
+  .install-btn--admin{
+    background: transparent;
+    border-color: rgba(206,200,177,0.25);
+    color: var(--ink-mute);
+  }
+  .install-btn--admin:hover{
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(220,189,96,0.06);
+  }
+  /* Quando admin ativo, botão fica dourado preenchido */
+  body.admin-mode .install-btn--admin{
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--bg);
+  }
+  body.admin-mode .install-btn--admin:hover{
+    background: var(--gold-soft);
+    border-color: var(--gold-soft);
+  }
+
+  .hero{
+    margin-bottom: 64px;
+    animation: fadeUp .9s .1s ease both;
+  }
+  .hero__eyebrow{
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .4em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    display:flex; align-items:center; gap:14px;
+  }
+  .hero__eyebrow::before{
+    content:""; display:block; width:34px; height:1px;
+    background: var(--gold);
+  }
+  .hero__title{
+    font-family: 'Playfair Display', serif;
+    font-weight: 500;
+    font-size: clamp(40px, 6vw, 68px);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin: 0 0 20px;
+  }
+  .hero__title em{
+    font-style: italic;
+    color: var(--gold);
+    font-weight: 400;
+  }
+  .hero__sub{
+    max-width: 640px;
+    font-size: 16px;
+    color: var(--ink-mute);
+    line-height: 1.65;
+  }
+
+  .section{ margin-bottom: 56px; }
+  .section__head{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap: 24px;
+    margin-bottom: 26px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .section__title{
+    font-family: 'Playfair Display', serif;
+    font-weight: 500;
+    font-size: 24px;
+    color: var(--ink);
+    margin: 0;
+    letter-spacing: -0.005em;
+  }
+  .section__title .num{
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--gold);
+    letter-spacing: .25em;
+    margin-right: 14px;
+    vertical-align: middle;
+    position: relative;
+    top: -3px;
+  }
+  .section__caption{
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: .3em;
+    text-transform: uppercase;
+    text-align: right;
+  }
+
+  .grid{ display:grid; gap: 18px; }
+  .grid--2{ grid-template-columns: repeat(2, 1fr); }
+
+  @media (max-width: 900px){
+    .grid--2{ grid-template-columns: 1fr; }
+    .top__meta{ display:none; }
+    header.top{ margin-bottom: 36px; }
+    .wrap{ padding: 40px 22px 60px; }
+  }
+
+  .card{
+    position: relative;
+    text-decoration: none;
+    color: inherit;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    padding: 28px 28px 24px;
+    overflow: hidden;
+    transition:
+      transform .35s cubic-bezier(.2,.8,.25,1),
+      border-color .35s ease,
+      background .35s ease,
+      box-shadow .35s ease;
+    box-shadow: var(--shadow-card);
+    cursor: pointer;
+    min-height: 240px;
+    display:flex;
+    flex-direction: column;
+    justify-content: space-between;
+    animation: fadeUp .6s ease both;
+  }
+  .card:nth-child(1){ animation-delay: .15s; }
+  .card:nth-child(2){ animation-delay: .22s; }
+
+  .card::before{
+    content:"";
+    position:absolute;
+    top:0; left:0;
+    width: 0%; height: 2px;
+    background: linear-gradient(90deg, var(--gold) 0%, transparent 100%);
+    transition: width .5s cubic-bezier(.2,.8,.25,1);
+  }
+  .card::after{
+    content:"";
+    position:absolute;
+    inset: 0;
+    background: radial-gradient(circle at 100% 0%, rgba(201,169,80,0.10), transparent 55%);
+    opacity: 0;
+    transition: opacity .4s ease;
+    pointer-events:none;
+  }
+  .card:hover{
+    transform: translateY(-4px);
+    border-color: var(--gold-deep);
+    background: var(--bg-card-hi);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 30px 60px -20px rgba(0,0,0,.8), 0 0 0 1px rgba(201,169,80,.08);
+  }
+  .card:hover::before{ width: 100%; }
+  .card:hover::after{ opacity: 1; }
+
+  .card__top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+  .card__icon{
+    width: 56px; height: 56px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(201,169,80,0.10), rgba(201,169,80,0.02));
+    border: 1px solid rgba(201,169,80,0.25);
+    display:flex; align-items:center; justify-content:center;
+    color: var(--gold);
+    flex-shrink: 0;
+    transition: transform .4s cubic-bezier(.2,.8,.25,1), border-color .3s;
+  }
+  .card:hover .card__icon{
+    transform: scale(1.06) rotate(-2deg);
+    border-color: var(--gold);
+  }
+  .card__icon svg{
+    width: 26px; height: 26px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .card__status{
+    display:inline-flex;
+    align-items:center;
+    gap: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: .25em;
+    color: var(--gold);
+    text-transform: uppercase;
+    padding: 6px 10px;
+    border: 1px solid rgba(201,169,80,0.3);
+    border-radius: var(--r-pill);
+    background: rgba(201,169,80,0.04);
+  }
+  .card__status .pulse{
+    width: 5px; height:5px; border-radius:50%;
+    background: var(--gold);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  .card--offline .card__status{
+    color: var(--ink-faint);
+    border-color: var(--line-hi);
+    background: transparent;
+  }
+  .card--offline .card__status .pulse{
+    background: var(--ink-faint);
+    animation: none;
+  }
+  .card--offline{ cursor: not-allowed; opacity: .68; }
+  .card--offline:hover{
+    transform: none;
+    border-color: var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-card);
+  }
+  .card--offline:hover::before{ width: 0%; }
+  .card--offline:hover::after{ opacity: 0; }
+  .card--offline:hover .card__icon{ transform: none; border-color: rgba(201,169,80,0.25); }
+
+  .card__category{
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .3em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .card__title{
+    font-family: 'Playfair Display', serif;
+    font-weight: 500;
+    font-size: 28px;
+    line-height: 1.15;
+    color: var(--ink);
+    margin: 0 0 12px;
+    letter-spacing: -0.005em;
+  }
+  .card__title em{
+    font-style: italic;
+    color: var(--gold);
+    font-weight: 400;
+  }
+  .card__desc{
+    font-size: 14px;
+    color: var(--ink-mute);
+    line-height: 1.65;
+    margin: 0 0 22px;
+  }
+  .card__cta{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    transition: border-color .35s ease;
+  }
+  .card:hover .card__cta{ border-color: var(--line-hi); }
+  .card__cta-label{
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .25em;
+    text-transform: uppercase;
+    color: var(--ink);
+    transition: color .3s ease;
+  }
+  .card:hover .card__cta-label{ color: var(--gold); }
+  .card__cta-arrow{
+    width: 32px; height: 32px;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--ink);
+    transition: transform .4s cubic-bezier(.2,.8,.25,1), color .3s;
+  }
+  .card:hover .card__cta-arrow{
+    color: var(--gold);
+    transform: translateX(6px);
+  }
+  .card--offline .card__cta-label,
+  .card--offline:hover .card__cta-label{ color: var(--ink-faint); }
+  .card--offline .card__cta-arrow,
+  .card--offline:hover .card__cta-arrow{ color: var(--ink-faint); transform: none; }
+
+  footer.foot{
+    margin-top: 80px;
+    padding-top: 28px;
+    border-top: 1px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .25em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    flex-wrap: wrap;
+  }
+  footer.foot .symbol{
+    height: 28px; width:auto;
+    opacity: .6;
+  }
+  footer.foot .symbol-fallback{
+    color: var(--gold);
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 16px;
+    letter-spacing: 0;
+    text-transform: none;
+    display:none;
+  }
+  footer.foot .symbol.failed{ display:none; }
+  footer.foot .symbol.failed + .symbol-fallback{ display:inline-block; }
+
+  @keyframes fadeUp{
+    from{ opacity:0; transform: translateY(14px); }
+    to  { opacity:1; transform: translateY(0); }
+  }
+  @keyframes pulse{
+    0%, 100%{ opacity: 1; transform: scale(1); }
+    50%     { opacity: .35; transform: scale(.85); }
+  }
+
+  .card:focus-visible{
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(220,189,96,0.25), var(--shadow-card);
+  }
+
+  /* ==================== MODO ADMIN ==================== */
+  .admin-btn{
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border-radius: var(--r-pill);
+    cursor: pointer;
+    transition: all .2s ease;
+  }
+  .admin-btn:hover{
+    background: var(--gold);
+    color: var(--bg);
+  }
+  .admin-btn--danger{
+    border-color: rgba(220,90,90,0.6);
+    color: rgba(240,140,140,1);
+  }
+  .admin-btn--danger:hover{
+    background: rgba(220,90,90,0.9);
+    color: #fff;
+    border-color: rgba(220,90,90,0.9);
+  }
+
+  /* Modal */
+  .modal-overlay{
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn .25s ease;
+  }
+  .modal-overlay.is-open{ display:flex; }
+  .modal{
+    background: var(--bg-card);
+    border: 1px solid var(--gold-deep);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 540px;
+    width: 100%;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(220,189,96,0.1);
+    animation: scaleIn .3s cubic-bezier(.2,.8,.25,1);
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+  .modal__header{
+    margin-bottom: 22px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .modal__eyebrow{
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .35em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .modal__title{
+    font-family: 'Playfair Display', serif;
+    font-weight: 500;
+    font-size: 24px;
+    color: var(--ink);
+    margin: 0;
+    line-height: 1.2;
+  }
+  .modal__title em{
+    font-style: italic;
+    color: var(--gold);
+  }
+  .modal__sub{
+    font-size: 13px;
+    color: var(--ink-mute);
+    margin: 8px 0 0;
+    line-height: 1.55;
+  }
+  .modal__field{
+    margin-bottom: 18px;
+  }
+  .modal__label{
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .25em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .modal__input,
+  .modal__textarea{
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--line-hi);
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    transition: border-color .2s ease;
+    box-sizing: border-box;
+  }
+  .modal__input:focus,
+  .modal__textarea:focus{
+    outline: none;
+    border-color: var(--gold);
+  }
+  .modal__textarea{
+    resize: vertical;
+    min-height: 220px;
+    line-height: 1.6;
+    font-size: 12px;
+  }
+  .modal__error{
+    color: rgba(240,140,140,1);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    margin-top: 8px;
+    min-height: 16px;
+  }
+  .modal__actions{
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+    flex-wrap: wrap;
+  }
+  .modal__btn{
+    background: transparent;
+    border: 1px solid var(--line-hi);
+    color: var(--ink-mute);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    padding: 10px 18px;
+    border-radius: var(--r-pill);
+    cursor: pointer;
+    transition: all .2s ease;
+  }
+  .modal__btn:hover{
+    border-color: var(--ink-mute);
+    color: var(--ink);
+  }
+  .modal__btn--primary{
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--bg);
+    font-weight: 500;
+  }
+  .modal__btn--primary:hover{
+    background: var(--gold-soft);
+    border-color: var(--gold-soft);
+    color: var(--bg);
+  }
+  .modal__btn--danger{
+    border-color: rgba(220,90,90,0.5);
+    color: rgba(240,140,140,1);
+  }
+  .modal__btn--danger:hover{
+    background: rgba(220,90,90,0.85);
+    border-color: rgba(220,90,90,0.85);
+    color: #fff;
+  }
+  .modal__btn--ghost{
+    border-color: rgba(206,200,177,0.3);
+  }
+
+  /* Modal mais largo para edição em massa */
+  .modal--wide{
+    max-width: 720px;
+  }
+
+  /* Actions com split (esquerda/direita) */
+  .modal__actions--split{
+    justify-content: space-between;
+  }
+  .modal__actions-left,
+  .modal__actions-right{
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Lista de edição em massa */
+  .edit-list{
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .edit-item{
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: border-color .2s ease;
+  }
+  .edit-item:focus-within{
+    border-color: var(--gold-deep);
+  }
+  .edit-item.has-override{
+    border-color: rgba(220,189,96,0.4);
+    background: rgba(220,189,96,0.04);
+  }
+  .edit-item__head{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 10px;
+  }
+  .edit-item__name{
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 16px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .edit-item__name strong{
+    color: var(--gold);
+    font-weight: 500;
+  }
+  .edit-item__section{
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: .25em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+  .edit-item__url{
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--line-hi);
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    box-sizing: border-box;
+    transition: border-color .2s;
+  }
+  .edit-item__url:focus{
+    outline: none;
+    border-color: var(--gold);
+  }
+  .edit-item__hint{
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: .15em;
+    color: var(--gold);
+    margin-top: 6px;
+    text-transform: uppercase;
+    display: none;
+  }
+  .edit-item.has-override .edit-item__hint{ display: block; }
+
+  @media (max-width: 720px){
+    .modal__actions--split{ flex-direction: column-reverse; }
+    .modal__actions-left,
+    .modal__actions-right{ width: 100%; justify-content: flex-end; }
+  }
+
+  /* Toast */
+  .toast{
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--bg-card);
+    border: 1px solid var(--gold);
+    color: var(--ink);
+    padding: 14px 22px;
+    border-radius: var(--r-pill);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: .15em;
+    z-index: 200;
+    transition: transform .35s cubic-bezier(.2,.8,.25,1);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+  .toast.is-visible{
+    transform: translateX(-50%) translateY(0);
+  }
+
+  @keyframes fadeIn{
+    from{ opacity: 0; }
+    to  { opacity: 1; }
+  }
+  @keyframes scaleIn{
+    from{ opacity: 0; transform: scale(.92); }
+    to  { opacity: 1; transform: scale(1); }
+  }
+
+  @media (max-width: 720px){
+    .modal{ padding: 22px; }
+    .modal__title{ font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <a class="brand" href="#" aria-label="Loretto Scarpa">
+      <img class="brand__logo" src="ASSINATURA_HORIZONTAL_10.png"
+           alt="Loretto Scarpa"
+           onerror="this.classList.add('failed')" />
+      <div class="brand__fallback" aria-hidden="true">
+        <span class="l1">Loretto Scarpa</span>
+        <span class="l2">Sapatos Masculinos</span>
+      </div>
+    </a>
+    <div class="top__meta">
+      <div class="top__meta-actions">
+        <button id="adminBtn" class="install-btn install-btn--admin" aria-label="Modo Admin">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span>Admin</span>
+        </button>
+        <button id="installBtn" class="install-btn" hidden aria-label="Instalar como app">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+          <span>Instalar app</span>
+        </button>
+      </div>
+      <span><span class="dot"></span>Sistemas Online</span>
+      <span class="now" id="now">—</span>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero__eyebrow">Central de Gestão</div>
+    <h1 class="hero__title">
+      Painéis de <em>controle</em>
+    </h1>
+    <p class="hero__sub">
+      Acesse de um único lugar todos os dashboards estratégicos da Loretto Scarpa —
+      metas, controle financeiro, inteligência de compras e planejamento de coleções.
+    </p>
+  </section>
+
+  <!-- ==================== 01 · ESTRATÉGIA ==================== -->
+  <section class="section">
+    <div class="section__head">
+      <h2 class="section__title"><span class="num">01</span>Estratégia</h2>
+      <span class="section__caption">Direcionamento · Planejamento</span>
+    </div>
+
+    <div class="grid grid--2">
+
+      <a class="card" data-link="metas" aria-label="Acessar Central de Metas">
+        <div>
+          <div class="card__top">
+            <div class="card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><path d="M12 3v3M21 12h-3M12 21v-3M3 12h3"/></svg>
+            </div>
+            <div class="card__status"><span class="pulse"></span>Online</div>
+          </div>
+          <div class="card__category">Visão Macro · KPIs</div>
+          <h3 class="card__title">Central de <em>Metas</em></h3>
+          <p class="card__desc">
+            Acompanhamento dos objetivos da empresa, indicadores estratégicos
+            e progresso em direção ao plano anual.
+          </p>
+        </div>
+        <div class="card__cta">
+          <span class="card__cta-label">Acessar painel</span>
+          <span class="card__cta-arrow" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <a class="card" data-link="colecoes" aria-label="Acessar Central de Coleções">
+        <div>
+          <div class="card__top">
+            <div class="card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18"/><path d="M7 4v3M12 4v3M17 4v3"/><circle cx="7" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="14" cy="17" r="1.2" fill="currentColor" stroke="none"/></svg>
+            </div>
+            <div class="card__status"><span class="pulse"></span>Online</div>
+          </div>
+          <div class="card__category">Calendário · Curadoria</div>
+          <h3 class="card__title">Central de <em>Coleções</em></h3>
+          <p class="card__desc">
+            Planejamento das coleções: temporadas, lançamentos,
+            curadoria de produto e cronograma de chegada.
+          </p>
+        </div>
+        <div class="card__cta">
+          <span class="card__cta-label">Acessar painel</span>
+          <span class="card__cta-arrow" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </span>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- ==================== 02 · FINANCEIRO ==================== -->
+  <section class="section">
+    <div class="section__head">
+      <h2 class="section__title"><span class="num">02</span>Financeiro</h2>
+      <span class="section__caption">ICR · Caixa · Disciplina</span>
+    </div>
+
+    <div class="grid grid--2">
+
+      <a class="card" data-link="icrControle" aria-label="Acessar Central de ICR">
+        <div>
+          <div class="card__top">
+            <div class="card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M3 20h18M5 20V10M10 20V6M15 20v-8M20 20V4"/></svg>
+            </div>
+            <div class="card__status"><span class="pulse"></span>Online</div>
+          </div>
+          <div class="card__category">ICR · Custos vs Receita</div>
+          <h3 class="card__title">Central de <em>ICR</em></h3>
+          <p class="card__desc">
+            Índice de Comprometimento de Receita — distribuição dos custos
+            mensais em grupos contra a Receita Bruta. Meta de lucro 15–20%.
+          </p>
+        </div>
+        <div class="card__cta">
+          <span class="card__cta-label">Acessar painel</span>
+          <span class="card__cta-arrow" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <a class="card" data-link="caixaOperacional" aria-label="Acessar Central de Fluxo de Caixa">
+        <div>
+          <div class="card__top">
+            <div class="card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 11h18"/><path d="M7 6V4M17 6V4"/><circle cx="12" cy="15.5" r="2"/></svg>
+            </div>
+            <div class="card__status"><span class="pulse"></span>Online</div>
+          </div>
+          <div class="card__category">Fluxo · Liquidez</div>
+          <h3 class="card__title">Central de <em>Fluxo de Caixa</em></h3>
+          <p class="card__desc">
+            Fluxo de caixa do dia a dia — entradas, saídas e disponibilidade.
+            Acompanhamento da operação financeira em tempo real.
+          </p>
+        </div>
+        <div class="card__cta">
+          <span class="card__cta-label">Acessar painel</span>
+          <span class="card__cta-arrow" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </span>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- ==================== 03 · COMPRAS ==================== -->
+  <section class="section">
+    <div class="section__head">
+      <h2 class="section__title"><span class="num">03</span>Compras</h2>
+      <span class="section__caption">Produto · Suprimentos</span>
+    </div>
+
+    <div class="grid grid--2">
+
+      <a class="card" data-link="comprasProduto" aria-label="Acessar Central de Compras">
+        <div>
+          <div class="card__top">
+            <div class="card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 11.4a1.5 1.5 0 0 1-1.5 1.35H7.7a1.5 1.5 0 0 1-1.5-1.35L5 8z"/><path d="M9 8V5.5a3 3 0 0 1 6 0V8"/><path d="M9.5 13l1.4 1.4 3.6-3.6"/></svg>
+            </div>
+            <div class="card__status"><span class="pulse"></span>Online</div>
+          </div>
+          <div class="card__category">Reposições · Coleções</div>
+          <h3 class="card__title">Central de <em>Compras</em></h3>
+          <p class="card__desc">
+            Inteligência de compras de produto — teto 40% (ideal) a 45% (máximo)
+            da RB projetada. Reposições contínuas e coleções sazonais.
+          </p>
+        </div>
+        <div class="card__cta">
+          <span class="card__cta-label">Acessar painel</span>
+          <span class="card__cta-arrow" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <a class="card" data-link="suprimentos" aria-label="Acessar Central de Suprimentos Internos">
+        <div>
+          <div class="card__top">
+            <div class="card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M3 7h3l2.4 10.4a2 2 0 0 0 2 1.6h7.2a2 2 0 0 0 2-1.5L21 10H7"/><circle cx="10" cy="21" r="1.3" fill="currentColor" stroke="none"/><circle cx="17" cy="21" r="1.3" fill="currentColor" stroke="none"/></svg>
+            </div>
+            <div class="card__status"><span class="pulse"></span>Online</div>
+          </div>
+          <div class="card__category">Operacional · Insumos</div>
+          <h3 class="card__title">Central de <em>Suprimentos</em> Internos</h3>
+          <p class="card__desc">
+            Gestão de compras operacionais — insumos, embalagens, materiais
+            e serviços de apoio à operação das lojas.
+          </p>
+        </div>
+        <div class="card__cta">
+          <span class="card__cta-label">Acessar painel</span>
+          <span class="card__cta-arrow" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </span>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div style="display:flex; align-items:center; gap:14px;">
+      <img class="symbol" src="SI_MBOLO_10.png" alt="Loretto Scarpa"
+           onerror="this.classList.add('failed')" />
+      <span class="symbol-fallback" aria-hidden="true">L · S</span>
+      <span>Loretto Scarpa · Goiânia · GO</span>
+    </div>
+    <div>Central de Dashboards · v2.0 · PWA · Firebase</div>
+  </footer>
+
+</div>
+
+<!-- ==================== MODAIS ADMIN ==================== -->
+
+<!-- Modal de login (email + senha) -->
+<div class="modal-overlay" id="passwordModal" role="dialog" aria-labelledby="pwTitle" aria-modal="true">
+  <div class="modal">
+    <div class="modal__header">
+      <div class="modal__eyebrow">Acesso Restrito</div>
+      <h3 class="modal__title" id="pwTitle">Modo <em>Admin</em></h3>
+      <p class="modal__sub">Entre com suas credenciais para editar as URLs dos painéis.</p>
+    </div>
+    <div class="modal__field">
+      <label class="modal__label" for="emailInput">Email</label>
+      <input type="email" class="modal__input" id="emailInput" autocomplete="email" placeholder="seu@email.com" />
+    </div>
+    <div class="modal__field">
+      <label class="modal__label" for="pwInput">Senha</label>
+      <input type="password" class="modal__input" id="pwInput" autocomplete="current-password" placeholder="••••••••" />
+      <div class="modal__error" id="pwError"></div>
+    </div>
+    <div class="modal__actions">
+      <button class="modal__btn" data-close="passwordModal">Cancelar</button>
+      <button class="modal__btn modal__btn--primary" id="pwSubmit">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de edição em massa -->
+<div class="modal-overlay" id="editModal" role="dialog" aria-labelledby="editTitle" aria-modal="true">
+  <div class="modal modal--wide">
+    <div class="modal__header">
+      <div class="modal__eyebrow">Editar URLs dos Painéis</div>
+      <h3 class="modal__title" id="editTitle">Configuração dos <em>Cards</em></h3>
+      <p class="modal__sub">Atualize a URL de cada painel abaixo. Para deixar como "Em breve", apague o conteúdo. Ao salvar, as alterações são sincronizadas em tempo real para toda a equipe.</p>
+    </div>
+
+    <div id="editList" class="edit-list">
+      <!-- Itens preenchidos via JS -->
+    </div>
+
+    <div class="modal__error" id="editError"></div>
+
+    <div class="modal__actions modal__actions--split">
+      <div class="modal__actions-left">
+        <button class="modal__btn modal__btn--ghost" id="exportBtn" title="Gerar código pra atualizar o arquivo">Exportar</button>
+        <button class="modal__btn modal__btn--danger" id="resetBtn" title="Apagar todas as edições locais">Restaurar Padrão</button>
+      </div>
+      <div class="modal__actions-right">
+        <button class="modal__btn" id="logoutBtn">Sair</button>
+        <button class="modal__btn" data-close="editModal">Fechar</button>
+        <button class="modal__btn modal__btn--primary" id="editSubmit">Salvar Tudo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de exportação -->
+<div class="modal-overlay" id="exportModal" role="dialog" aria-labelledby="exportTitle" aria-modal="true">
+  <div class="modal">
+    <div class="modal__header">
+      <div class="modal__eyebrow">Exportar Para o Código</div>
+      <h3 class="modal__title" id="exportTitle">Configuração <em>Atual</em></h3>
+      <p class="modal__sub">Copie o bloco abaixo e substitua o <code>const DASHBOARD_LINKS</code> no topo do arquivo <code>index.html</code> para tornar as alterações permanentes para toda a equipe.</p>
+    </div>
+    <div class="modal__field">
+      <label class="modal__label" for="exportArea">Snippet pronto para colar</label>
+      <textarea class="modal__textarea" id="exportArea" readonly></textarea>
+    </div>
+    <div class="modal__actions">
+      <button class="modal__btn" data-close="exportModal">Fechar</button>
+      <button class="modal__btn modal__btn--primary" id="exportCopy">Copiar Código</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast de feedback -->
+<div class="toast" id="toast"></div>
+
+<script>
+  (function(){
+    const el = document.getElementById('now');
+    function fmt(){
+      const d = new Date();
+      const data = d.toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' });
+      const hora = d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+      el.textContent = `${data.replace('.', '')} · ${hora}`;
+    }
+    fmt(); setInterval(fmt, 30000);
+  })();
+
+  // ===========================================================
+  // CAMADA DE DADOS — Firestore com sync em tempo real
+  // ===========================================================
+  const HUB_DOC = db.collection('hub_config').doc('links');
+
+  // URLs efetivas: começa com defaults do código, sobrescreve com Firestore
+  let liveLinks = { ...DASHBOARD_LINKS };
+
+  function getEffectiveLinks(){
+    return liveLinks;
+  }
+
+  // Listener em tempo real: qualquer mudança no Firestore reflete na hora
+  HUB_DOC.onSnapshot(snap => {
+    if(snap.exists){
+      const data = snap.data() || {};
+      // Mescla com defaults — campos ausentes caem no DASHBOARD_LINKS
+      liveLinks = { ...DASHBOARD_LINKS };
+      Object.keys(DASHBOARD_LINKS).forEach(k => {
+        if(typeof data[k] === 'string') liveLinks[k] = data[k];
+      });
+    } else {
+      liveLinks = { ...DASHBOARD_LINKS };
+    }
+    applyLinksToCards();
+    if(document.body.classList.contains('admin-mode')){
+      renderEditList();
+    }
+  }, err => {
+    console.warn('Firestore listener error:', err);
+  });
+
+  // Salva todas as URLs editadas no Firestore
+  async function saveLinksToFirestore(newLinks){
+    const payload = {
+      ...newLinks,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: auth.currentUser ? auth.currentUser.email : 'desconhecido'
+    };
+    await HUB_DOC.set(payload, { merge: false });
+  }
+
+  // Reseta o documento (volta pros defaults do código)
+  async function resetLinksInFirestore(){
+    await HUB_DOC.delete();
+  }
+
+  // Aplica os links efetivos a todos os cards
+  function applyLinksToCards(){
+    const links = getEffectiveLinks();
+
+    document.querySelectorAll('.card[data-link]').forEach(card => {
+      const key = card.dataset.link;
+      const url = (links[key] || '').trim();
+      const isCustom = (links[key] !== DASHBOARD_LINKS[key]);
+
+      // Reset estados
+      card.classList.remove('card--offline', 'has-override');
+      card.removeEventListener('click', preventClick);
+
+      // Marca quando difere do padrão do código
+      if(isCustom) card.classList.add('has-override');
+
+      // Atualiza status, cta e href
+      const status = card.querySelector('.card__status');
+      const cta = card.querySelector('.card__cta-label');
+
+      if(!url){
+        card.classList.add('card--offline');
+        if(status) status.innerHTML = '<span class="pulse"></span>Em breve';
+        if(cta) cta.textContent = 'Aguardando publicação';
+        card.removeAttribute('href');
+        card.addEventListener('click', preventClick);
+      } else {
+        if(status) status.innerHTML = '<span class="pulse"></span>Online';
+        if(cta) cta.textContent = 'Acessar painel';
+        card.setAttribute('href', url);
+        if(typeof ABRIR_NOVA_ABA !== 'undefined' && ABRIR_NOVA_ABA){
+          card.setAttribute('target', '_blank');
+          card.setAttribute('rel', 'noopener noreferrer');
+        }
+      }
+    });
+  }
+  function preventClick(e){
+    if(!document.body.classList.contains('admin-mode')) e.preventDefault();
+  }
+
+  // Inicializa cards (sem botão de lápis — edição agora é em massa via modal)
+  applyLinksToCards();
+
+  // ===========================================================
+  // MODO ADMIN — autenticação Firebase, modais, edição
+  // ===========================================================
+
+  // Mapeia códigos de erro do Firebase para mensagens em português
+  function firebaseErrorMessage(err){
+    const code = err && err.code ? err.code : '';
+    const map = {
+      'auth/invalid-email':       'Email inválido.',
+      'auth/user-disabled':       'Usuário desativado.',
+      'auth/user-not-found':      'Usuário não encontrado.',
+      'auth/wrong-password':      'Senha incorreta.',
+      'auth/invalid-credential':  'Email ou senha incorretos.',
+      'auth/too-many-requests':   'Muitas tentativas. Tente novamente em alguns minutos.',
+      'auth/network-request-failed':'Sem conexão. Verifique sua internet.'
+    };
+    return map[code] || 'Erro ao entrar. Tente novamente.';
+  }
+
+  // Abrir/fechar modais
+  function openModal(id){
+    document.getElementById(id).classList.add('is-open');
+  }
+  function closeModal(id){
+    document.getElementById(id).classList.remove('is-open');
+  }
+  document.querySelectorAll('[data-close]').forEach(btn => {
+    btn.addEventListener('click', () => closeModal(btn.dataset.close));
+  });
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => {
+      if(e.target === overlay) overlay.classList.remove('is-open');
+    });
+  });
+
+  // Toast helper
+  let toastTimer;
+  function toast(msg, ms=2400){
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('is-visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('is-visible'), ms);
+  }
+
+  // ===== Botão Admin no header =====
+  document.getElementById('adminBtn').addEventListener('click', () => {
+    if(document.body.classList.contains('admin-mode')){
+      // Já está logado, abre direto a edição
+      openEditModal();
+    } else {
+      // Pede login
+      openModal('passwordModal');
+      setTimeout(() => document.getElementById('emailInput').focus(), 100);
+    }
+  });
+
+  // ===== Login (email + senha) =====
+  document.getElementById('pwSubmit').addEventListener('click', tryLogin);
+  document.getElementById('emailInput').addEventListener('keydown', e => {
+    if(e.key === 'Enter') document.getElementById('pwInput').focus();
+  });
+  document.getElementById('pwInput').addEventListener('keydown', e => {
+    if(e.key === 'Enter') tryLogin();
+  });
+
+  async function tryLogin(){
+    const emailEl = document.getElementById('emailInput');
+    const pwEl = document.getElementById('pwInput');
+    const errEl = document.getElementById('pwError');
+    const submitBtn = document.getElementById('pwSubmit');
+    const email = emailEl.value.trim().toLowerCase();
+    const senha = pwEl.value;
+
+    if(!email || !senha){
+      errEl.textContent = 'Preencha email e senha.';
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Entrando...';
+    errEl.textContent = '';
+
+    try{
+      const cred = await auth.signInWithEmailAndPassword(email, senha);
+      // Camada extra: confere se o email logado é o admin autorizado
+      if((cred.user.email || '').toLowerCase() !== ADMIN_EMAIL.trim().toLowerCase()){
+        await auth.signOut();
+        errEl.textContent = 'Esta conta não tem permissão de admin.';
+        return;
+      }
+      // Login OK + email correto
+      enterAdminMode();
+      closeModal('passwordModal');
+      pwEl.value = '';
+      toast('Modo Admin ativado');
+      setTimeout(() => openEditModal(), 250);
+    } catch(err){
+      errEl.textContent = firebaseErrorMessage(err);
+      pwEl.value = '';
+      pwEl.focus();
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Entrar';
+    }
+  }
+
+  function enterAdminMode(){
+    document.body.classList.add('admin-mode');
+  }
+  function exitAdminMode(){
+    document.body.classList.remove('admin-mode');
+    closeModal('editModal');
+  }
+
+  // Restaura admin mode automaticamente se já estiver logado
+  // (Firebase mantém sessão entre recargas por padrão)
+  auth.onAuthStateChanged(user => {
+    if(user && (user.email || '').toLowerCase() === ADMIN_EMAIL.trim().toLowerCase()){
+      enterAdminMode();
+    } else {
+      exitAdminMode();
+    }
+  });
+
+  // ESC fecha qualquer modal aberto
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape'){
+      document.querySelectorAll('.modal-overlay.is-open').forEach(m => m.classList.remove('is-open'));
+    }
+  });
+
+  // ===========================================================
+  // MODAL DE EDIÇÃO EM MASSA
+  // ===========================================================
+  const CARD_META = [
+    { key: 'metas',            label: 'Central de <strong>Metas</strong>',                    section: '01 · Estratégia' },
+    { key: 'colecoes',         label: 'Central de <strong>Coleções</strong>',                 section: '01 · Estratégia' },
+    { key: 'icrControle',      label: 'Central de <strong>ICR</strong>',                      section: '02 · Financeiro' },
+    { key: 'caixaOperacional', label: 'Central de <strong>Fluxo de Caixa</strong>',           section: '02 · Financeiro' },
+    { key: 'comprasProduto',   label: 'Central de <strong>Compras</strong>',                  section: '03 · Compras'    },
+    { key: 'suprimentos',      label: 'Central de <strong>Suprimentos</strong> Internos',     section: '03 · Compras'    }
+  ];
+
+  function openEditModal(){
+    if(!document.body.classList.contains('admin-mode')){
+      // Segurança: se não está autenticado, pede login
+      openModal('passwordModal');
+      return;
+    }
+    renderEditList();
+    document.getElementById('editError').textContent = '';
+    openModal('editModal');
+  }
+
+  function renderEditList(){
+    const list = document.getElementById('editList');
+    if(!list) return;
+    const links = getEffectiveLinks();
+    list.innerHTML = '';
+    CARD_META.forEach(meta => {
+      const isCustom = (links[meta.key] !== DASHBOARD_LINKS[meta.key]);
+      const currentValue = links[meta.key] || '';
+
+      const item = document.createElement('div');
+      item.className = 'edit-item' + (isCustom ? ' has-override' : '');
+      item.innerHTML = `
+        <div class="edit-item__head">
+          <span class="edit-item__name">${meta.label}</span>
+          <span class="edit-item__section">${meta.section}</span>
+        </div>
+        <input type="url"
+               class="edit-item__url"
+               data-key="${meta.key}"
+               value="${currentValue.replace(/"/g, '&quot;')}"
+               placeholder="https://... (deixe vazio para 'Em breve')" />
+        <div class="edit-item__hint">Diferente do padrão do código</div>
+      `;
+      list.appendChild(item);
+    });
+  }
+
+  // Salvar tudo no Firestore
+  document.getElementById('editSubmit').addEventListener('click', async () => {
+    const errEl = document.getElementById('editError');
+    const submitBtn = document.getElementById('editSubmit');
+    errEl.textContent = '';
+
+    const inputs = document.querySelectorAll('#editList .edit-item__url');
+    const newLinks = {};
+    let invalid = null;
+
+    inputs.forEach(input => {
+      const key = input.dataset.key;
+      const val = input.value.trim();
+      if(val && !/^https?:\/\//i.test(val)){
+        invalid = key;
+      }
+      newLinks[key] = val;
+    });
+
+    if(invalid){
+      const meta = CARD_META.find(c => c.key === invalid);
+      errEl.textContent = `URL inválida no card "${meta ? meta.label.replace(/<[^>]+>/g, '') : invalid}". Use https://...`;
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Salvando...';
+
+    try{
+      await saveLinksToFirestore(newLinks);
+      toast('Salvo. Sincronizando com a equipe...');
+      // O onSnapshot vai disparar e atualizar a tela automaticamente
+    } catch(err){
+      console.error(err);
+      errEl.textContent = 'Erro ao salvar: ' + (err.message || err.code || 'desconhecido');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Salvar Tudo';
+    }
+  });
+
+  // Restaurar padrão (deleta documento no Firestore)
+  document.getElementById('resetBtn').addEventListener('click', async () => {
+    if(!confirm('Restaurar todas as URLs para o padrão do código? Isso vai apagar a configuração compartilhada e voltar a usar os valores embutidos no arquivo.')) return;
+    try{
+      await resetLinksInFirestore();
+      toast('Restaurado para o padrão do código');
+    } catch(err){
+      console.error(err);
+      alert('Erro ao restaurar: ' + (err.message || err.code));
+    }
+  });
+
+  // Sair do admin (logout Firebase)
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    try{
+      await auth.signOut();
+      toast('Modo Admin desativado');
+    } catch(err){
+      console.error(err);
+    }
+  });
+
+  // ===========================================================
+  // EXPORTAR (gera snippet pronto para colar no código)
+  // ===========================================================
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const links = getEffectiveLinks();
+    const lines = [];
+    lines.push('  const DASHBOARD_LINKS = {');
+    lines.push('    /* 01 Estratégia */');
+    lines.push(`    metas:           ${JSON.stringify(links.metas || '')},`);
+    lines.push(`    colecoes:        ${JSON.stringify(links.colecoes || '')},`);
+    lines.push('');
+    lines.push('    /* 02 Financeiro */');
+    lines.push(`    icrControle:     ${JSON.stringify(links.icrControle || '')},`);
+    lines.push(`    caixaOperacional:${JSON.stringify(links.caixaOperacional || '')},`);
+    lines.push('');
+    lines.push('    /* 03 Compras */');
+    lines.push(`    comprasProduto:  ${JSON.stringify(links.comprasProduto || '')},`);
+    lines.push(`    suprimentos:     ${JSON.stringify(links.suprimentos || '')}`);
+    lines.push('  };');
+    document.getElementById('exportArea').value = lines.join('\n');
+    closeModal('editModal');
+    openModal('exportModal');
+  });
+
+  document.getElementById('exportCopy').addEventListener('click', async () => {
+    const text = document.getElementById('exportArea').value;
+    try{
+      await navigator.clipboard.writeText(text);
+      toast('Código copiado para a área de transferência');
+    } catch(err){
+      const ta = document.getElementById('exportArea');
+      ta.select();
+      document.execCommand('copy');
+      toast('Código copiado');
+    }
+  });
+
+  // ===== PWA · Service Worker =====
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => {
+        console.log('Service Worker não registrado:', err);
+      });
+    });
+  }
+
+  // ===== PWA · Install Prompt =====
+  let deferredPrompt = null;
+  const installBtn = document.getElementById('installBtn');
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if(installBtn) installBtn.hidden = false;
+  });
+
+  if(installBtn){
+    installBtn.addEventListener('click', async () => {
+      if(!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      installBtn.hidden = true;
+    });
+  }
+
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    if(installBtn) installBtn.hidden = true;
+  });
+</script>
+</body>
+</html>
