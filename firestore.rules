@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ==========================================================
+    // ATENÇÃO: este arquivo mostra APENAS as regras do Hub.
+    // Você provavelmente já tem regras do ICR Dashboard.
+    // NÃO substitua tudo — apenas ADICIONE este bloco
+    // dentro do match /databases/{database}/documents existente.
+    // ==========================================================
+
+    // Hub Central — configuração das URLs dos cards
+    match /hub_config/{document} {
+      // Qualquer pessoa pode ler (assim Yuri/Larissa veem URLs sem login)
+      allow read: if true;
+
+      // Só o admin autorizado pode escrever
+      allow write: if request.auth != null
+                && request.auth.token.email == "lorettoscarpa@gmail.com";
+    }
+
+  }
+}
