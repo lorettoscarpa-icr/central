@@ -7,15 +7,42 @@
 
 <!-- ===========================================================
      PWA · Instalável como app na tela inicial
+     Manifest embutido inline (sem arquivo separado)
      =========================================================== -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1d2516">
+<meta name="theme-color" content="#1c2a18">
 <meta name="description" content="Central de gestão Loretto Scarpa">
 <!-- iOS -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Loretto">
 <link rel="apple-touch-icon" href="SI_MBOLO_10.png">
+<link id="manifestLink" rel="manifest">
+<script>
+  // Gera o manifest.json em tempo real via Blob URL — evita arquivo separado
+  (function(){
+    const manifest = {
+      "name": "Loretto Scarpa · Central",
+      "short_name": "Loretto",
+      "description": "Central de gestão e dashboards da Loretto Scarpa",
+      "start_url": "./",
+      "scope": "./",
+      "display": "standalone",
+      "orientation": "portrait-primary",
+      "background_color": "#1c2a18",
+      "theme_color": "#1c2a18",
+      "lang": "pt-BR",
+      "dir": "ltr",
+      "categories": ["business", "productivity"],
+      "icons": [
+        { "src": "SI_MBOLO_10.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+        { "src": "SI_MBOLO_10.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+        { "src": "SI_MBOLO_10.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+      ]
+    };
+    const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+    document.getElementById('manifestLink').href = URL.createObjectURL(blob);
+  })();
+</script>
 
 <!-- ===========================================================
      FIREBASE · Sincronização em tempo real entre dispositivos
@@ -56,6 +83,7 @@
     /* 02 Financeiro */
     icrControle:     "https://lorettoscarpa-icr.github.io/loretto-icr/",
     caixaOperacional:"",  // Caixa Operacional — aguardando publicação
+    comissoes:       "",  // Central de Comissões — aguardando publicação
 
     /* 03 Compras */
     comprasProduto:  "",  // Compras (Reposições e Coleções) — aguardando publicação
@@ -84,16 +112,16 @@
     --gold:        #dcbd60;
     --gold-soft:   #ead08a;
     --gold-deep:   #a78c40;
-    --green:       #6a8240;
-    --green-deep:  #455628;
-    --bg:          #1d2516;
-    --bg-card:     #272f20;
-    --bg-card-hi:  #313a28;
-    --line:        #4d5840;
-    --line-hi:     #647057;
-    --ink:         #fbf9ed;
-    --ink-mute:    #cec8b1;
-    --ink-faint:   #9b9783;
+    --green:       #5a7240;
+    --green-deep:  #2d3d1d;
+    --bg:          #1c2a18;
+    --bg-card:     #25341f;
+    --bg-card-hi:  #2f3f27;
+    --line:        #4a5a3a;
+    --line-hi:     #5e7050;
+    --ink:         #faf8ec;
+    --ink-mute:    #c8c4ad;
+    --ink-faint:   #93907c;
 
     --r-card: 14px;
     --r-pill: 999px;
@@ -113,8 +141,8 @@
     text-rendering: optimizeLegibility;
     background-image:
       radial-gradient(1100px 600px at 85% -10%, rgba(220,189,96,0.10), transparent 60%),
-      radial-gradient(900px 500px at -10% 110%, rgba(106,130,64,0.14), transparent 60%),
-      linear-gradient(180deg, #1d2516 0%, #181f12 100%);
+      radial-gradient(900px 500px at -10% 110%, rgba(90,114,64,0.16), transparent 60%),
+      linear-gradient(180deg, #1c2a18 0%, #172312 100%);
     background-attachment: fixed;
   }
 
@@ -123,7 +151,7 @@
     position: fixed; inset:0;
     pointer-events:none;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.86  0 0 0 0 0.74  0 0 0 0 0.38  0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-    opacity: .25;
+    opacity: .22;
     mix-blend-mode: overlay;
     z-index: 0;
   }
@@ -330,9 +358,14 @@
 
   .grid{ display:grid; gap: 18px; }
   .grid--2{ grid-template-columns: repeat(2, 1fr); }
+  .grid--3{ grid-template-columns: repeat(3, 1fr); }
 
+  @media (max-width: 1100px){
+    .grid--3{ grid-template-columns: repeat(2, 1fr); }
+  }
   @media (max-width: 900px){
     .grid--2{ grid-template-columns: 1fr; }
+    .grid--3{ grid-template-columns: 1fr; }
     .top__meta{ display:none; }
     header.top{ margin-bottom: 36px; }
     .wrap{ padding: 40px 22px 60px; }
@@ -977,10 +1010,10 @@
   <section class="section">
     <div class="section__head">
       <h2 class="section__title"><span class="num">02</span>Financeiro</h2>
-      <span class="section__caption">ICR · Caixa · Disciplina</span>
+      <span class="section__caption">ICR · Caixa · Comissões</span>
     </div>
 
-    <div class="grid grid--2">
+    <div class="grid grid--3">
 
       <a class="card" data-link="icrControle" aria-label="Acessar Central de ICR">
         <div>
@@ -1018,6 +1051,29 @@
           <p class="card__desc">
             Fluxo de caixa do dia a dia — entradas, saídas e disponibilidade.
             Acompanhamento da operação financeira em tempo real.
+          </p>
+        </div>
+        <div class="card__cta">
+          <span class="card__cta-label">Acessar painel</span>
+          <span class="card__cta-arrow" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <a class="card" data-link="comissoes" aria-label="Acessar Central de Comissões">
+        <div>
+          <div class="card__top">
+            <div class="card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.5-1.5-3-1.5-1.7 0-3 .9-3 2.2 0 1.2 1 1.8 3 2.3s3 1.1 3 2.3c0 1.3-1.3 2.2-3 2.2-1.5 0-2.5-.5-3-1.5"/><path d="M12 6v2M12 16v2"/></svg>
+            </div>
+            <div class="card__status"><span class="pulse"></span>Online</div>
+          </div>
+          <div class="card__category">Vendas · Equipe</div>
+          <h3 class="card__title">Central de <em>Comissões</em></h3>
+          <p class="card__desc">
+            Apuração de comissões da equipe de vendas — metas individuais,
+            performance e cálculo de remuneração variável.
           </p>
         </div>
         <div class="card__cta">
@@ -1096,7 +1152,7 @@
       <span class="symbol-fallback" aria-hidden="true">L · S</span>
       <span>Loretto Scarpa · Goiânia · GO</span>
     </div>
-    <div>Central de Dashboards · v2.0 · PWA · Firebase</div>
+    <div>Central de Dashboards · v2.3 · PWA · Firebase</div>
   </footer>
 
 </div>
@@ -1421,6 +1477,7 @@
     { key: 'colecoes',         label: 'Central de <strong>Coleções</strong>',                 section: '01 · Estratégia' },
     { key: 'icrControle',      label: 'Central de <strong>ICR</strong>',                      section: '02 · Financeiro' },
     { key: 'caixaOperacional', label: 'Central de <strong>Fluxo de Caixa</strong>',           section: '02 · Financeiro' },
+    { key: 'comissoes',        label: 'Central de <strong>Comissões</strong>',                section: '02 · Financeiro' },
     { key: 'comprasProduto',   label: 'Central de <strong>Compras</strong>',                  section: '03 · Compras'    },
     { key: 'suprimentos',      label: 'Central de <strong>Suprimentos</strong> Internos',     section: '03 · Compras'    }
   ];
@@ -1540,6 +1597,7 @@
     lines.push('    /* 02 Financeiro */');
     lines.push(`    icrControle:     ${JSON.stringify(links.icrControle || '')},`);
     lines.push(`    caixaOperacional:${JSON.stringify(links.caixaOperacional || '')},`);
+    lines.push(`    comissoes:       ${JSON.stringify(links.comissoes || '')},`);
     lines.push('');
     lines.push('    /* 03 Compras */');
     lines.push(`    comprasProduto:  ${JSON.stringify(links.comprasProduto || '')},`);
