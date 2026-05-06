@@ -1152,7 +1152,7 @@
       <span class="symbol-fallback" aria-hidden="true">L · S</span>
       <span>Loretto Scarpa · Goiânia · GO</span>
     </div>
-    <div>Central de Dashboards · v2.3 · PWA · Firebase</div>
+    <div>Central de Dashboards · v2.5 · PWA · Firebase</div>
   </footer>
 
 </div>
@@ -1259,6 +1259,7 @@
   }
 
   // Listener em tempo real: qualquer mudança no Firestore reflete na hora
+  let editModalOpen = false;
   HUB_DOC.onSnapshot(snap => {
     if(snap.exists){
       const data = snap.data() || {};
@@ -1271,7 +1272,9 @@
       liveLinks = { ...DASHBOARD_LINKS };
     }
     applyLinksToCards();
-    if(document.body.classList.contains('admin-mode')){
+    // Só recria a lista de edição se o modal NÃO estiver aberto
+    // (evita perder o foco/conteúdo enquanto o usuário digita)
+    if(document.body.classList.contains('admin-mode') && !editModalOpen){
       renderEditList();
     }
   }, err => {
@@ -1362,13 +1365,17 @@
   }
   function closeModal(id){
     document.getElementById(id).classList.remove('is-open');
+    if(id === 'editModal') editModalOpen = false;
   }
   document.querySelectorAll('[data-close]').forEach(btn => {
     btn.addEventListener('click', () => closeModal(btn.dataset.close));
   });
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', e => {
-      if(e.target === overlay) overlay.classList.remove('is-open');
+      if(e.target === overlay){
+        overlay.classList.remove('is-open');
+        if(overlay.id === 'editModal') editModalOpen = false;
+      }
     });
   });
 
@@ -1450,22 +1457,28 @@
   function exitAdminMode(){
     document.body.classList.remove('admin-mode');
     closeModal('editModal');
+    editModalOpen = false;
   }
 
   // Restaura admin mode automaticamente se já estiver logado
   // (Firebase mantém sessão entre recargas por padrão)
+  // IMPORTANTE: este listener apenas ATIVA o admin — nunca desativa
+  // sozinho, pois isso fecharia o modal de edição em momentos estranhos
+  // (refresh de token, reconexão, etc). O logout só acontece quando o
+  // usuário clica explicitamente em "Sair".
   auth.onAuthStateChanged(user => {
     if(user && (user.email || '').toLowerCase() === ADMIN_EMAIL.trim().toLowerCase()){
       enterAdminMode();
-    } else {
-      exitAdminMode();
     }
   });
 
   // ESC fecha qualquer modal aberto
   document.addEventListener('keydown', e => {
     if(e.key === 'Escape'){
-      document.querySelectorAll('.modal-overlay.is-open').forEach(m => m.classList.remove('is-open'));
+      document.querySelectorAll('.modal-overlay.is-open').forEach(m => {
+        m.classList.remove('is-open');
+        if(m.id === 'editModal') editModalOpen = false;
+      });
     }
   });
 
@@ -1491,6 +1504,7 @@
     renderEditList();
     document.getElementById('editError').textContent = '';
     openModal('editModal');
+    editModalOpen = true;
   }
 
   function renderEditList(){
@@ -1551,7 +1565,9 @@
     try{
       await saveLinksToFirestore(newLinks);
       toast('Salvo. Sincronizando com a equipe...');
-      // O onSnapshot vai disparar e atualizar a tela automaticamente
+      // Fecha o modal automaticamente após a sincronização confirmada.
+      // Delay de 1.2s para o usuário conseguir ler o toast.
+      setTimeout(() => closeModal('editModal'), 1200);
     } catch(err){
       console.error(err);
       errEl.textContent = 'Erro ao salvar: ' + (err.message || err.code || 'desconhecido');
@@ -1573,10 +1589,11 @@
     }
   });
 
-  // Sair do admin (logout Firebase)
+  // Sair do admin (logout Firebase + fecha modal)
   document.getElementById('logoutBtn').addEventListener('click', async () => {
     try{
       await auth.signOut();
+      exitAdminMode();
       toast('Modo Admin desativado');
     } catch(err){
       console.error(err);
