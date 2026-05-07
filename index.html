@@ -79,6 +79,7 @@
     /* 01 Estratégia */
     metas:           "https://lorettoscarpa-icr.github.io/metas/",
     colecoes:        "",  // Coleções — aguardando publicação
+    campanhas:       "",  // Campanhas — aguardando publicação
 
     /* 02 Financeiro */
     icrControle:     "https://lorettoscarpa-icr.github.io/loretto-icr/",
@@ -952,10 +953,10 @@
   <section class="section">
     <div class="section__head">
       <h2 class="section__title"><span class="num">01</span>Estratégia</h2>
-      <span class="section__caption">Direcionamento · Planejamento</span>
+      <span class="section__caption">Metas · Coleções · Campanhas</span>
     </div>
 
-    <div class="grid grid--2">
+    <div class="grid grid--3">
 
       <a class="card" data-link="metas" aria-label="Acessar Central de Metas">
         <div>
@@ -993,6 +994,29 @@
           <p class="card__desc">
             Planejamento das coleções: temporadas, lançamentos,
             curadoria de produto e cronograma de chegada.
+          </p>
+        </div>
+        <div class="card__cta">
+          <span class="card__cta-label">Acessar painel</span>
+          <span class="card__cta-arrow" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <a class="card" data-link="campanhas" aria-label="Acessar Central de Campanhas">
+        <div>
+          <div class="card__top">
+            <div class="card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M3 11v2a1 1 0 0 0 1 1h2l8 5V5L6 10H4a1 1 0 0 0-1 1z"/><path d="M18 8a4 4 0 0 1 0 8"/><path d="M21 5a8 8 0 0 1 0 14"/></svg>
+            </div>
+            <div class="card__status"><span class="pulse"></span>Online</div>
+          </div>
+          <div class="card__category">Marketing · Promoções</div>
+          <h3 class="card__title">Central de <em>Campanhas</em></h3>
+          <p class="card__desc">
+            Gestão das campanhas de marketing — promoções sazonais,
+            lançamentos, redes sociais e ações de engajamento.
           </p>
         </div>
         <div class="card__cta">
@@ -1152,7 +1176,7 @@
       <span class="symbol-fallback" aria-hidden="true">L · S</span>
       <span>Loretto Scarpa · Goiânia · GO</span>
     </div>
-    <div>Central de Dashboards · v2.5 · PWA · Firebase</div>
+    <div>Central de Dashboards · v2.6 · PWA · Firebase</div>
   </footer>
 
 </div>
@@ -1488,6 +1512,7 @@
   const CARD_META = [
     { key: 'metas',            label: 'Central de <strong>Metas</strong>',                    section: '01 · Estratégia' },
     { key: 'colecoes',         label: 'Central de <strong>Coleções</strong>',                 section: '01 · Estratégia' },
+    { key: 'campanhas',        label: 'Central de <strong>Campanhas</strong>',                section: '01 · Estratégia' },
     { key: 'icrControle',      label: 'Central de <strong>ICR</strong>',                      section: '02 · Financeiro' },
     { key: 'caixaOperacional', label: 'Central de <strong>Fluxo de Caixa</strong>',           section: '02 · Financeiro' },
     { key: 'comissoes',        label: 'Central de <strong>Comissões</strong>',                section: '02 · Financeiro' },
@@ -1610,6 +1635,7 @@
     lines.push('    /* 01 Estratégia */');
     lines.push(`    metas:           ${JSON.stringify(links.metas || '')},`);
     lines.push(`    colecoes:        ${JSON.stringify(links.colecoes || '')},`);
+    lines.push(`    campanhas:       ${JSON.stringify(links.campanhas || '')},`);
     lines.push('');
     lines.push('    /* 02 Financeiro */');
     lines.push(`    icrControle:     ${JSON.stringify(links.icrControle || '')},`);
