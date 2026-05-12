@@ -84,6 +84,7 @@
     /* 02 Financeiro */
     icrControle:     "https://lorettoscarpa-icr.github.io/loretto-icr/",
     caixaOperacional:"",  // Caixa Operacional — aguardando publicação
+    relatorioVendas: "",  // Relatório de Vendas — aguardando publicação
     comissoes:       "",  // Central de Comissões — aguardando publicação
 
     /* 03 Compras */
@@ -360,13 +361,18 @@
   .grid{ display:grid; gap: 18px; }
   .grid--2{ grid-template-columns: repeat(2, 1fr); }
   .grid--3{ grid-template-columns: repeat(3, 1fr); }
+  .grid--4{ grid-template-columns: repeat(4, 1fr); }
 
+  @media (max-width: 1200px){
+    .grid--4{ grid-template-columns: repeat(2, 1fr); }
+  }
   @media (max-width: 1100px){
     .grid--3{ grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 900px){
     .grid--2{ grid-template-columns: 1fr; }
     .grid--3{ grid-template-columns: 1fr; }
+    .grid--4{ grid-template-columns: 1fr; }
     .top__meta{ display:none; }
     header.top{ margin-bottom: 36px; }
     .wrap{ padding: 40px 22px 60px; }
@@ -1034,10 +1040,10 @@
   <section class="section">
     <div class="section__head">
       <h2 class="section__title"><span class="num">02</span>Financeiro</h2>
-      <span class="section__caption">ICR · Caixa · Comissões</span>
+      <span class="section__caption">ICR · Caixa · Vendas · Comissões</span>
     </div>
 
-    <div class="grid grid--3">
+    <div class="grid grid--4">
 
       <a class="card" data-link="icrControle" aria-label="Acessar Central de ICR">
         <div>
@@ -1075,6 +1081,29 @@
           <p class="card__desc">
             Fluxo de caixa do dia a dia — entradas, saídas e disponibilidade.
             Acompanhamento da operação financeira em tempo real.
+          </p>
+        </div>
+        <div class="card__cta">
+          <span class="card__cta-label">Acessar painel</span>
+          <span class="card__cta-arrow" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <a class="card" data-link="relatorioVendas" aria-label="Acessar Central Relatório de Vendas">
+        <div>
+          <div class="card__top">
+            <div class="card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M3 20h18"/><rect x="5" y="13" width="3" height="7" rx="0.5"/><rect x="10.5" y="9" width="3" height="11" rx="0.5"/><rect x="16" y="5" width="3" height="15" rx="0.5"/></svg>
+            </div>
+            <div class="card__status"><span class="pulse"></span>Online</div>
+          </div>
+          <div class="card__category">Performance · Análise</div>
+          <h3 class="card__title">Central <em>Relatório<br>de Vendas</em></h3>
+          <p class="card__desc">
+            Análise de desempenho — receita por período, ticket médio,
+            top produtos e comparativos de vendas.
           </p>
         </div>
         <div class="card__cta">
@@ -1176,7 +1205,7 @@
       <span class="symbol-fallback" aria-hidden="true">L · S</span>
       <span>Loretto Scarpa · Goiânia · GO</span>
     </div>
-    <div>Central de Dashboards · v2.6 · PWA · Firebase</div>
+    <div>Central de Dashboards · v2.8 · PWA · Firebase</div>
   </footer>
 
 </div>
@@ -1515,6 +1544,7 @@
     { key: 'campanhas',        label: 'Central de <strong>Campanhas</strong>',                section: '01 · Estratégia' },
     { key: 'icrControle',      label: 'Central de <strong>ICR</strong>',                      section: '02 · Financeiro' },
     { key: 'caixaOperacional', label: 'Central de <strong>Fluxo de Caixa</strong>',           section: '02 · Financeiro' },
+    { key: 'relatorioVendas',  label: 'Central <strong>Relatório de Vendas</strong>',         section: '02 · Financeiro' },
     { key: 'comissoes',        label: 'Central de <strong>Comissões</strong>',                section: '02 · Financeiro' },
     { key: 'comprasProduto',   label: 'Central de <strong>Compras</strong>',                  section: '03 · Compras'    },
     { key: 'suprimentos',      label: 'Central de <strong>Suprimentos</strong> Internos',     section: '03 · Compras'    }
@@ -1640,6 +1670,7 @@
     lines.push('    /* 02 Financeiro */');
     lines.push(`    icrControle:     ${JSON.stringify(links.icrControle || '')},`);
     lines.push(`    caixaOperacional:${JSON.stringify(links.caixaOperacional || '')},`);
+    lines.push(`    relatorioVendas: ${JSON.stringify(links.relatorioVendas || '')},`);
     lines.push(`    comissoes:       ${JSON.stringify(links.comissoes || '')},`);
     lines.push('');
     lines.push('    /* 03 Compras */');
@@ -1664,12 +1695,40 @@
     }
   });
 
-  // ===== PWA · Service Worker =====
+  // ===== PWA · Service Worker com auto-update =====
   if('serviceWorker' in navigator){
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(err => {
-        console.log('Service Worker não registrado:', err);
-      });
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => {
+          // Verifica atualização toda vez que a página carrega
+          reg.update();
+
+          // Detecta nova versão chegando
+          reg.addEventListener('updatefound', () => {
+            const newSW = reg.installing;
+            if(newSW){
+              newSW.addEventListener('statechange', () => {
+                if(newSW.state === 'installed' && navigator.serviceWorker.controller){
+                  // Nova versão pronta — recarrega automaticamente
+                  console.log('🔄 Nova versão detectada, atualizando...');
+                  window.location.reload();
+                }
+              });
+            }
+          });
+        })
+        .catch(err => {
+          console.log('Service Worker não registrado:', err);
+        });
+    });
+
+    // Quando o controller muda (SW novo assumiu), recarrega para garantir
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if(!refreshing){
+        refreshing = true;
+        window.location.reload();
+      }
     });
   }
 
