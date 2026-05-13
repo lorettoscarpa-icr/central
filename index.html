@@ -9,7 +9,7 @@
      PWA · Instalável como app na tela inicial
      Manifest embutido inline (sem arquivo separado)
      =========================================================== -->
-<meta name="theme-color" content="#1c2a18">
+<meta name="theme-color" content="#253720">
 <meta name="description" content="Central de gestão Loretto Scarpa">
 <!-- iOS -->
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -28,8 +28,8 @@
       "scope": "./",
       "display": "standalone",
       "orientation": "portrait-primary",
-      "background_color": "#1c2a18",
-      "theme_color": "#1c2a18",
+      "background_color": "#253720",
+      "theme_color": "#253720",
       "lang": "pt-BR",
       "dir": "ltr",
       "categories": ["business", "productivity"],
@@ -80,6 +80,7 @@
     metas:           "https://lorettoscarpa-icr.github.io/metas/",
     colecoes:        "",  // Coleções — aguardando publicação
     campanhas:       "",  // Campanhas — aguardando publicação
+    trafegoPago:     "",  // Tráfego Pago — aguardando publicação
 
     /* 02 Financeiro */
     icrControle:     "https://lorettoscarpa-icr.github.io/loretto-icr/",
@@ -114,16 +115,16 @@
     --gold:        #dcbd60;
     --gold-soft:   #ead08a;
     --gold-deep:   #a78c40;
-    --green:       #5a7240;
-    --green-deep:  #2d3d1d;
-    --bg:          #1c2a18;
-    --bg-card:     #25341f;
-    --bg-card-hi:  #2f3f27;
-    --line:        #4a5a3a;
-    --line-hi:     #5e7050;
-    --ink:         #faf8ec;
-    --ink-mute:    #c8c4ad;
-    --ink-faint:   #93907c;
+    --green:       #6e8a4e;
+    --green-deep:  #3a4e26;
+    --bg:          #253720;
+    --bg-card:     #2f4327;
+    --bg-card-hi:  #3a5031;
+    --line:        #5a6c46;
+    --line-hi:     #708562;
+    --ink:         #fbf9ee;
+    --ink-mute:    #cfcbb4;
+    --ink-faint:   #9a9783;
 
     --r-card: 14px;
     --r-pill: 999px;
@@ -143,8 +144,8 @@
     text-rendering: optimizeLegibility;
     background-image:
       radial-gradient(1100px 600px at 85% -10%, rgba(220,189,96,0.10), transparent 60%),
-      radial-gradient(900px 500px at -10% 110%, rgba(90,114,64,0.16), transparent 60%),
-      linear-gradient(180deg, #1c2a18 0%, #172312 100%);
+      radial-gradient(900px 500px at -10% 110%, rgba(110,138,78,0.16), transparent 60%),
+      linear-gradient(180deg, #253720 0%, #1f2f1a 100%);
     background-attachment: fixed;
   }
 
@@ -959,10 +960,10 @@
   <section class="section">
     <div class="section__head">
       <h2 class="section__title"><span class="num">01</span>Estratégia</h2>
-      <span class="section__caption">Metas · Coleções · Campanhas</span>
+      <span class="section__caption">Metas · Coleções · Campanhas · Tráfego</span>
     </div>
 
-    <div class="grid grid--3">
+    <div class="grid grid--4">
 
       <a class="card" data-link="metas" aria-label="Acessar Central de Metas">
         <div>
@@ -1023,6 +1024,29 @@
           <p class="card__desc">
             Gestão das campanhas de marketing — promoções sazonais,
             lançamentos, redes sociais e ações de engajamento.
+          </p>
+        </div>
+        <div class="card__cta">
+          <span class="card__cta-label">Acessar painel</span>
+          <span class="card__cta-arrow" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <a class="card" data-link="trafegoPago" aria-label="Acessar Central de Tráfego Pago">
+        <div>
+          <div class="card__top">
+            <div class="card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M9 4l2.5 11 2-5 5-2L9 4z"/><path d="M13.5 13.5l5 5"/><circle cx="6" cy="6" r="2.5"/><path d="M6 2v1.5M6 8.5V10M2 6h1.5M8.5 6H10"/></svg>
+            </div>
+            <div class="card__status"><span class="pulse"></span>Online</div>
+          </div>
+          <div class="card__category">Anúncios · Conversão</div>
+          <h3 class="card__title">Central de <em>Tráfego Pago</em></h3>
+          <p class="card__desc">
+            Gestão de campanhas pagas — Meta Ads, Google Ads, métricas
+            de conversão e ROI dos investimentos em mídia.
           </p>
         </div>
         <div class="card__cta">
@@ -1205,7 +1229,7 @@
       <span class="symbol-fallback" aria-hidden="true">L · S</span>
       <span>Loretto Scarpa · Goiânia · GO</span>
     </div>
-    <div>Central de Dashboards · v2.8 · PWA · Firebase</div>
+    <div>Central de Dashboards · v2.9 · PWA · Firebase</div>
   </footer>
 
 </div>
@@ -1542,6 +1566,7 @@
     { key: 'metas',            label: 'Central de <strong>Metas</strong>',                    section: '01 · Estratégia' },
     { key: 'colecoes',         label: 'Central de <strong>Coleções</strong>',                 section: '01 · Estratégia' },
     { key: 'campanhas',        label: 'Central de <strong>Campanhas</strong>',                section: '01 · Estratégia' },
+    { key: 'trafegoPago',      label: 'Central de <strong>Tráfego Pago</strong>',             section: '01 · Estratégia' },
     { key: 'icrControle',      label: 'Central de <strong>ICR</strong>',                      section: '02 · Financeiro' },
     { key: 'caixaOperacional', label: 'Central de <strong>Fluxo de Caixa</strong>',           section: '02 · Financeiro' },
     { key: 'relatorioVendas',  label: 'Central <strong>Relatório de Vendas</strong>',         section: '02 · Financeiro' },
@@ -1666,6 +1691,7 @@
     lines.push(`    metas:           ${JSON.stringify(links.metas || '')},`);
     lines.push(`    colecoes:        ${JSON.stringify(links.colecoes || '')},`);
     lines.push(`    campanhas:       ${JSON.stringify(links.campanhas || '')},`);
+    lines.push(`    trafegoPago:     ${JSON.stringify(links.trafegoPago || '')},`);
     lines.push('');
     lines.push('    /* 02 Financeiro */');
     lines.push(`    icrControle:     ${JSON.stringify(links.icrControle || '')},`);
