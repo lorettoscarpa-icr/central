@@ -110,6 +110,14 @@
   .nav-group.open .nav-grouphead .gcaret{transform:rotate(90deg)}
   .nav-groupbody{display:none;margin:2px 0 8px 14px;padding-left:6px;border-left:1px solid var(--linha-fraca)}
   .nav-group.open .nav-groupbody{display:block}
+  .nav-subgroup{margin:0 0 2px}
+  .nav-subhead .subcaret{margin-left:auto;width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.7;color:var(--gold);transition:transform .2s;flex:none}
+  .nav-subgroup.open .nav-subhead .subcaret{transform:rotate(90deg)}
+  .nav-subbody{display:none;margin:2px 0 6px 30px;padding-left:8px;border-left:1px solid var(--linha-fraca)}
+  .nav-subgroup.open .nav-subbody{display:block}
+  .nav-subitem{display:block;width:100%;text-align:left;background:none;border:none;color:var(--creme-suave);font-family:'Barlow';font-size:13.5px;padding:8px 10px;border-radius:7px;cursor:pointer;transition:.15s}
+  .nav-subitem:hover{background:rgba(201,169,80,.08);color:var(--creme)}
+  .nav-subitem.active{background:rgba(201,169,80,.14);color:var(--creme)}
 
   .stage{flex:1;min-width:0;position:relative;background:var(--content)}
   .frame{position:absolute;inset:0;width:100%;height:100%;border:0;display:none}
@@ -234,7 +242,11 @@
     {id:'posvenda',             nome:'Pós-venda'},
     {id:'parcerias',            nome:'Parcerias',          pending:true},
     {id:'consertos',            nome:'Consertos',          pending:true},
-    {id:'centralestoque',       nome:'Estoque'},
+    {id:'centralestoque',       nome:'Estoque', sub:[
+      {tab:'etiquetas',nome:'Etiquetas'},{tab:'entrada',nome:'Entrada'},{tab:'reposicao',nome:'Reposição'},
+      {tab:'pronta',nome:'Pronta-entrega'},{tab:'financeiro',nome:'Financeiro'},{tab:'modelos',nome:'Modelos'},
+      {tab:'avarias',nome:'Defeitos'},{tab:'suprimentos',nome:'Suprimentos'}
+    ]},
     {id:'loretto-icr',          nome:'ICR Control'},
     {id:'comissoes',            nome:'Pagamentos'},
     {id:'recursoshumanos',      nome:'RH'},
@@ -291,16 +303,26 @@
 
   /* ---- SHELL ---- */
   let papelAtual='vendedora', tab='metas', contaAtual=null;
-  const frames={}, frameLoaded={};
+  const frames={}, frameLoaded={}, _subTab={};
   function toggleNav(){$('shell').classList.toggle('nav-hidden');}
   function showLoader(s){$('stageLoader').style.display=s?'flex':'none';}
   function itemHTML(id){
+    const _p=PAINEIS.find(x=>x.id===id);
+    if(_p&&_p.sub&&_p.sub.length) return subgroupHTML(_p);
     const nome=PANEL_NOME[id]||id, ic=ICONS[id]||'<circle cx="12" cy="12" r="9"/>';
     const pend=PANEL_PEND[id];
     const tail=pend?'<span class="tag">Em breve</span>':((id==='metas'||id==='entregas')?`<span class="navbadge" data-badge="${id}"></span>`:'');
     return `<button class="nav-item${pend?' lock':''}" data-p="${id}" onclick="abrir('${id}')"><svg viewBox="0 0 24 24">${ic}</svg><span class="lbl">${nome}</span>${tail}</button>`;
   }
   function montarNav(ids){const host=$('navList'); if(!host)return; host.innerHTML=ids.map(itemHTML).join('');}
+  function subgroupHTML(p){
+    const ic=ICONS[p.id]||'<circle cx="12" cy="12" r="9"/>';
+    const subs=p.sub.map(s=>`<button class="nav-subitem" data-sub="${p.id}:${s.tab}" onclick="abrirSub('${p.id}','${s.tab}')">${s.nome}</button>`).join('');
+    return `<div class="nav-subgroup" data-p="${p.id}"><button class="nav-item nav-subhead" data-p="${p.id}" onclick="toggleSub('${p.id}')"><svg viewBox="0 0 24 24">${ic}</svg><span class="lbl">${p.nome}</span><svg class="subcaret" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button><div class="nav-subbody">${subs}</div></div>`;
+  }
+  function toggleSub(id){const g=document.querySelector('.nav-subgroup[data-p="'+id+'"]');if(g)g.classList.toggle('open');abrir(id);}
+  function abrirSub(id,tab){_subTab[id]=tab;abrir(id);enviarTab(id,tab);document.querySelectorAll('.nav-subgroup[data-p="'+id+'"] .nav-subitem').forEach(b=>b.classList.toggle('active',b.dataset.sub===id+':'+tab));}
+  function enviarTab(id,tab){const f=frames[id];if(f&&f.contentWindow){try{f.contentWindow.postMessage({tipo:'central-tab',tab:tab},'*');}catch(_){}}}
   function grupoHTML(area,its){
     const lbl=area==='_outros'?'Outros':(AREA_LABEL[area]||area);
     return `<div class="nav-group" data-area="${area}"><button class="nav-grouphead" onclick="toggleGroup('${area}')"><span class="glabel">${lbl}</span><span class="gdot"></span><svg class="gcaret" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button><div class="nav-groupbody">${its.map(itemHTML).join('')}</div></div>`;
@@ -330,13 +352,13 @@
   function ensureFrame(p){
     if(frames[p]||!PANEL_URL[p])return frames[p];
     const f=document.createElement('iframe');f.className='frame';f.setAttribute('title',p);
-    f.addEventListener('load',()=>{frameLoaded[p]=true;if(tab===p)showLoader(false);});
+    f.addEventListener('load',()=>{frameLoaded[p]=true;if(tab===p)showLoader(false);if(_subTab[p])enviarTab(p,_subTab[p]);});
     f.src=PANEL_URL[p];$('stage').appendChild(f);frames[p]=f;return f;
   }
   function abrir(p){
     try{localStorage.setItem('ls_ultimo_painel',p);}catch(_){}
     document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
-    {const _a=document.querySelector('.nav-item[data-p="'+p+'"]');const _g=_a&&_a.closest('.nav-group');if(_g)_g.classList.add('open');}
+    {const _a=document.querySelector('.nav-item[data-p="'+p+'"]');const _g=_a&&_a.closest('.nav-group');if(_g)_g.classList.add('open');const _sg=document.querySelector('.nav-subgroup[data-p="'+p+'"]');if(_sg)_sg.classList.add('open');}
     if(!PANEL_URL[p]){tab=p;Object.values(frames).forEach(f=>f.classList.remove('show'));showLoader(false);$('seTitle').textContent=PANEL_NOME[p]||p;$('stageEmpty').classList.add('show');$('tbTitle').innerHTML='<b>'+(PANEL_NOME[p]||p)+'</b>';return;}
     tab=p;$('stageEmpty').classList.remove('show');
     ensureFrame(p);
@@ -388,6 +410,8 @@
   function toggleBell(ev){ev&&ev.stopPropagation();$('bellPanel').classList.toggle('open');}
   function irAviso(p){$('bellPanel').classList.remove('open');abrir(p);}
   document.addEventListener('click',e=>{const p=$('bellPanel'),b=$('bellBtn');if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!b.contains(e.target))p.classList.remove('open');});
+
+  window.addEventListener('message',e=>{const d=e.data||{};if(d&&d.tipo==='central-ready'&&d.painel&&_subTab[d.painel])enviarTab(d.painel,_subTab[d.painel]);});
 
   if(FB_OK){auth.onAuthStateChanged(u=>{const c=u&&contaDe(u.email);if(c){c.email=u.email;mostrarShell(c);}else{mostrarLogin();}});}
   else{renderSaved();}
