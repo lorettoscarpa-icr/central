@@ -135,7 +135,6 @@
 <section id="loginView" class="view on">
   <div class="frame-card">
     <div class="brandrow"><div class="emblem"><span>L</span></div><div class="wm"><span class="lo">Loretto</span> <span class="sc">Scarpa</span></div></div>
-    <div class="eyebrow">Acesso Restrito</div>
     <div id="defaultHead">
       <div class="title">Bem-vinda de <em>volta</em></div>
       <p class="subtitle">Entre com seu e-mail corporativo para acessar seus painéis</p>
@@ -195,13 +194,13 @@
     'michellylorettoscarpa@gmail.com' :{nome:'Michelly', fem:true,  areas:['vendas'], vend:true},
     'natalialorettoscarpa@gmail.com'  :{nome:'Natália',  fem:true,  areas:['vendas'], vend:true},
     'yurilorettoscarpa@gmail.com'     :{nome:'Yuri',     fem:false, areas:['estoque'], extra:['encomendas','entregas']},
-    'edsonlorettoscarpa@gmail.com'    :{nome:'Edson',    fem:false, areas:['vendas'], extra:['centralestoque']},
+    'edsonlorettoscarpa@gmail.com'    :{nome:'Edson',    fem:false, areas:['estoque'], paineis:['encomendas','entregas','centralestoque']},
     'aviaconsultoriaempresarial@gmail.com' :{nome:'Ávia Consultoria', fem:true, areas:['financeiro_rh'], paineis:['loretto-icr','relatoriodevendas','comissoes','recursoshumanos']},
     'lorraynelorettoscarpa@gmail.com'    :{nome:'Lorrayne', fem:true,  areas:['marketing'], paineis:['campanhas']} /* <- troque pela conta real da Ávia no Firebase Auth */
   };
   /* ===== ÁREAS — cada área e seus painéis (edite à vontade) ===== */
   const AREAS={
-    vendas:        ['metas','entregas','encomendas','posvenda','consertos'],
+    vendas:        ['metas','entregas','encomendas','posvenda','parcerias','consertos'],
     estoque:       ['centralestoque'],
     financeiro_rh: ['loretto-icr','relatoriodevendas','comissoes','recursoshumanos'],
     marketing:     ['colecoes','campanhas','modelos','trafegopago']
@@ -225,6 +224,7 @@
     recursoshumanos:'<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 6a3 3 0 0 1 0 6"/><path d="M21 20a5 5 0 0 0-4-5"/>',
     'loretto-icr':'<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/>',
     posvenda:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/>',
+    parcerias:'<path d="M10 8H7a4 4 0 0 0 0 8h3"/><path d="M14 8h3a4 4 0 0 1 0 8h-3"/><path d="M9 12h6"/>',
     consertos:'<path d="M14.6 6.4a3.5 3.5 0 0 0-4.7 4.7l-6.5 6.5 2 2 6.5-6.5a3.5 3.5 0 0 0 4.7-4.7l-2.3 2.3-2-2 2.3-2.3z"/>'
   };
   const PAINEIS=[
@@ -232,6 +232,7 @@
     {id:'entregas',             nome:'Entregas'},
     {id:'encomendas',           nome:'Encomendas'},
     {id:'posvenda',             nome:'Pós-venda'},
+    {id:'parcerias',            nome:'Parcerias',          pending:true},
     {id:'consertos',            nome:'Consertos',          pending:true},
     {id:'centralestoque',       nome:'Estoque'},
     {id:'loretto-icr',          nome:'ICR Control'},
