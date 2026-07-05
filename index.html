@@ -574,7 +574,7 @@
     $('uAv').innerHTML=avHTML(c.nome);$('uNome').textContent=c.nome;$('uPapel').textContent=areaLabelDe(c);
     const vis=idsDe(c.email||emailRecon||'');
     if(c.areas==='*')montarNavAgrupada(vis);else montarNav(vis);
-    ligarAvisos(c);if(window.ctLigar)window.ctLigar(c);
+    ligarAvisos(c);try{if(window.ctLigar)window.ctLigar(c);}catch(_){}
     if(!vis.length){$('tbTitle').innerHTML='<b>Sem painéis</b>';$('seTitle').textContent='Nenhum painel liberado para esta conta';$('stageEmpty').classList.add('show');showLoader(false);return;}
     let ini=vis[0];
     try{const s=localStorage.getItem('ls_ultimo_painel');if(s&&vis.includes(s))ini=s;}catch(_){}
@@ -587,7 +587,7 @@
     f.src=PANEL_URL[p];$('stage').appendChild(f);frames[p]=f;return f;
   }
   function abrir(p){
-    if(window.ctAbrir&&window.ctAbrir(p))return;
+    try{if(window.ctAbrir&&window.ctAbrir(p))return;}catch(_){}
     try{localStorage.setItem('ls_ultimo_painel',p);}catch(_){}
     document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
     {const _a=document.querySelector('.nav-item[data-p="'+p+'"]');const _g=_a&&_a.closest('.nav-group');if(_g)_g.classList.add('open');const _sg=document.querySelector('.nav-subgroup[data-p="'+p+'"]');if(_sg)_sg.classList.add('open');}
@@ -618,7 +618,7 @@
     if(_ent&&_ent.pend>0){avisos.push({painel:'entregas',urg:_ent.atras>0,txt:`${_ent.pend} entrega${_ent.pend>1?'s':''} aguardando${_ent.atras>0?` · ${_ent.atras} atrasada${_ent.atras>1?'s':''}`:''}`});}
     setBadge('entregas',_ent?_ent.pend:0);
     if(_metasPend){avisos.push({painel:'metas',urg:false,txt:'Lançar as vendas de hoje'});}
-    if(window.ctAvisos)window.ctAvisos(avisos);renderAvisos();
+    try{if(window.ctAvisos)window.ctAvisos(avisos);}catch(_){}renderAvisos();
   }
   function ligarAvisos(c){
     desligarAvisos();
@@ -638,7 +638,7 @@
       }).catch(e=>console.warn('avisos metas',e));
     }
   }
-  function desligarAvisos(){if(unsubEnt){try{unsubEnt();}catch(_){}unsubEnt=null;}_ent=null;_metasPend=false;avisos=[];setBadge('entregas',0);if(window.ctDesligar)window.ctDesligar();}
+  function desligarAvisos(){if(unsubEnt){try{unsubEnt();}catch(_){}unsubEnt=null;}_ent=null;_metasPend=false;avisos=[];setBadge('entregas',0);try{if(window.ctDesligar)window.ctDesligar();}catch(_){}}
   function toggleBell(ev){ev&&ev.stopPropagation();$('bellPanel').classList.toggle('open');}
   function irAviso(p){$('bellPanel').classList.remove('open');abrir(p);}
   document.addEventListener('click',e=>{const p=$('bellPanel'),b=$('bellBtn');if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!b.contains(e.target))p.classList.remove('open');});
