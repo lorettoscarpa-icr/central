@@ -226,6 +226,31 @@
 .ct-btn-ok{background:var(--gold);color:#1f280f;border:none;border-radius:2px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:9px 16px;cursor:pointer;font-weight:500;}
 .ct-btn-cancel{background:transparent;color:rgba(241,237,225,.6);border:1px solid rgba(201,169,80,.25);border-radius:2px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:9px 16px;cursor:pointer;}
 
+/* ===== v5: busca, fotos, progresso, hover ===== */
+.ct-card,.ct-tar{transition:border-color .18s,box-shadow .18s,transform .18s;}
+.ct-card:hover,.ct-tar:hover{border-color:rgba(201,169,80,.5);box-shadow:0 4px 14px rgba(0,0,0,.22);transform:translateY(-2px);}
+.ct-busca{position:relative;margin-bottom:12px;}
+.ct-busca input{width:100%;background:var(--sidebar);border:1px solid rgba(201,169,80,.2);border-radius:2px;color:var(--creme);font-family:'Barlow',sans-serif;font-size:13px;padding:8px 10px 8px 32px;}
+.ct-busca input:focus{outline:none;border-color:rgba(201,169,80,.5);}
+.ct-busca::before{content:'⌕';position:absolute;left:10px;top:50%;transform:translateY(-50%);color:rgba(201,169,80,.6);font-size:16px;pointer-events:none;}
+.ct-progbar{height:3px;background:rgba(241,237,225,.12);border-radius:2px;overflow:hidden;margin-top:10px;}
+.ct-progbar i{display:block;height:100%;background:var(--gold);border-radius:2px;transition:width .4s ease;}
+.ct-tar.atrasada .ct-progbar i{background:#c0603a;}
+.ct-foto{display:block;max-width:100%;max-height:260px;border-radius:2px;border:1px solid rgba(201,169,80,.25);margin-top:10px;cursor:zoom-in;object-fit:cover;}
+.ct-cm-foto{display:block;max-width:180px;max-height:140px;border-radius:2px;border:1px solid rgba(201,169,80,.25);margin-top:5px;cursor:zoom-in;object-fit:cover;}
+.ct-attach{display:flex;align-items:center;gap:10px;margin-top:4px;}
+.ct-attach-btn{background:transparent;border:1px dashed rgba(201,169,80,.4);color:var(--gold);border-radius:2px;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;padding:7px 12px;cursor:pointer;}
+.ct-attach-btn:hover{border-style:solid;}
+.ct-attach-prev{position:relative;display:none;}
+.ct-attach-prev.on{display:block;}
+.ct-attach-prev img{width:54px;height:54px;object-fit:cover;border-radius:2px;border:1px solid rgba(201,169,80,.4);}
+.ct-attach-prev button{position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:#c0603a;color:#fff;border:none;font-size:11px;line-height:1;cursor:pointer;}
+.ct-cm-cam{background:transparent;border:1px solid rgba(201,169,80,.35);color:var(--gold);border-radius:2px;padding:0 10px;cursor:pointer;font-size:13px;}
+.ct-cm-cam:hover{background:rgba(201,169,80,.14);}
+.ct-lightbox{display:none;position:fixed;inset:0;background:rgba(15,20,8,.9);z-index:200;align-items:center;justify-content:center;cursor:zoom-out;padding:24px;}
+.ct-lightbox.on{display:flex;}
+.ct-lightbox img{max-width:94vw;max-height:92vh;border:1px solid rgba(201,169,80,.5);border-radius:2px;}
+
 /* ---- v3: fixado, seleção múltipla, WhatsApp ---- */
 .ct-head-btns{display:flex;gap:6px;}
 .ct-add.ghost{background:transparent;border:1px solid rgba(201,169,80,.4);color:var(--gold);}
@@ -346,11 +371,18 @@
                   <div><label>Público</label><select id="ctComPub"><option value="todos">Todos</option></select></div>
                   <div><label>Expira em (opcional)</label><input type="date" id="ctComVal"></div>
                 </div>
+                <label>Foto (opcional)</label>
+                <div class="ct-attach">
+                  <button class="ct-attach-btn" onclick="document.getElementById('ctComFotoInput').click()">📷 Anexar foto</button>
+                  <div class="ct-attach-prev" id="ctComFotoPrev"><img id="ctComFotoImg"><button onclick="ctComFotoLimpar()">×</button></div>
+                  <input type="file" id="ctComFotoInput" accept="image/*" style="display:none" onchange="ctComFotoSel(this)">
+                </div>
                 <div class="ct-form-acts">
                   <button class="ct-btn-cancel" onclick="ctCancelCom()">Cancelar</button>
                   <button class="ct-btn-ok" id="ctComBtnOk" onclick="ctSalvarCom()">Publicar</button>
                 </div>
               </div>
+              <div class="ct-busca"><input id="ctBuscaCom" placeholder="Buscar comunicado…" oninput="renderComs()"></div>
               <div id="ctComList"></div>
             </section>
 
@@ -388,8 +420,11 @@
                   <button class="ct-btn-ok" id="ctTarBtnOk" onclick="ctSalvarTar()">Delegar</button>
                 </div>
               </div>
+              <div class="ct-busca"><input id="ctBuscaTar" placeholder="Buscar tarefa…" oninput="renderTars()"></div>
               <div id="ctTarList"></div>
             </section>
+            <div class="ct-lightbox" id="ctLightbox" onclick="this.classList.remove('on')"><img id="ctLightImg"></div>
+            <input type="file" id="ctCmFotoInput" accept="image/*" style="display:none" onchange="ctCmFotoSel(this)">
 
           </div>
 
@@ -686,6 +721,28 @@
   function periodoAtual(rec){ const d=new Date(); if(rec==='diaria')return'd'+ymd(d); if(rec==='semanal')return semanaNum(d); if(rec==='mensal')return'm'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); return null; }
   function labelRec(rec){ return rec==='diaria'?'Todo dia':rec==='semanal'?'Toda semana':rec==='mensal'?'Todo mês':''; }
 
+  /* ---- v5: fotos (compressão client-side), lightbox, busca ---- */
+  let _comFotoB64=null, _cmFotoTarId=null;
+  function comprimirImg(file){ return new Promise((res,rej)=>{
+    const rd=new FileReader(); rd.onerror=rej;
+    rd.onload=()=>{ const img=new Image(); img.onerror=rej;
+      img.onload=()=>{ const MAX=900; let w=img.width,h=img.height;
+        if(w>MAX||h>MAX){ const r=Math.min(MAX/w,MAX/h); w=Math.round(w*r); h=Math.round(h*r); }
+        const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        let out=cv.toDataURL('image/jpeg',.72);
+        if(out.length>300000) out=cv.toDataURL('image/jpeg',.5);
+        if(out.length>300000){ const cv2=document.createElement('canvas'); cv2.width=Math.round(w*.7); cv2.height=Math.round(h*.7); cv2.getContext('2d').drawImage(img,0,0,cv2.width,cv2.height); out=cv2.toDataURL('image/jpeg',.5); }
+        res(out); };
+      img.src=rd.result; };
+    rd.readAsDataURL(file); }); }
+  window.ctVerFoto=function(src){ document.getElementById('ctLightImg').src=src; document.getElementById('ctLightbox').classList.add('on'); };
+  window.ctComFotoSel=function(inp){ const f=inp.files&&inp.files[0]; inp.value=''; if(!f)return;
+    comprimirImg(f).then(b64=>{ _comFotoB64=b64; document.getElementById('ctComFotoImg').src=b64; document.getElementById('ctComFotoPrev').classList.add('on'); }).catch(()=>alert('Não consegui ler a imagem.')); };
+  window.ctComFotoLimpar=function(){ _comFotoB64=null; document.getElementById('ctComFotoPrev').classList.remove('on'); document.getElementById('ctComFotoImg').src=''; };
+  const buscaNorm=s=>(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  function buscaVal(id){ const el=document.getElementById(id); return el?buscaNorm(el.value).trim():''; }
+
   window.ctNavItem=function(){
     const ic='<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/>';
     return `<button class="nav-item" data-p="comtar" onclick="abrir('comtar')"><svg viewBox="0 0 24 24">${ic}</svg><span class="lbl">Comunicados e Tarefas</span><span class="navbadge" id="ctBadge"></span></button>`;
@@ -731,7 +788,7 @@
   function ctReciclar(){
     if(!db)return;
     _tars.forEach(t=>{ if(!t.recorrencia)return; const per=periodoAtual(t.recorrencia);
-      if(per&&t.periodo!==per){ db.collection('ls_tarefas').doc(t.id).update({feitosPor:[],periodo:per}).catch(()=>{}); }
+      if(per&&t.periodo!==per){ db.collection('ls_tarefas').doc(t.id).update({feitosPor:[],feitosLog:[],periodo:per}).catch(()=>{}); }
     });
   }
 
@@ -741,8 +798,10 @@
   function renderComs(){
     const host=document.getElementById('ctComList'); if(!host)return;
     let vis=_coms.filter(comVisivel);
+    const q=buscaVal('ctBuscaCom');
+    if(q) vis=vis.filter(c=>buscaNorm(c.texto).indexOf(q)>=0||buscaNorm(c.autor).indexOf(q)>=0);
     vis.sort((a,b)=>(b.fixado?1:0)-(a.fixado?1:0)||(b.criadoEm||0)-(a.criadoEm||0));
-    if(!vis.length){ host.innerHTML='<div class="ct-vazio">Nenhum comunicado no momento.</div>'; return; }
+    if(!vis.length){ host.innerHTML=`<div class="ct-vazio">${q?'Nada encontrado para essa busca.':'Nenhum comunicado no momento.'}</div>`; return; }
     host.innerHTML=vis.map(c=>{
       const vistos=c.vistos||[]; const pub=c.publico&&c.publico!=='todos'?(AREA_LABEL[c.publico]||c.publico):'Todos';
       const val=c.validade&&!c.fixado?`· expira ${fmtData(c.validade)}`:'';
@@ -752,6 +811,7 @@
         ${c.fixado?'<div class="ct-fixtag">📌 Fixado</div>':''}
         <div class="ct-card-top">${avatar(c.autor)}<div class="ct-card-meta"><b>${esc(c.autor)}</b><span>${fmtDataHora(c.criadoEm)} · ${esc(pub)} ${val}</span></div><div class="ct-actgrp">${pin}${acts}</div></div>
         <div class="ct-card-txt">${esc(c.texto)}</div>
+        ${c.foto?`<img class="ct-foto" src="${c.foto}" onclick="ctVerFoto(this.src)" alt="">`:''}
         <div class="ct-card-foot"><span class="ct-eye">👁 ${vistos.length} ${vistos.length===1?'viu':'viram'}</span>${vistos.length?`<span class="ct-vlist">${vistos.slice(0,6).map(esc).join(', ')}${vistos.length>6?'…':''}</span>`:''}</div>
       </div>`;
     }).join('');
@@ -759,18 +819,19 @@
   function ctMarcarVistos(){ if(!db||!contaAtual)return; const nome=contaAtual.nome;
     _coms.filter(comVisivel).forEach(c=>{ const v=c.vistos||[]; if(v.indexOf(nome)<0)db.collection('ls_comunicados').doc(c.id).update({vistos:firebase.firestore.FieldValue.arrayUnion(nome)}).catch(()=>{}); }); }
   window.ctFixarCom=function(id){ const c=_coms.find(x=>x.id===id); if(!c)return; db.collection('ls_comunicados').doc(id).update({fixado:!c.fixado}).catch(e=>alert(e.message)); };
-  window.ctNovoCom=function(){ _editComId=null; document.getElementById('ctComTxt').value=''; document.getElementById('ctComVal').value=''; document.getElementById('ctComBtnOk').textContent='Publicar'; document.getElementById('ctComForm').classList.add('on'); };
+  window.ctNovoCom=function(){ _editComId=null; document.getElementById('ctComTxt').value=''; document.getElementById('ctComVal').value=''; ctComFotoLimpar(); document.getElementById('ctComBtnOk').textContent='Publicar'; document.getElementById('ctComForm').classList.add('on'); };
   window.ctEditarCom=function(id){ const c=_coms.find(x=>x.id===id); if(!c)return; _editComId=id;
     document.getElementById('ctComTxt').value=c.texto||''; document.getElementById('ctComPub').value=c.publico||'todos';
     document.getElementById('ctComVal').value=c.validade?new Date(c.validade).toISOString().slice(0,10):'';
+    if(c.foto){ _comFotoB64=c.foto; document.getElementById('ctComFotoImg').src=c.foto; document.getElementById('ctComFotoPrev').classList.add('on'); } else ctComFotoLimpar();
     document.getElementById('ctComBtnOk').textContent='Salvar'; document.getElementById('ctComForm').classList.add('on'); };
-  window.ctCancelCom=function(){ _editComId=null; document.getElementById('ctComForm').classList.remove('on'); document.getElementById('ctComTxt').value=''; };
+  window.ctCancelCom=function(){ _editComId=null; document.getElementById('ctComForm').classList.remove('on'); document.getElementById('ctComTxt').value=''; ctComFotoLimpar(); };
   window.ctSalvarCom=function(){
     const txt=document.getElementById('ctComTxt').value.trim(); if(!txt)return;
     const pub=document.getElementById('ctComPub').value; const vd=document.getElementById('ctComVal').value;
     const validade=vd?new Date(vd+'T23:59:59').getTime():null;
-    if(_editComId){ db.collection('ls_comunicados').doc(_editComId).update({texto:txt,publico:pub,validade:validade}).then(ctCancelCom).catch(e=>alert('Erro: '+e.message)); }
-    else{ db.collection('ls_comunicados').add({texto:txt,autor:contaAtual.nome,autorEmail:myEmail(),publico:pub,criadoEm:Date.now(),validade:validade,vistos:[contaAtual.nome],fixado:false}).then(ctCancelCom).catch(e=>alert('Erro: '+e.message)); }
+    if(_editComId){ db.collection('ls_comunicados').doc(_editComId).update({texto:txt,publico:pub,validade:validade,foto:_comFotoB64||null}).then(ctCancelCom).catch(e=>alert('Erro: '+e.message)); }
+    else{ db.collection('ls_comunicados').add({texto:txt,autor:contaAtual.nome,autorEmail:myEmail(),publico:pub,criadoEm:Date.now(),validade:validade,foto:_comFotoB64||null,vistos:[contaAtual.nome],fixado:false}).then(ctCancelCom).catch(e=>alert('Erro: '+e.message)); }
   };
   window.ctApagarCom=function(id){ if(confirm('Apagar este comunicado?'))db.collection('ls_comunicados').doc(id).delete().catch(()=>{}); };
 
@@ -785,11 +846,20 @@
     if(_view==='minhas') lista=lista.filter(t=>(t.paraEmails||[]).indexOf(meu)>=0 && (t.feitosPor||[]).indexOf(meu)<0);
     else if(_view==='todas') lista=lista.filter(t=>statusTar(t)!=='feita');
     else if(_view==='feitas') lista=lista.filter(t=>statusTar(t)==='feita');
-    if(!lista.length){ host.innerHTML='<div class="ct-vazio">Nada por aqui.</div>'; updSelBar(); return; }
+    const qt=buscaVal('ctBuscaTar');
+    if(qt) lista=lista.filter(t=>buscaNorm(t.texto).indexOf(qt)>=0||buscaNorm(t.sub).indexOf(qt)>=0||buscaNorm(t.autor).indexOf(qt)>=0||(t.paraEmails||[]).some(e=>buscaNorm(nomeDe(e)).indexOf(qt)>=0));
+    /* ordenação: atrasadas primeiro, depois prazo mais próximo; sem prazo por último (concluídas: mais recentes primeiro) */
+    if(_view!=='feitas'){ const rank={atrasada:0,pendente:1,feita:2};
+      lista.sort((a,b)=>{ const ra=rank[statusTar(a)],rb=rank[statusTar(b)]; if(ra!==rb)return ra-rb;
+        const pa=a.prazo||Infinity,pb=b.prazo||Infinity; if(pa!==pb)return pa-pb; return (b.criadoEm||0)-(a.criadoEm||0); }); }
+    if(!lista.length){ host.innerHTML=`<div class="ct-vazio">${qt?'Nada encontrado para essa busca.':'Nada por aqui.'}</div>`; updSelBar(); return; }
     host.innerHTML=lista.map(t=>{
       const st=statusTar(t); const feitos=t.feitosPor||[], alvos=(t.paraEmails||[]);
       const chk=_selMode?`<button class="ct-chk ${_selTar[t.id]?'on':''}" onclick="ctSelTar('${t.id}')">${_selTar[t.id]?'✓':''}</button>`:'';
-      const avs=alvos.map(e=>{const done=feitos.indexOf(e)>=0;const n=nomeDe(e);const f=FOTOS_DATA[n];const ring=done?'r-feita':(st==='atrasada'?'r-atrasada':'r-pendente');return `<span class="ct-mini ${done?'done':''} ${ring}" title="${esc(n)}${done?' ✓':''}">${f?`<img src="${f}">`:esc((n||'?')[0])}</span>`;}).join('');
+      const log=t.feitosLog||[];
+      const avs=alvos.map(e=>{const done=feitos.indexOf(e)>=0;const n=nomeDe(e);const f=FOTOS_DATA[n];const ring=done?'r-feita':(st==='atrasada'?'r-atrasada':'r-pendente');const lg=log.find(l=>l.email===e);const tip=done?(lg&&lg.ts?` ✓ concluiu ${fmtDataHora(lg.ts)}`:' ✓ concluída'):' · pendente';return `<span class="ct-mini ${done?'done':''} ${ring}" title="${esc(n)}${tip}">${f?`<img src="${f}">`:esc((n||'?')[0])}</span>`;}).join('');
+      const nFeitos=feitos.filter(e=>alvos.indexOf(e)>=0).length;
+      const progbar=alvos.length>1?`<div class="ct-progbar"><i style="width:${Math.round(nFeitos/alvos.length*100)}%"></i></div>`:'';
       const souAlvo=alvos.indexOf(meu)>=0, jaFiz=feitos.indexOf(meu)>=0;
       const btnConcluir=(souAlvo&&!jaFiz&&!_selMode)?`<button class="ct-done-btn" onclick="ctConcluir('${t.id}',this)">Concluir</button>`:'';
       const prazo=t.prazo?`<span class="ct-prazo ${st}">${fmtData(t.prazo)}</span>`:'';
@@ -801,25 +871,32 @@
       const coms=t.comentarios||[]; const aberto=_openComs[t.id];
       const comBtn=_selMode?'':`<button class="ct-cbtn ${aberto?'on':''}" onclick="ctToggleComs('${t.id}')">💬 ${coms.length||''}</button>`;
       const podeComentar=souAlvo||myEmail()===norm(t.autorEmail);
-      const thread=(aberto&&!_selMode)?`<div class="ct-thread">${coms.length?coms.map(k=>`<div class="ct-cm"><b>${esc(k.autor)}</b><span>${fmtHora(k.ts)}</span><p>${esc(k.texto)}</p></div>`).join(''):'<div class="ct-cm-vazio">Sem comentários ainda.</div>'}${podeComentar?`<div class="ct-cm-add"><input id="ctcm-${t.id}" placeholder="Escrever…" onkeydown="if(event.key==='Enter')ctEnviarComent('${t.id}')"><button onclick="ctEnviarComent('${t.id}')">Enviar</button></div>`:''}</div>`:'';
+      const thread=(aberto&&!_selMode)?`<div class="ct-thread">${coms.length?coms.map(k=>`<div class="ct-cm"><b>${esc(k.autor)}</b><span>${fmtHora(k.ts)}</span>${k.texto?`<p>${esc(k.texto)}</p>`:''}${k.foto?`<img class="ct-cm-foto" src="${k.foto}" onclick="ctVerFoto(this.src)" alt="">`:''}</div>`).join(''):'<div class="ct-cm-vazio">Sem comentários ainda.</div>'}${podeComentar?`<div class="ct-cm-add"><input id="ctcm-${t.id}" placeholder="Escrever…" onkeydown="if(event.key==='Enter')ctEnviarComent('${t.id}')"><button class="ct-cm-cam" onclick="ctCmFotoPick('${t.id}')" title="Anexar foto">📷</button><button onclick="ctEnviarComent('${t.id}')">Enviar</button></div>`:''}</div>`:'';
       return `<div class="ct-tar ${st}${_selMode&&_selTar[t.id]?' sel':''}">
         <div class="ct-tar-main">${chk}<div class="ct-tar-txt"><b>${esc(t.texto)}</b>${t.sub?`<small>${esc(t.sub)}</small>`:''}<div class="ct-tar-sub"><span class="ct-tar-de">de ${esc(t.autor)} · ${fmtDataHora(t.criadoEm)}</span>${urg}${rec}${prog}</div></div><div class="ct-actgrp">${wa}${acts}</div></div>
         <div class="ct-tar-foot"><div class="ct-avs">${avs}</div><div class="ct-tar-acts">${comBtn}${prazo}${btnConcluir}</div></div>
+        ${progbar}
         ${thread}
       </div>`;
     }).join('');
     updSelBar();
   }
+  function _updConcluir(id){ return db.collection('ls_tarefas').doc(id).update({feitosPor:firebase.firestore.FieldValue.arrayUnion(myEmail()),feitosLog:firebase.firestore.FieldValue.arrayUnion({email:myEmail(),ts:Date.now()})}); }
   window.ctConcluir=function(id,el){
     const card=el&&el.closest('.ct-tar');
     if(card){ card.classList.add('ct-completing'); const b=document.createElement('div'); b.className='ct-checkburst'; b.textContent='✓'; card.appendChild(b);
-      setTimeout(()=>{ db.collection('ls_tarefas').doc(id).update({feitosPor:firebase.firestore.FieldValue.arrayUnion(myEmail())}).catch(e=>alert(e.message)); }, 580);
-    } else { db.collection('ls_tarefas').doc(id).update({feitosPor:firebase.firestore.FieldValue.arrayUnion(myEmail())}).catch(e=>alert(e.message)); }
+      setTimeout(()=>{ _updConcluir(id).catch(e=>alert(e.message)); }, 580);
+    } else { _updConcluir(id).catch(e=>alert(e.message)); }
   };
   window.ctApagarTar=function(id){ if(confirm('Apagar esta tarefa?'))db.collection('ls_tarefas').doc(id).delete().catch(()=>{}); };
   window.ctToggleComs=function(id){ _openComs[id]=!_openComs[id]; renderTars(); };
-  window.ctEnviarComent=function(id){ const inp=document.getElementById('ctcm-'+id); if(!inp)return; const txt=inp.value.trim(); if(!txt)return;
-    db.collection('ls_tarefas').doc(id).update({comentarios:firebase.firestore.FieldValue.arrayUnion({autor:contaAtual.nome,texto:txt,ts:Date.now()})}).catch(e=>alert(e.message)); inp.value=''; };
+  window.ctEnviarComent=function(id,foto){ const inp=document.getElementById('ctcm-'+id); const txt=inp?inp.value.trim():''; if(!txt&&!foto)return;
+    const cm={autor:contaAtual.nome,texto:txt,ts:Date.now()}; if(foto)cm.foto=foto;
+    db.collection('ls_tarefas').doc(id).update({comentarios:firebase.firestore.FieldValue.arrayUnion(cm)}).catch(e=>alert(e.message)); if(inp)inp.value=''; };
+  window.ctCmFotoPick=function(id){ _cmFotoTarId=id; document.getElementById('ctCmFotoInput').click(); };
+  window.ctCmFotoSel=function(inp){ const f=inp.files&&inp.files[0]; inp.value=''; if(!f||!_cmFotoTarId)return;
+    const id=_cmFotoTarId; _cmFotoTarId=null;
+    comprimirImg(f).then(b64=>ctEnviarComent(id,b64)).catch(()=>alert('Não consegui ler a imagem.')); };
 
   window.ctNovaTar=function(){ _editTarId=null; _selPessoas=[]; document.getElementById('ctTarTxt').value=''; document.getElementById('ctTarSub').value='';
     document.getElementById('ctTarPrio').value='normal'; document.getElementById('ctTarPrazo').value=''; document.getElementById('ctTarRec').value='';
@@ -842,7 +919,7 @@
     const rec=document.getElementById('ctTarRec').value||null;
     const prazo=pz?new Date(pz+'T23:59:59').getTime():null;
     if(_editTarId){ db.collection('ls_tarefas').doc(_editTarId).update({texto:txt,sub:sub,paraEmails:_selPessoas.slice(),prioridade:pr,prazo:prazo,recorrencia:rec,periodo:periodoAtual(rec)}).then(ctCancelTar).catch(e=>alert('Erro: '+e.message)); }
-    else{ db.collection('ls_tarefas').add({texto:txt,sub:sub,autor:contaAtual.nome,autorEmail:myEmail(),paraEmails:_selPessoas.slice(),feitosPor:[],prioridade:pr,criadoEm:Date.now(),prazo:prazo,recorrencia:rec,periodo:periodoAtual(rec),comentarios:[]}).then(ctCancelTar).catch(e=>alert('Erro: '+e.message)); }
+    else{ db.collection('ls_tarefas').add({texto:txt,sub:sub,autor:contaAtual.nome,autorEmail:myEmail(),paraEmails:_selPessoas.slice(),feitosPor:[],feitosLog:[],prioridade:pr,criadoEm:Date.now(),prazo:prazo,recorrencia:rec,periodo:periodoAtual(rec),comentarios:[]}).then(ctCancelTar).catch(e=>alert('Erro: '+e.message)); }
   };
 
   /* ---- WhatsApp: seleção múltipla + envio agrupado por pessoa ---- */
