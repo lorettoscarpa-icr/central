@@ -417,6 +417,12 @@
                   <div><label>Prazo (opcional)</label><input type="date" id="ctTarPrazo"></div>
                   <div></div>
                 </div>
+                <label>Foto (opcional)</label>
+                <div class="ct-attach">
+                  <button class="ct-attach-btn" onclick="document.getElementById('ctTarFotoInput').click()">📷 Anexar foto</button>
+                  <div class="ct-attach-prev" id="ctTarFotoPrev"><img id="ctTarFotoImg"><button onclick="ctTarFotoLimpar()">×</button></div>
+                  <input type="file" id="ctTarFotoInput" accept="image/*" style="display:none" onchange="ctTarFotoSel(this)">
+                </div>
                 <div class="ct-form-acts">
                   <button class="ct-btn-cancel" onclick="ctCancelTar()">Cancelar</button>
                   <button class="ct-btn-ok" id="ctTarBtnOk" onclick="ctSalvarTar()">Delegar</button>
@@ -725,7 +731,7 @@
   function labelRec(rec){ return rec==='diaria'?'Todo dia':rec==='semanal'?'Toda semana':rec==='mensal'?'Todo mês':''; }
 
   /* ---- v5: fotos (compressão client-side), lightbox, busca ---- */
-  let _comFotoB64=null, _cmFotoTarId=null, _cmFotoCol='ls_tarefas';
+  let _comFotoB64=null, _tarFotoB64=null, _cmFotoTarId=null, _cmFotoCol='ls_tarefas';
   function comprimirImg(file){ return new Promise((res,rej)=>{
     const rd=new FileReader(); rd.onerror=rej;
     rd.onload=()=>{ const img=new Image(); img.onerror=rej;
@@ -881,6 +887,7 @@
       const thread=(aberto&&!_selMode)?`<div class="ct-thread">${coms.length?coms.map(k=>`<div class="ct-cm"><b>${esc(k.autor)}</b><span>${fmtHora(k.ts)}</span>${k.texto?`<p>${esc(k.texto)}</p>`:''}${k.foto?`<img class="ct-cm-foto" src="${k.foto}" onclick="ctVerFoto(this.src)" alt="">`:''}</div>`).join(''):'<div class="ct-cm-vazio">Sem comentários ainda.</div>'}${podeComentar?`<div class="ct-cm-add"><input id="ctcm-${t.id}" placeholder="Escrever…" onkeydown="if(event.key==='Enter')ctEnviarComent('${t.id}')"><button class="ct-cm-cam" onclick="ctCmFotoPick('${t.id}')" title="Anexar foto">📷</button><button onclick="ctEnviarComent('${t.id}')">Enviar</button></div>`:''}</div>`:'';
       return `<div class="ct-tar ${st}${_selMode&&_selTar[t.id]?' sel':''}">
         <div class="ct-tar-main">${chk}<div class="ct-tar-txt"><b>${esc(t.texto)}</b>${t.sub?`<small>${esc(t.sub)}</small>`:''}<div class="ct-tar-sub"><span class="ct-tar-de">de ${esc(t.autor)} · ${fmtDataHora(t.criadoEm)}</span>${urg}${rec}${prog}</div></div><div class="ct-actgrp">${wa}${acts}</div></div>
+        ${t.foto?`<img class="ct-foto" src="${t.foto}" onclick="ctVerFoto(this.src)" alt="">`:''}
         <div class="ct-tar-foot"><div class="ct-avs">${avs}</div><div class="ct-tar-acts">${comBtn}${prazo}${btnConcluir}</div></div>
         ${progbar}
         ${thread}
@@ -913,13 +920,18 @@
 
   window.ctNovaTar=function(){ _editTarId=null; _selPessoas=[]; document.getElementById('ctTarTxt').value=''; document.getElementById('ctTarSub').value='';
     document.getElementById('ctTarPrio').value='normal'; document.getElementById('ctTarPrazo').value=''; document.getElementById('ctTarRec').value='';
+    ctTarFotoLimpar();
     document.getElementById('ctTarBtnOk').textContent='Delegar'; montarPessoas(); document.getElementById('ctTarForm').classList.add('on'); };
   window.ctEditarTar=function(id){ const t=_tars.find(x=>x.id===id); if(!t)return; _editTarId=id; _selPessoas=(t.paraEmails||[]).slice();
     document.getElementById('ctTarTxt').value=t.texto||''; document.getElementById('ctTarSub').value=t.sub||'';
     document.getElementById('ctTarPrio').value=t.prioridade||'normal'; document.getElementById('ctTarRec').value=t.recorrencia||'';
     document.getElementById('ctTarPrazo').value=t.prazo?new Date(t.prazo).toISOString().slice(0,10):'';
+    if(t.foto){ _tarFotoB64=t.foto; document.getElementById('ctTarFotoImg').src=t.foto; document.getElementById('ctTarFotoPrev').classList.add('on'); } else ctTarFotoLimpar();
     document.getElementById('ctTarBtnOk').textContent='Salvar'; montarPessoas(); document.getElementById('ctTarForm').classList.add('on'); };
-  window.ctCancelTar=function(){ _editTarId=null; document.getElementById('ctTarForm').classList.remove('on'); document.getElementById('ctTarTxt').value=''; document.getElementById('ctTarSub').value=''; _selPessoas=[]; };
+  window.ctCancelTar=function(){ _editTarId=null; document.getElementById('ctTarForm').classList.remove('on'); document.getElementById('ctTarTxt').value=''; document.getElementById('ctTarSub').value=''; _selPessoas=[]; ctTarFotoLimpar(); };
+  window.ctTarFotoSel=function(inp){ const f=inp.files&&inp.files[0]; inp.value=''; if(!f)return;
+    comprimirImg(f).then(b64=>{ _tarFotoB64=b64; document.getElementById('ctTarFotoImg').src=b64; document.getElementById('ctTarFotoPrev').classList.add('on'); }).catch(()=>alert('Não consegui ler a imagem.')); };
+  window.ctTarFotoLimpar=function(){ _tarFotoB64=null; const p=document.getElementById('ctTarFotoPrev'); if(p){p.classList.remove('on'); document.getElementById('ctTarFotoImg').src='';} };
   window.ctTogglePessoa=function(email,el){ const i=_selPessoas.indexOf(email); if(i>=0){_selPessoas.splice(i,1);el.classList.remove('on');}else{_selPessoas.push(email);el.classList.add('on');} };
   function montarPessoas(){ const host=document.getElementById('ctTarPessoas'); if(!host)return;
     host.innerHTML=Object.keys(PESSOAS).map(email=>{const p=PESSOAS[email];const n=p.nome;const f=FOTOS_DATA[n];const on=_selPessoas.indexOf(email)>=0?' on':'';
@@ -931,8 +943,8 @@
     const pr=document.getElementById('ctTarPrio').value; const pz=document.getElementById('ctTarPrazo').value;
     const rec=document.getElementById('ctTarRec').value||null;
     const prazo=pz?new Date(pz+'T23:59:59').getTime():null;
-    if(_editTarId){ db.collection('ls_tarefas').doc(_editTarId).update({texto:txt,sub:sub,paraEmails:_selPessoas.slice(),prioridade:pr,prazo:prazo,recorrencia:rec,periodo:periodoAtual(rec)}).then(ctCancelTar).catch(e=>alert('Erro: '+e.message)); }
-    else{ db.collection('ls_tarefas').add({texto:txt,sub:sub,autor:contaAtual.nome,autorEmail:myEmail(),paraEmails:_selPessoas.slice(),feitosPor:[],feitosLog:[],prioridade:pr,criadoEm:Date.now(),prazo:prazo,recorrencia:rec,periodo:periodoAtual(rec),comentarios:[]}).then(ctCancelTar).catch(e=>alert('Erro: '+e.message)); }
+    if(_editTarId){ db.collection('ls_tarefas').doc(_editTarId).update({texto:txt,sub:sub,paraEmails:_selPessoas.slice(),prioridade:pr,prazo:prazo,recorrencia:rec,periodo:periodoAtual(rec),foto:_tarFotoB64||null}).then(ctCancelTar).catch(e=>alert('Erro: '+e.message)); }
+    else{ db.collection('ls_tarefas').add({texto:txt,sub:sub,autor:contaAtual.nome,autorEmail:myEmail(),paraEmails:_selPessoas.slice(),feitosPor:[],feitosLog:[],prioridade:pr,criadoEm:Date.now(),prazo:prazo,recorrencia:rec,periodo:periodoAtual(rec),comentarios:[],foto:_tarFotoB64||null}).then(ctCancelTar).catch(e=>alert('Erro: '+e.message)); }
   };
 
   /* ---- WhatsApp: seleção múltipla + envio agrupado por pessoa ---- */
