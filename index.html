@@ -136,7 +136,7 @@
     .shell:not(.nav-hidden) .scrim{display:block;position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:35}
   }
 /* ===== Comunicados e Tarefas — painel nativo ===== */
-#stageComtar{position:absolute;inset:0;display:none;overflow-y:auto;background-color:#2c3719;background-image:repeating-linear-gradient(45deg,rgba(212,180,90,.05) 0px,rgba(212,180,90,.05) 1px,transparent 1px,transparent 13px),radial-gradient(ellipse 130% 85% at 50% -5%,rgba(84,104,48,.5) 0%,rgba(59,74,34,.22) 45%,rgba(31,39,17,0) 78%),linear-gradient(180deg,#39481f 0%,#2c3719 52%,#222c12 100%);background-attachment:fixed;padding:22px clamp(14px,4vw,40px) 60px;}
+#stageComtar{position:absolute;inset:0;display:none;overflow-y:auto;background-color:#42522a;background-image:repeating-linear-gradient(45deg,rgba(212,180,90,.055) 0px,rgba(212,180,90,.055) 1px,transparent 1px,transparent 13px),radial-gradient(ellipse 130% 85% at 50% -5%,rgba(96,118,56,.35) 0%,rgba(74,92,42,.15) 45%,rgba(59,74,34,0) 78%),linear-gradient(180deg,#46562a 0%,#42522a 55%,#3b4a22 100%);background-attachment:fixed;padding:22px clamp(14px,4vw,40px) 60px;}
 #stageComtar.show{display:block;}
 #stageComtar *{box-sizing:border-box;}
 .ct-wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:26px;}
@@ -252,6 +252,7 @@
 .ct-lightbox.on{display:flex;}
 .ct-lightbox img{max-width:94vw;max-height:92vh;border:1px solid rgba(201,169,80,.5);border-radius:2px;}
 
+.ct-card-foot .ct-cbtn{margin-left:auto;}
 /* ---- v3: fixado, seleção múltipla, WhatsApp ---- */
 .ct-head-btns{display:flex;gap:6px;}
 .ct-add.ghost{background:transparent;border:1px solid rgba(201,169,80,.4);color:var(--gold);}
@@ -475,7 +476,7 @@
   const AREAS={
     vendas:        ['metas','entregas','encomendas','posvenda','parcerias','cartaopresente','consertos'],
     estoque:       ['centralestoque'],
-    financeiro_rh: ['loretto-icr','relatoriodevendas','comissoes','recursoshumanos'],
+    financeiro_rh: ['loretto-icr','caixa-cruzamento','relatoriodevendas','comissoes','recursoshumanos'],
     marketing:     ['colecoes','campanhas','modelos','trafegopago']
   };
   const AREA_LABEL={vendas:'Vendas',estoque:'Estoque',financeiro_rh:'Financeiro e RH',marketing:'Marketing',diretoria:'Diretoria'};
@@ -515,6 +516,7 @@
       {tab:'avarias',nome:'Defeitos'},{tab:'suprimentos',nome:'Suprimentos'}
     ]},
     {id:'loretto-icr',          nome:'ICR Control'},
+    {id:'caixa-cruzamento',     nome:'Cruzamento de Caixa'},
     {id:'comissoes',            nome:'Pagamentos'},
     {id:'recursoshumanos',      nome:'RH'},
     {id:'relatoriodevendas',    nome:'Relatório de Vendas'},
@@ -700,7 +702,7 @@
     'lorraynelorettoscarpa@gmail.com':''
   };
   let _wired=false, _coms=[], _tars=[], _view='minhas', _selPessoas=[];
-  let _editComId=null, _editTarId=null, _openComs={}, _unsubC=null, _unsubT=null;
+  let _editComId=null, _editTarId=null, _openComs={}, _openComsC={}, _unsubC=null, _unsubT=null;
   let _selMode=false, _selTar={}, _waIds=[];
 
   PANEL_NOME['comtar']='Comunicados e Tarefas';
@@ -723,7 +725,7 @@
   function labelRec(rec){ return rec==='diaria'?'Todo dia':rec==='semanal'?'Toda semana':rec==='mensal'?'Todo mês':''; }
 
   /* ---- v5: fotos (compressão client-side), lightbox, busca ---- */
-  let _comFotoB64=null, _cmFotoTarId=null;
+  let _comFotoB64=null, _cmFotoTarId=null, _cmFotoCol='ls_tarefas';
   function comprimirImg(file){ return new Promise((res,rej)=>{
     const rd=new FileReader(); rd.onerror=rej;
     rd.onload=()=>{ const img=new Image(); img.onerror=rej;
@@ -808,12 +810,16 @@
       const val=c.validade&&!c.fixado?`· expira ${fmtData(c.validade)}`:'';
       const pin=podeCriar()?`<button class="ct-ic ${c.fixado?'pinon':''}" onclick="ctFixarCom('${c.id}')" title="${c.fixado?'Desafixar':'Fixar no topo'}">📌</button>`:(c.fixado?'<span class="ct-ic pinon" style="cursor:default">📌</span>':'');
       const acts=podeCriar()?`<button class="ct-ic" onclick="ctEditarCom('${c.id}')" title="Editar">✎</button><button class="ct-x" onclick="ctApagarCom('${c.id}')" title="Apagar">×</button>`:'';
+      const resps=c.comentarios||[]; const abertoC=_openComsC[c.id];
+      const respBtn=`<button class="ct-cbtn ${abertoC?'on':''}" onclick="ctToggleComsC('${c.id}')">💬 ${resps.length?resps.length+' resposta'+(resps.length>1?'s':''):'Responder'}</button>`;
+      const threadC=abertoC?`<div class="ct-thread">${resps.length?resps.map(k=>`<div class="ct-cm"><b>${esc(k.autor)}</b><span>${fmtHora(k.ts)}</span>${k.texto?`<p>${esc(k.texto)}</p>`:''}${k.foto?`<img class="ct-cm-foto" src="${k.foto}" onclick="ctVerFoto(this.src)" alt="">`:''}</div>`).join(''):'<div class="ct-cm-vazio">Sem respostas ainda.</div>'}<div class="ct-cm-add"><input id="ctcmc-${c.id}" placeholder="Responder…" onkeydown="if(event.key==='Enter')ctEnviarComentCom('${c.id}')"><button class="ct-cm-cam" onclick="ctCmFotoPickCom('${c.id}')" title="Anexar foto">📷</button><button onclick="ctEnviarComentCom('${c.id}')">Enviar</button></div></div>`:'';
       return `<div class="ct-card${c.fixado?' fix':''}">
         ${c.fixado?'<div class="ct-fixtag">📌 Fixado</div>':''}
         <div class="ct-card-top">${avatar(c.autor)}<div class="ct-card-meta"><b>${esc(c.autor)}</b><span>${fmtDataHora(c.criadoEm)} · ${esc(pub)} ${val}</span></div><div class="ct-actgrp">${pin}${acts}</div></div>
         <div class="ct-card-txt">${esc(c.texto)}</div>
         ${c.foto?`<img class="ct-foto" src="${c.foto}" onclick="ctVerFoto(this.src)" alt="">`:''}
-        <div class="ct-card-foot"><span class="ct-eye">👁 ${vistos.length} ${vistos.length===1?'viu':'viram'}</span>${vistos.length?`<span class="ct-vlist">${vistos.slice(0,6).map(esc).join(', ')}${vistos.length>6?'…':''}</span>`:''}</div>
+        <div class="ct-card-foot"><span class="ct-eye">👁 ${vistos.length} ${vistos.length===1?'viu':'viram'}</span>${vistos.length?`<span class="ct-vlist">${vistos.slice(0,6).map(esc).join(', ')}${vistos.length>6?'…':''}</span>`:''}${respBtn}</div>
+        ${threadC}
       </div>`;
     }).join('');
   }
@@ -832,7 +838,7 @@
     const pub=document.getElementById('ctComPub').value; const vd=document.getElementById('ctComVal').value;
     const validade=vd?new Date(vd+'T23:59:59').getTime():null;
     if(_editComId){ db.collection('ls_comunicados').doc(_editComId).update({texto:txt,publico:pub,validade:validade,foto:_comFotoB64||null}).then(ctCancelCom).catch(e=>alert('Erro: '+e.message)); }
-    else{ db.collection('ls_comunicados').add({texto:txt,autor:contaAtual.nome,autorEmail:myEmail(),publico:pub,criadoEm:Date.now(),validade:validade,foto:_comFotoB64||null,vistos:[contaAtual.nome],fixado:false}).then(ctCancelCom).catch(e=>alert('Erro: '+e.message)); }
+    else{ db.collection('ls_comunicados').add({texto:txt,autor:contaAtual.nome,autorEmail:myEmail(),publico:pub,criadoEm:Date.now(),validade:validade,foto:_comFotoB64||null,vistos:[contaAtual.nome],fixado:false,comentarios:[]}).then(ctCancelCom).catch(e=>alert('Erro: '+e.message)); }
   };
   window.ctApagarCom=function(id){ if(confirm('Apagar este comunicado?'))db.collection('ls_comunicados').doc(id).delete().catch(()=>{}); };
 
@@ -894,10 +900,16 @@
   window.ctEnviarComent=function(id,foto){ const inp=document.getElementById('ctcm-'+id); const txt=inp?inp.value.trim():''; if(!txt&&!foto)return;
     const cm={autor:contaAtual.nome,texto:txt,ts:Date.now()}; if(foto)cm.foto=foto;
     db.collection('ls_tarefas').doc(id).update({comentarios:firebase.firestore.FieldValue.arrayUnion(cm)}).catch(e=>alert(e.message)); if(inp)inp.value=''; };
-  window.ctCmFotoPick=function(id){ _cmFotoTarId=id; document.getElementById('ctCmFotoInput').click(); };
+  window.ctCmFotoPick=function(id){ _cmFotoTarId=id; _cmFotoCol='ls_tarefas'; document.getElementById('ctCmFotoInput').click(); };
   window.ctCmFotoSel=function(inp){ const f=inp.files&&inp.files[0]; inp.value=''; if(!f||!_cmFotoTarId)return;
-    const id=_cmFotoTarId; _cmFotoTarId=null;
-    comprimirImg(f).then(b64=>ctEnviarComent(id,b64)).catch(()=>alert('Não consegui ler a imagem.')); };
+    const id=_cmFotoTarId, col=_cmFotoCol; _cmFotoTarId=null;
+    comprimirImg(f).then(b64=>{ if(col==='ls_comunicados')ctEnviarComentCom(id,b64); else ctEnviarComent(id,b64); }).catch(()=>alert('Não consegui ler a imagem.')); };
+  /* ---- respostas nos comunicados ---- */
+  window.ctToggleComsC=function(id){ _openComsC[id]=!_openComsC[id]; renderComs(); };
+  window.ctEnviarComentCom=function(id,foto){ const inp=document.getElementById('ctcmc-'+id); const txt=inp?inp.value.trim():''; if(!txt&&!foto)return;
+    const cm={autor:contaAtual.nome,texto:txt,ts:Date.now()}; if(foto)cm.foto=foto;
+    db.collection('ls_comunicados').doc(id).update({comentarios:firebase.firestore.FieldValue.arrayUnion(cm)}).catch(e=>alert(e.message)); if(inp)inp.value=''; };
+  window.ctCmFotoPickCom=function(id){ _cmFotoTarId=id; _cmFotoCol='ls_comunicados'; document.getElementById('ctCmFotoInput').click(); };
 
   window.ctNovaTar=function(){ _editTarId=null; _selPessoas=[]; document.getElementById('ctTarTxt').value=''; document.getElementById('ctTarSub').value='';
     document.getElementById('ctTarPrio').value='normal'; document.getElementById('ctTarPrazo').value=''; document.getElementById('ctTarRec').value='';
