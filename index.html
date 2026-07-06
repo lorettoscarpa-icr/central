@@ -876,7 +876,7 @@
       const wa=(podeCriar()&&!_selMode)?`<button class="ct-wa" onclick="ctWaTarefa('${t.id}')" title="Avisar no WhatsApp">${WA_SVG}</button>`:'';
       const acts=(podeCriar()&&!_selMode)?`<button class="ct-ic" onclick="ctEditarTar('${t.id}')" title="Editar">✎</button><button class="ct-x" onclick="ctApagarTar('${t.id}')" title="Apagar">×</button>`:'';
       const coms=t.comentarios||[]; const aberto=_openComs[t.id];
-      const comBtn=_selMode?'':`<button class="ct-cbtn ${aberto?'on':''}" onclick="ctToggleComs('${t.id}')">💬 ${coms.length||''}</button>`;
+      const comBtn=_selMode?'':`<button class="ct-cbtn ${aberto?'on':''}" onclick="ctToggleComs('${t.id}')">💬 ${coms.length?coms.length+' resposta'+(coms.length>1?'s':''):'Responder'}</button>`;
       const podeComentar=souAlvo||myEmail()===norm(t.autorEmail);
       const thread=(aberto&&!_selMode)?`<div class="ct-thread">${coms.length?coms.map(k=>`<div class="ct-cm"><b>${esc(k.autor)}</b><span>${fmtHora(k.ts)}</span>${k.texto?`<p>${esc(k.texto)}</p>`:''}${k.foto?`<img class="ct-cm-foto" src="${k.foto}" onclick="ctVerFoto(this.src)" alt="">`:''}</div>`).join(''):'<div class="ct-cm-vazio">Sem comentários ainda.</div>'}${podeComentar?`<div class="ct-cm-add"><input id="ctcm-${t.id}" placeholder="Escrever…" onkeydown="if(event.key==='Enter')ctEnviarComent('${t.id}')"><button class="ct-cm-cam" onclick="ctCmFotoPick('${t.id}')" title="Anexar foto">📷</button><button onclick="ctEnviarComent('${t.id}')">Enviar</button></div>`:''}</div>`:'';
       return `<div class="ct-tar ${st}${_selMode&&_selTar[t.id]?' sel':''}">
