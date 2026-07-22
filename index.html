@@ -36,7 +36,7 @@
   .known{display:none;margin-bottom:22px}.known.on{display:block}
   .known .avatar{width:88px;height:88px;font-size:36px;margin:0 auto 12px}
   .known .greet{font-family:'Playfair Display',serif;font-weight:600;font-size:clamp(24px,6vw,32px);line-height:1.1}.known .greet em{font-style:italic;color:var(--gold)}
-  .known .km{font-family:'DM Mono',monospace;font-size:12px;color:var(--creme-suave);margin-top:6px}
+  .known .km{display:none}
   .field{margin-bottom:13px;text-align:left}
   .field input{width:100%;background:rgba(0,0,0,.16);border:1px solid var(--linha-fraca);color:var(--creme);font-family:'DM Mono',monospace;font-size:15px;padding:16px 16px;border-radius:3px;transition:border-color .25s,box-shadow .25s}
   .field input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,169,80,.12)}
@@ -330,7 +330,6 @@
     <div class="erro" id="erro"></div>
     <button class="btn" id="btn" onclick="entrar()">Entrar</button>
     <div class="acoes"><button class="lk trocar" id="trocar" onclick="resetLogin()">← Não é você? Entrar com outra conta</button><button class="lk esqueci" onclick="esqueci()">Esqueci minha senha</button></div>
-    <div class="foot">Loretto Scarpa · Sistema Interno</div>
     <div class="avisoFB" id="avisoFB">Pré-visualização: o login e os painéis só funcionam publicados em lorettoscarpa-icr.github.io</div>
   </div>
 </section>
