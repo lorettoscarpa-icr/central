@@ -470,18 +470,18 @@
   const PESSOAS={
     'lorettoscarpa@gmail.com'         :{nome:'Gregory',  fem:false, areas:'*'},
     'larissalorettoscarpa@gmail.com'  :{nome:'Larissa',  fem:true,  areas:'*'},
-    'jhenniferlorettoscarpa@gmail.com':{nome:'Jhennifer',fem:true,  areas:['vendas'], paineis:['supervisora','metas','entregas','encomendas','posvenda','parcerias','cartaopresente','consertos']},
+    'jhenniferlorettoscarpa@gmail.com':{nome:'Jhennifer',fem:true,  areas:['vendas'], paineis:['supervisora','metas','entregas','envios','encomendas','posvenda','parcerias','cartaopresente','consertos']},
     'ialeylorettoscarpa@gmail.com'    :{nome:'Ialey',    fem:true,  areas:['vendas'], vend:true},
     'michellylorettoscarpa@gmail.com' :{nome:'Michelly', fem:true,  areas:['vendas'], vend:true},
     'natalialorettoscarpa@gmail.com'  :{nome:'Natália',  fem:true,  areas:['vendas'], vend:true},
     'yurilorettoscarpa@gmail.com'     :{nome:'Yuri',     fem:false, areas:['estoque'], extra:['encomendas','entregas']},
-    'edsonlorettoscarpa@gmail.com'    :{nome:'Edson',    fem:false, areas:['estoque'], paineis:['encomendas','entregas','centralestoque']},
+    'edsonlorettoscarpa@gmail.com'    :{nome:'Edson',    fem:false, areas:['estoque'], paineis:['encomendas','entregas','envios','centralestoque']},
     'aviaconsultoriaempresarial@gmail.com' :{nome:'Ávia Consultoria', fem:true, areas:['financeiro_rh'], paineis:['loretto-icr','relatoriodevendas','comissoes','recursoshumanos']},
     'lorraynelorettoscarpa@gmail.com'    :{nome:'Lorrayne', fem:true,  areas:['marketing'], paineis:['campanhas']} /* <- troque pela conta real da Ávia no Firebase Auth */
   };
   /* ===== ÁREAS — cada área e seus painéis (edite à vontade) ===== */
   const AREAS={
-    vendas:        ['metas','entregas','encomendas','posvenda','parcerias','cartaopresente','consertos'],
+    vendas:        ['metas','entregas','envios','encomendas','posvenda','parcerias','cartaopresente','consertos'],
     estoque:       ['centralestoque'],
     financeiro_rh: ['loretto-icr','caixa-cruzamento','relatoriodevendas','comissoes','recursoshumanos'],
     marketing:     ['colecoes','campanhas','modelos','trafegopago']
@@ -508,12 +508,14 @@
     posvenda:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/>',
     parcerias:'<path d="M10 8H7a4 4 0 0 0 0 8h3"/><path d="M14 8h3a4 4 0 0 1 0 8h-3"/><path d="M9 12h6"/>',
     consertos:'<path d="M14.6 6.4a3.5 3.5 0 0 0-4.7 4.7l-6.5 6.5 2 2 6.5-6.5a3.5 3.5 0 0 0 4.7-4.7l-2.3 2.3-2-2 2.3-2.3z"/>',
-    cartaopresente:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/>'
+    cartaopresente:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/>',
+    envios:'<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>'
   };
   const PAINEIS=[
     {id:'supervisora',          nome:'Supervisora'},
     {id:'metas',                nome:'Metas'},
     {id:'entregas',             nome:'Entregas'},
+    {id:'envios',               nome:'Envios', url:BASE+'entregas/?painel=envios'},
     {id:'encomendas',           nome:'Encomendas'},
     {id:'posvenda',             nome:'Pós-venda'},
     {id:'parcerias',            nome:'Parcerias',          pending:false},
@@ -537,7 +539,7 @@
   /* pending:true => painel ainda não publicado: aparece como "Em breve".
      Quando subir o repo, troque para pending:false (e use slug:'nome-do-repo' se o id≠repo). */
   const PANEL_URL={},PANEL_NOME={},PANEL_PEND={};
-  PAINEIS.forEach(p=>{PANEL_NOME[p.id]=p.nome;PANEL_PEND[p.id]=!!p.pending;PANEL_URL[p.id]=p.pending?null:BASE+(p.slug||p.id)+'/';});
+  PAINEIS.forEach(p=>{PANEL_NOME[p.id]=p.nome;PANEL_PEND[p.id]=!!p.pending;PANEL_URL[p.id]=p.pending?null:(p.url||BASE+(p.slug||p.id)+'/');});
 
   /* ===== ACESSO POR PESSOA — edite só aqui =====
      '*'  = vê TODOS os painéis (diretoria).
