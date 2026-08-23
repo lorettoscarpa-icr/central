@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="c3">
+<meta name="app-ver" content="c4">
 <title>Central Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Barlow:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -113,25 +113,10 @@
     #lsAtualizar .lsa-ok{min-height:44px;padding:10px 16px}
     #lsAtualizar .lsa-x{min-height:44px;min-width:34px}
   }
-  /* aviso de painel atualizado: mesma linguagem, mas fica acima do aviso do hub */
-  #lsPaineis{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(74px + env(safe-area-inset-bottom));
-    z-index:99998;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 24px);
-    padding:10px 12px;border-radius:999px;font-family:'Barlow',sans-serif;font-size:13px;
-    background:rgba(20,22,18,.96);color:#f4efe2;border:1px solid rgba(201,169,80,.5);
-    box-shadow:0 8px 28px rgba(0,0,0,.45)}
-  #lsPaineis .lsp-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #lsPaineis .lsp-ok{flex:none;border:0;border-radius:999px;padding:8px 14px;min-height:36px;cursor:pointer;
-    font-family:inherit;font-size:13px;font-weight:700;background:#c9a950;color:#20240f}
-  #lsPaineis .lsp-ok:disabled{opacity:.65;cursor:default}
-  #lsPaineis .lsp-x{flex:none;border:0;background:transparent;color:rgba(244,239,226,.55);
-    font-size:19px;line-height:1;cursor:pointer;padding:6px 4px;min-height:34px}
   /* bolinha discreta no item do menu que foi atualizado */
   .nav-item.tem-novidade > .lbl::after{content:"";display:inline-block;width:6px;height:6px;
     border-radius:50%;background:#c9a950;margin-left:7px;vertical-align:middle}
   @media (max-width:760px){
-    #lsPaineis{font-size:14px;padding:12px;gap:8px;width:calc(100vw - 24px);justify-content:space-between}
-    #lsPaineis .lsp-ok{min-height:44px;padding:10px 16px}
-    #lsPaineis .lsp-x{min-height:44px;min-width:34px}
   }
   .nav-item:hover{background:rgba(201,169,80,.08);color:var(--creme)}
   .nav-item.active{background:rgba(201,169,80,.14);color:var(--creme)}
@@ -1175,28 +1160,72 @@
 })();
 
 
-/* ====== AVISO DE VERSÃO NOVA ======
-   O app é um arquivo só, instalado na tela inicial do celular. Sem isso, dá pra ficar
-   semanas rodando uma versão velha sem ninguém perceber — foi assim que uma entrega foi
-   salva sem a lista de peças e o entregador não entendeu por quê.
-   Como funciona: pergunta ao servidor SÓ os primeiros 3 KB do arquivo publicado e lê o
-   <meta name="app-ver"> de lá. Não baixa o app inteiro (é ~1 MB) — custa alguns bytes.
-   E NUNCA recarrega sozinho: quem toca é a pessoa, senão o que ela está digitando some. */
+/* ====== O QUE FOI ATUALIZADO ======
+   UM aviso só, cobrindo a Central e os painéis que ESTA pessoa enxerga. Dois avisos pra
+   dizer a mesma coisa era ruído; e checar painel que ela não vê seria avisar de novidade
+   que não é dela.
+
+   O app é um arquivo só, instalado na tela inicial do celular. Sem isso dá pra ficar
+   semanas numa versão velha sem ninguém perceber — foi assim que uma entrega foi
+   cadastrada sem a lista de peças e o entregador não entendeu por quê.
+
+   O que custa: da Central lê 3 KB (o <meta name="app-ver">, não a página de 1 MB); de cada
+   painel pergunta só o cabeçalho (HEAD, zero bytes de conteúdo).
+
+   E NUNCA recarrega sozinho: quem toca é a pessoa, senão some o que ela está digitando. */
 (function(){
   var META=document.querySelector('meta[name="app-ver"]');
   var AQUI=(META&&META.content||'').trim();
-  var alvo=document.getElementById('app-ver'); if(alvo&&!alvo.textContent) alvo.textContent=AQUI;
-  if(!AQUI) return;
-  if(location.protocol==='file:') return;                 // aberto do disco: não há o que checar
-  var avisada=null, ultima=0, MIN=10*60*1000, CICLO=30*60*1000;
+  var mostra=document.getElementById('app-ver');
+  if(mostra&&!mostra.textContent) mostra.textContent=AQUI;
 
-  function lerVersaoPublicada(){
-    // ?_v= e no-store juntos: alguns celulares ignoram um ou outro
+  var CH='loretto_paineis_versao';
+  var vistas={}; try{ vistas=JSON.parse(localStorage.getItem(CH)||'{}')||{}; }catch(e){}
+  var mudou={}, novaCentral='', ultima=0, MIN=10*60*1000, CICLO=30*60*1000, _esperando=null;
+
+  function guarda(){ try{ localStorage.setItem(CH, JSON.stringify(vistas)); }catch(e){} }
+  function marca(s){                       // vira um pedacinho estável pra pôr na URL
+    var h=0, t=String(s||'');
+    for(var i=0;i<t.length;i++){ h=((h<<5)-h+t.charCodeAt(i))|0; }
+    return Math.abs(h).toString(36);
+  }
+  // a URL do painel com a marca da versão que a Central conhece
+  window.LS_urlPainel=function(id, url){
+    var v=vistas[id];
+    if(!url || !v) return url;
+    return url + (url.indexOf('?')>=0?'&':'?') + '_v=' + marca(v);
+  };
+
+  /* Só os painéis DESTA pessoa: são os que estão no menu dela. */
+  function meusPaineis(){
+    var urls=(window.PANEL_URL||{}), out={};
+    var bs=document.querySelectorAll('.nav-item[data-p]');
+    for(var i=0;i<bs.length;i++){
+      var id=bs[i].getAttribute('data-p');
+      if(id && urls[id] && !out[id]) out[id]=urls[id];
+    }
+    return out;
+  }
+
+  function assinatura(url){
+    /* HEAD traz só cabeçalho. Se o servidor não mandar nada útil, devolve vazio e a
+       Central não afirma nada — melhor calada que avisando errado. */
+    return fetch(url,{method:'HEAD',cache:'no-store'}).then(function(r){
+      if(!r || !r.ok) return '';
+      var et=r.headers.get('ETag')||'', lm=r.headers.get('Last-Modified')||'',
+          cl=r.headers.get('Content-Length')||'';
+      return (et||lm||cl) ? (et+'|'+lm+'|'+cl) : '';
+    }).catch(function(){ return ''; });
+  }
+
+  function versaoDaCentral(){
+    if(!AQUI) return Promise.resolve('');
+    if(location.protocol==='file:') return Promise.resolve('');
     var url=location.pathname+'?_v='+Date.now();
     return fetch(url,{cache:'no-store',headers:{'Range':'bytes=0-3071'}}).then(function(r){
       if(!r.ok && r.status!==206) throw 0;
       if(r.status===206 || !r.body || !r.body.getReader) return r.text();
-      // servidor ignorou o Range: lê só o começo e corta a conexão em vez de baixar 1 MB
+      // servidor ignorou o Range: lê só o começo e corta em vez de baixar 1 MB
       var rd=r.body.getReader(), dec=new TextDecoder(), txt='';
       return (function passo(){
         return rd.read().then(function(o){
@@ -1208,91 +1237,7 @@
       })();
     }).then(function(txt){
       var m=/<meta\s+name="app-ver"\s+content="([^"]+)"/i.exec(txt||'');
-      return m?m[1].trim():'';
-    });
-  }
-
-  function mostrar(nova){
-    if(document.getElementById('lsAtualizar')) return;
-    var d=document.createElement('div');
-    d.id='lsAtualizar';
-    d.setAttribute('role','status');
-    d.innerHTML='<span class="lsa-txt">Tem versão nova do sistema</span>'+
-      '<button type="button" class="lsa-ok">Atualizar</button>'+
-      '<button type="button" class="lsa-x" aria-label="Agora não">&times;</button>';
-    d.querySelector('.lsa-ok').onclick=atualizar;
-    d.querySelector('.lsa-x').onclick=function(){ d.remove(); ultima=Date.now(); avisada=null; };
-    document.body.appendChild(d);
-  }
-
-  function atualizar(){
-    var b=document.querySelector('#lsAtualizar .lsa-ok');
-    if(b){ b.disabled=true; b.textContent='Atualizando…'; }
-    var fim=function(){ try{ location.reload(); }catch(e){ location.href=location.pathname; } };
-    var ps=[];
-    try{ if(window.caches&&caches.keys) ps.push(caches.keys().then(function(ks){
-      return Promise.all(ks.map(function(k){return caches.delete(k);})); })); }catch(e){}
-    try{ if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations)
-      ps.push(navigator.serviceWorker.getRegistrations().then(function(rs){
-        rs.forEach(function(r){ try{r.unregister();}catch(e){} }); })); }catch(e){}
-    // não espera pra sempre: 2s e recarrega de qualquer jeito
-    var t=setTimeout(fim,2000);
-    Promise.all(ps).then(function(){ clearTimeout(t); fim(); }, function(){ clearTimeout(t); fim(); });
-  }
-
-  function checar(){
-    if(avisada) return;
-    if(Date.now()-ultima<MIN) return;
-    ultima=Date.now();
-    lerVersaoPublicada().then(function(v){
-      if(v && v!==AQUI){ avisada=v; mostrar(v); }
-    }).catch(function(){});
-  }
-
-  // primeira checagem sem atrapalhar o carregamento; depois de tempos em tempos;
-  // e quando ela volta pro app (é aí que costuma ter ficado velho)
-  setTimeout(function(){ ultima=0; checar(); }, 20000);
-  setInterval(checar, CICLO);
-  document.addEventListener('visibilitychange', function(){ if(!document.hidden) checar(); });
-  window.LS_checarVersao=function(){ ultima=0; avisada=null; return checar(); };
-  window.LS_versao=function(){ return AQUI; };
-})();
-
-/* ====== O QUE MUDOU NOS PAINÉIS ======
-   A central abre cada painel num iframe. Antes, se o painel estivesse velho no cache do
-   celular, ele ficava velho — e ninguém ficava sabendo: foi assim que uma entrega foi
-   cadastrada sem a lista de peças e o entregador não entendeu por quê.
-   Aqui a central pergunta só o CABEÇALHO de cada painel (HEAD: alguns bytes, não a página
-   de 1 MB) e compara com o que viu da última vez. Mudou? marca uma bolinha no menu e
-   avisa. E o iframe passa a abrir com a marca da versão na URL, então o painel novo entra
-   no lugar do velho sem ninguém precisar limpar nada.
-   Nunca recarrega sozinho o que a pessoa está usando — quem toca é ela. */
-(function(){
-  var CH='loretto_paineis_versao';
-  var vistas={}; try{ vistas=JSON.parse(localStorage.getItem(CH)||'{}')||{}; }catch(e){}
-  var mudou={}, ultima=0, MIN=10*60*1000, CICLO=30*60*1000;
-
-  function guarda(){ try{ localStorage.setItem(CH, JSON.stringify(vistas)); }catch(e){} }
-  function marca(s){                      // vira um pedacinho estável pra pôr na URL
-    var h=0, t=String(s||'');
-    for(var i=0;i<t.length;i++){ h=((h<<5)-h+t.charCodeAt(i))|0; }
-    return Math.abs(h).toString(36);
-  }
-  // a URL do painel com a marca da versão que a central conhece
-  window.LS_urlPainel=function(id, url){
-    var v=vistas[id];
-    if(!url || !v) return url;
-    return url + (url.indexOf('?')>=0?'&':'?') + '_v=' + marca(v);
-  };
-
-  function assinatura(url){
-    // HEAD traz só cabeçalho. Se o servidor não mandar nada útil, devolve vazio e a
-    // central simplesmente não afirma nada — melhor calada que avisando errado.
-    return fetch(url,{method:'HEAD',cache:'no-store'}).then(function(r){
-      if(!r || !r.ok) return '';
-      var et=r.headers.get('ETag')||'', lm=r.headers.get('Last-Modified')||'',
-          cl=r.headers.get('Content-Length')||'';
-      return (et||lm||cl) ? (et+'|'+lm+'|'+cl) : '';
+      return (m && m[1].trim()!==AQUI) ? m[1].trim() : '';
     }).catch(function(){ return ''; });
   }
 
@@ -1301,68 +1246,95 @@
     for(var i=0;i<bs.length;i++) bs[i].classList.toggle('tem-novidade', !!ligado);
   }
 
-  function avisar(){
-    var ids=Object.keys(mudou); if(!ids.length) return;
-    var el=document.getElementById('lsPaineis');
-    var nomes=ids.map(function(i){ return (window.PANEL_NOME&&PANEL_NOME[i])||i; });
-    var txt = nomes.length===1 ? nomes[0]+' foi atualizado'
-            : nomes.length<=3  ? nomes.slice(0,-1).join(', ')+' e '+nomes[nomes.length-1]+' foram atualizados'
-            : nomes.length+' painéis foram atualizados';
-    if(!el){
-      el=document.createElement('div'); el.id='lsPaineis'; el.setAttribute('role','status');
-      el.innerHTML='<span class="lsp-txt"></span><button type="button" class="lsp-ok">Ver agora</button>'+
-                   '<button type="button" class="lsp-x" aria-label="Depois">&times;</button>';
-      el.querySelector('.lsp-ok').onclick=aplicar;
-      el.querySelector('.lsp-x').onclick=function(){ el.remove(); };
-      document.body.appendChild(el);
+  function frase(){
+    var nomes=Object.keys(mudou).map(function(i){ return (window.PANEL_NOME&&PANEL_NOME[i])||i; });
+    var n=nomes.length;
+    /* Com muitos painéis o nome de cada um não cabe, então vira contagem. Mas a Central
+       não é painel: entra por fora da conta, senão o aviso mente no plural. */
+    if(n>3){
+      var m=n+' painéis foram atualizados';
+      return novaCentral ? ('a Central e '+m) : m;
     }
-    el.querySelector('.lsp-txt').textContent=txt;
+    if(novaCentral) nomes.unshift('a Central');
+    if(!nomes.length) return '';
+    if(nomes.length===1) return nomes[0]+' foi atualizad'+(nomes[0]==='a Central'?'a':'o');
+    return nomes.slice(0,-1).join(', ')+' e '+nomes[nomes.length-1]+' foram atualizados';
   }
 
-  /* Recarrega SÓ os painéis que mudaram. O que a pessoa está usando agora vai por último,
-     pra ela não perder o lugar sem entender o que houve. */
+  function avisar(){
+    var txt=frase(); if(!txt) return;
+    var el=document.getElementById('lsAtualizar');
+    if(!el){
+      el=document.createElement('div'); el.id='lsAtualizar'; el.setAttribute('role','status');
+      el.innerHTML='<span class="lsa-txt"></span><button type="button" class="lsa-ok">Atualizar</button>'+
+                   '<button type="button" class="lsa-x" aria-label="Agora não">&times;</button>';
+      el.querySelector('.lsa-ok').onclick=aplicar;
+      el.querySelector('.lsa-x').onclick=function(){ el.remove(); };
+      document.body.appendChild(el);
+    }
+    el.querySelector('.lsa-txt').textContent=txt;
+  }
+
+  function recarregarCentral(){
+    var ps=[];
+    try{ if(window.caches&&caches.keys) ps.push(caches.keys().then(function(ks){
+      return Promise.all(ks.map(function(k){return caches.delete(k);})); })); }catch(e){}
+    try{ if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations)
+      ps.push(navigator.serviceWorker.getRegistrations().then(function(rs){
+        rs.forEach(function(r){ try{r.unregister();}catch(e){} }); })); }catch(e){}
+    var fim=function(){ try{ location.reload(); }catch(e){ location.href=location.pathname; } };
+    var t=setTimeout(fim,2000);            // não espera pra sempre
+    Promise.all(ps).then(function(){ clearTimeout(t); fim(); },
+                         function(){ clearTimeout(t); fim(); });
+  }
+
   function aplicar(){
-    var b=document.querySelector('#lsPaineis .lsp-ok');
+    var b=document.querySelector('#lsAtualizar .lsa-ok');
     if(b){ b.disabled=true; b.textContent='Atualizando…'; }
+    /* Central nova recarrega tudo de uma vez — os painéis vêm juntos, já com a marca da
+       versão nova na URL. Não precisa recarregar painel por painel antes. */
+    if(novaCentral){ recarregarCentral(); return; }
     var atual=(typeof window.LS_painelAtual==='function') ? window.LS_painelAtual() : null;
     Object.keys(mudou).forEach(function(id){
       pontinho(id,false);
       try{ if(window.LS_recarregarPainel) window.LS_recarregarPainel(id, id===atual); }catch(e){}
     });
     mudou={};
-    var el=document.getElementById('lsPaineis'); if(el) el.remove();
+    var el=document.getElementById('lsAtualizar'); if(el) el.remove();
   }
 
-  var _esperando=null;
   function checar(){
-    /* A central abre na tela de login: o menu ainda não existe. Checar aqui gastaria a
-       novidade antes de ter onde marcá-la — a bolinha nunca apareceria. Espera o menu. */
-    if(!document.querySelector('.nav-item')){
+    /* A Central abre na tela de login: o menu ainda não existe, e é dele que sai a lista
+       de painéis desta pessoa. Checar aqui gastaria a novidade sem ter onde marcá-la. */
+    var meus=meusPaineis();
+    if(!Object.keys(meus).length){
       clearTimeout(_esperando); _esperando=setTimeout(checar,15000); return;
     }
     if(Date.now()-ultima<MIN) return;
     ultima=Date.now();
-    var urls=(window.PANEL_URL||{});
-    var ids=Object.keys(urls).filter(function(i){ return !!urls[i]; });
-    if(!ids.length) return;
-    var primeiraVez=!Object.keys(vistas).length;
-    var pend=ids.length, houve=false;
+    var ids=Object.keys(meus), primeiraVez=!Object.keys(vistas).length;
+    var pend=ids.length+1, houve=false;
+    function fim(){ if(--pend>0) return; guarda(); if(houve||novaCentral) avisar(); }
+    versaoDaCentral().then(function(v){ if(v){ novaCentral=v; houve=true; } fim(); });
     ids.forEach(function(id){
-      assinatura(urls[id]).then(function(a){
+      assinatura(meus[id]).then(function(a){
         if(a){
           if(vistas[id] && vistas[id]!==a && !primeiraVez){ mudou[id]=1; pontinho(id,true); houve=true; }
           vistas[id]=a;
         }
-        if(--pend===0){ guarda(); if(houve) avisar(); }
+        fim();
       });
     });
   }
 
-  setTimeout(function(){ ultima=0; checar(); }, 25000);
+  setTimeout(function(){ ultima=0; checar(); }, 20000);
   setInterval(checar, CICLO);
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) checar(); });
   window.LS_checarPaineis=function(){ ultima=0; return checar(); };
+  window.LS_checarVersao=window.LS_checarPaineis;      // um verificador só, agora
+  window.LS_versao=function(){ return AQUI; };
   window.LS_painelMudou=function(id){ return !!mudou[id]; };
+  window.LS_centralMudou=function(){ return !!novaCentral; };
 })();
 
 </script>
