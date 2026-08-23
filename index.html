@@ -171,28 +171,33 @@
 @media(max-width:900px){.ct-wrap{grid-template-columns:1fr;}}
 /* ===== ESCALA DA EQUIPE ===== */
 .esc-card{grid-column:1/-1;background:var(--sidebar);border:1px solid var(--linha);border-radius:2px;padding:16px 18px;}
-.esc-topo{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:4px;padding-bottom:10px;border-bottom:1px solid rgba(201,169,80,.28);}
+.esc-topo{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(201,169,80,.28);}
 .esc-topo h2{font-family:'Playfair Display',serif;color:var(--creme);font-size:19px;font-weight:600;margin:0;letter-spacing:.3px;}
-.esc-topo .esc-cap{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--creme-suave);}
-
-/* uma linha por ausência: quem sai, quando volta, quantos dias */
-.esc-ev{padding:13px 4px 13px 13px;border-top:1px solid var(--linha-fraca);border-left:2px solid transparent;transition:background .15s;}
-.esc-ev:first-child{border-top:none;}
-.esc-ev:hover{background:rgba(201,169,80,.05);}
-.esc-ev.ferias{border-left-color:#6fa8c9;}
-.esc-ev.folga{border-left-color:var(--gold);}
-.esc-ev.ausente{border-left-color:#9a9384;}
-
-.esc-nome{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:var(--creme);line-height:1.2;}
-.esc-tag{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1.2px;text-transform:uppercase;padding:3px 7px;border-radius:2px;color:#1f280f;font-weight:600;}
-.esc-tag.ferias{background:#6fa8c9;}
-.esc-tag.folga{background:var(--gold);}
-.esc-tag.ausente{background:#9a9384;}
-.esc-agora{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1.2px;text-transform:uppercase;padding:2px 7px;border-radius:2px;border:1px solid var(--gold);color:var(--gold-claro);font-weight:500;}
-.esc-sub{font-size:12.5px;color:var(--creme-suave);margin-top:5px;line-height:1.6;font-variant-numeric:tabular-nums;}
-.esc-sub b{color:var(--creme);font-weight:500;}
-.esc-sub .sep{opacity:.4;margin:0 7px;}
+.esc-mes{font-family:'Playfair Display',serif;font-size:16px;color:var(--gold-claro);}
+.esc-legenda{display:flex;gap:14px;flex-wrap:wrap;font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:1px;text-transform:uppercase;color:var(--creme-suave);margin-bottom:12px;}
+.esc-legenda span{display:flex;align-items:center;gap:5px;}
+.esc-pt{width:8px;height:8px;border-radius:2px;display:inline-block;}
+.esc-pt.ferias{background:#6fa8c9;}.esc-pt.folga{background:var(--gold);}.esc-pt.ausente{background:#9a9384;}
+.esc-grade{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.esc-dow{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--creme-suave);text-align:center;padding:4px 0 6px;}
+.esc-dia{min-height:56px;border:1px solid var(--linha-fraca);border-radius:2px;padding:4px;display:flex;flex-direction:column;gap:2px;background:rgba(0,0,0,.12);}
+.esc-dia.fora{opacity:.3;}
+.esc-dia.hoje{border-color:var(--gold);background:rgba(201,169,80,.1);}
+.esc-dia.dom{background:rgba(0,0,0,.26);}
+.esc-num{font-family:'DM Mono',monospace;font-size:9px;color:var(--creme-suave);}
+.esc-dia.hoje .esc-num{color:var(--gold-claro);font-weight:600;}
+.esc-chip{font-size:9.5px;line-height:1.25;padding:2px 4px;border-radius:2px;color:#1f280f;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.esc-chip.ferias{background:#6fa8c9;}.esc-chip.folga{background:var(--gold);}.esc-chip.ausente{background:#9a9384;}
+.esc-lista{margin-top:14px;}
+.esc-linha{display:flex;align-items:center;gap:9px;padding:9px 0;border-top:1px solid var(--linha-fraca);font-size:13px;color:var(--creme);flex-wrap:wrap;}
+.esc-linha:first-child{border-top:none;}
+.esc-tag{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1px;text-transform:uppercase;padding:3px 7px;border-radius:2px;color:#1f280f;font-weight:600;flex:none;}
+.esc-tag.ferias{background:#6fa8c9;}.esc-tag.folga{background:var(--gold);}.esc-tag.ausente{background:#9a9384;}
+.esc-nome{font-weight:600;}
+.esc-cobre{font-size:11.5px;color:var(--creme-suave);}
+.esc-cobre b{color:var(--gold-claro);font-weight:500;}
 .esc-rodape{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--creme-suave);margin-top:12px;text-align:right;}
+@media(max-width:560px){.esc-dia{min-height:44px;}.esc-chip{font-size:8px;}}
 }
 .ct-col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(201,169,80,.28);}
 .ct-col-head h2{font-family:'Playfair Display',serif;color:var(--creme);font-size:19px;font-weight:600;margin:0;letter-spacing:.3px;}
@@ -413,13 +418,20 @@
           <div class="ct-wrap">
 
             <!-- ESCALA DA EQUIPE · lê ls_escala, publicado pelo painel da supervisora.
+                 Sem navegação: a equipe vê só o mês corrente.
                  Fica escondido até a primeira leitura dar certo. -->
             <section class="esc-card" id="escCard" style="display:none">
               <div class="esc-topo">
                 <h2>Escala da equipe</h2>
-                <span class="esc-cap" id="escCap">&mdash;</span>
+                <span class="esc-mes" id="escMesLbl">&mdash;</span>
               </div>
-              <div id="escLista"></div>
+              <div class="esc-legenda">
+                <span><i class="esc-pt ferias"></i>Férias</span>
+                <span><i class="esc-pt folga"></i>Folga</span>
+                <span><i class="esc-pt ausente"></i>Ausente</span>
+              </div>
+              <div class="esc-grade" id="escGrade"></div>
+              <div class="esc-lista" id="escLista"></div>
               <div class="esc-rodape" id="escRodape"></div>
             </section>
 
@@ -909,48 +921,58 @@
      regras do Firestore bloqueiam pro time, corretamente. Atestado e
      falta já chegam aqui como "Ausente", sem o motivo. */
   let _esc=[], _escAtu='', _unsubE=null;
+  const ESC_DOW=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const ESC_MES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
   // 'AAAA-MM-DD' vira data LOCAL. new Date('2026-09-01') seria meia-noite UTC,
   // e em Goiânia (UTC-3) getDate() devolveria o dia 31 de agosto.
   function escD(iso){ const p=String(iso||'').split('-'); return new Date(+p[0],(+p[1])-1,+p[2]); }
   function escIso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
   function escBr(iso){ const p=String(iso||'').split('-'); return p.length===3?p[2]+'/'+p[1]:iso; }
-  const ESC_MES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
+  // Sempre o mês corrente. A equipe não navega: quem precisa enxergar
+  // além do mês é a supervisora, no painel dela.
   function renderEscala(){
-    const host=document.getElementById('escLista'); if(!host)return;
-    const agora=new Date(), hj=escIso(agora);
-    const ym=agora.getFullYear()+'-'+String(agora.getMonth()+1).padStart(2,'0');
-    const cap=document.getElementById('escCap');
-    if(cap) cap.textContent=ESC_MES[agora.getMonth()]+' '+agora.getFullYear();
+    const grade=document.getElementById('escGrade'); if(!grade)return;
+    const agora=new Date(), ano=agora.getFullYear(), mes=agora.getMonth();
+    const ym=ano+'-'+String(mes+1).padStart(2,'0'), hj=escIso(agora);
+    document.getElementById('escMesLbl').textContent=ESC_MES[mes]+' '+ano;
 
-    // Só o mês corrente — e, dentro dele, só o que ainda não terminou.
-    // Ausência encerrada não é escala, é histórico. O <= e o >= no mês
-    // seguram quem atravessa a virada: férias de 28/09 a 05/10 contam
-    // como setembro enquanto setembro for o mês atual.
-    const lista=_esc.filter(i=>i.fim>=hj && i.inicio.slice(0,7)<=ym && i.fim.slice(0,7)>=ym)
+    const ultimo=new Date(ano,mes+1,0);
+    // começa no domingo da semana do dia 1 e vai até fechar a última semana
+    const ini=new Date(ano,mes,1); ini.setDate(ini.getDate()-ini.getDay());
+    const fim=new Date(ultimo);    fim.setDate(fim.getDate()+(6-fim.getDay()));
+
+    let h=ESC_DOW.map(d=>'<div class="esc-dow">'+d+'</div>').join('');
+    for(const d=new Date(ini); d<=fim; d.setDate(d.getDate()+1)){
+      const dia=escIso(d), noMes=d.getMonth()===mes;
+      // as células das pontas existem só pra fechar a semana. Mostrar nome
+      // nelas entregaria quem sai no mês seguinte, e o pedido é ver só o
+      // mês atual — então elas ficam com o número do dia e mais nada.
+      const doDia=noMes?_esc.filter(i=>i.inicio<=dia&&i.fim>=dia):[];
+      h+='<div class="esc-dia'+(noMes?'':' fora')+(dia===hj?' hoje':'')+(d.getDay()===0?' dom':'')+'">'
+       + '<span class="esc-num">'+d.getDate()+'</span>'
+       + doDia.map(i=>'<span class="esc-chip '+esc(i.tipo)+'" title="'+esc(i.nome+' · '+i.rotulo)+'">'+esc(i.nome)+'</span>').join('')
+       + '</div>';
+    }
+    grade.innerHTML=h;
+
+    // lista abaixo da grade — quem sai, quando volta e quantos dias
+    const doMes=_esc.filter(i=>i.inicio.slice(0,7)<=ym&&i.fim.slice(0,7)>=ym)
                     .sort((a,b)=>a.inicio.localeCompare(b.inicio)||a.nome.localeCompare(b.nome,'pt-BR'));
-
-    host.innerHTML = lista.length ? lista.map(i=>{
+    document.getElementById('escLista').innerHTML = doMes.length ? doMes.map(i=>{
       const dias=Math.round((escD(i.fim)-escD(i.inicio))/86400000)+1;
       // fim é o último dia FORA, então ela volta no dia seguinte
       const volta=escD(i.fim); volta.setDate(volta.getDate()+1);
-      const foraAgora=i.inicio<=hj&&i.fim>=hj;
-
-      const partes=[];
-      partes.push(dias===1 ? 'Dia <b>'+escBr(i.inicio)+'</b>' : 'Sai <b>'+escBr(i.inicio)+'</b>');
-      partes.push('volta <b>'+escBr(escIso(volta))+'</b>');
-      if(dias>1) partes.push('<b>'+dias+' dias</b> fora');
-      if(i.cobre) partes.push('cobrindo: <b>'+esc(i.cobre)+'</b>');
-
-      return '<div class="esc-ev '+esc(i.tipo)+'">'
-        + '<div class="esc-nome">'+esc(i.nome)
-          + '<span class="esc-tag '+esc(i.tipo)+'">'+esc(i.rotulo)+'</span>'
-          + (foraAgora?'<span class="esc-agora">fora hoje</span>':'')
-        + '</div>'
-        + '<div class="esc-sub">'+partes.join('<span class="sep">·</span>')+'</div>'
-        + '</div>';
-    }).join('') : '<div class="ct-vazio">Ninguém sai no restante deste mês.</div>';
+      return '<div class="esc-linha"><span class="esc-tag '+esc(i.tipo)+'">'+esc(i.rotulo)+'</span>'
+           + '<span class="esc-nome">'+esc(i.nome)+'</span>'
+           + '<span>'+(i.inicio===i.fim
+               ? escBr(i.inicio)
+               : escBr(i.inicio)+' a '+escBr(i.fim)+' · '+dias+' dias')+'</span>'
+           + '<span class="esc-cobre">volta <b>'+escBr(escIso(volta))+'</b></span>'
+           + (i.cobre?'<span class="esc-cobre">cobrindo: <b>'+esc(i.cobre)+'</b></span>':'')
+           + '</div>';
+    }).join('') : '<div class="ct-vazio">Ninguém ausente neste mês.</div>';
 
     document.getElementById('escRodape').textContent =
       _escAtu ? 'Atualizado em '+new Date(_escAtu).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
