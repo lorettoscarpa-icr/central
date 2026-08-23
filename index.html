@@ -417,7 +417,7 @@
             <section class="esc-card" id="escCard" style="display:none">
               <div class="esc-topo">
                 <h2>Escala da equipe</h2>
-                <span class="esc-cap">Quem sai e quando volta</span>
+                <span class="esc-cap" id="escCap">&mdash;</span>
               </div>
               <div id="escLista"></div>
               <div class="esc-rodape" id="escRodape"></div>
@@ -915,14 +915,20 @@
   function escD(iso){ const p=String(iso||'').split('-'); return new Date(+p[0],(+p[1])-1,+p[2]); }
   function escIso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
   function escBr(iso){ const p=String(iso||'').split('-'); return p.length===3?p[2]+'/'+p[1]:iso; }
+  const ESC_MES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
   function renderEscala(){
     const host=document.getElementById('escLista'); if(!host)return;
-    const hj=escIso(new Date());
+    const agora=new Date(), hj=escIso(agora);
+    const ym=agora.getFullYear()+'-'+String(agora.getMonth()+1).padStart(2,'0');
+    const cap=document.getElementById('escCap');
+    if(cap) cap.textContent=ESC_MES[agora.getMonth()]+' '+agora.getFullYear();
 
-    // só o que ainda importa: quem está fora agora e quem ainda vai sair.
-    // Ausência que já terminou não é escala, é histórico.
-    const lista=_esc.filter(i=>i.fim>=hj)
+    // Só o mês corrente — e, dentro dele, só o que ainda não terminou.
+    // Ausência encerrada não é escala, é histórico. O <= e o >= no mês
+    // seguram quem atravessa a virada: férias de 28/09 a 05/10 contam
+    // como setembro enquanto setembro for o mês atual.
+    const lista=_esc.filter(i=>i.fim>=hj && i.inicio.slice(0,7)<=ym && i.fim.slice(0,7)>=ym)
                     .sort((a,b)=>a.inicio.localeCompare(b.inicio)||a.nome.localeCompare(b.nome,'pt-BR'));
 
     host.innerHTML = lista.length ? lista.map(i=>{
@@ -944,7 +950,7 @@
         + '</div>'
         + '<div class="esc-sub">'+partes.join('<span class="sep">·</span>')+'</div>'
         + '</div>';
-    }).join('') : '<div class="ct-vazio">Ninguém sai nos próximos dias.</div>';
+    }).join('') : '<div class="ct-vazio">Ninguém sai no restante deste mês.</div>';
 
     document.getElementById('escRodape').textContent =
       _escAtu ? 'Atualizado em '+new Date(_escAtu).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
