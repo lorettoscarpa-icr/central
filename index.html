@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="c1">
+<meta name="app-ver" content="c2">
 <title>Central Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Barlow:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -522,7 +522,7 @@
   };
   /* ===== ÁREAS — cada área e seus painéis (edite à vontade) ===== */
   const AREAS={
-    vendas:        ['metas','entregas','envios','encomendas','posvenda','parcerias','cartaopresente','consertos'],
+    vendas:        ['metas','entregas','rastreio','envios','encomendas','posvenda','parcerias','cartaopresente','consertos'],
     estoque:       ['centralestoque'],
     financeiro_rh: ['loretto-icr','caixa-cruzamento','relatoriodevendas','comissoes','recursoshumanos'],
     marketing:     ['colecoes','catalogos','campanhas','modelos','trafegopago']
@@ -558,8 +558,8 @@
     {id:'supervisora',          nome:'Supervisora'},
     {id:'metas',                nome:'Metas'},
     {id:'entregas',             nome:'Entregas'},
+    {id:'rastreio',             nome:'Entregadores ao vivo', url:BASE+'rastreio/equipe.html'},
     {id:'envios',               nome:'Envios', url:BASE+'entregas/?painel=envios'},
-    {id:'rastreio',           nome:'Entregadores ao vivo', url:BASE+'rastreio/equipe.html'},
     {id:'encomendas',           nome:'Encomendas'},
     {id:'posvenda',             nome:'Pós-venda'},
     {id:'parcerias',            nome:'Parcerias',          pending:false},
