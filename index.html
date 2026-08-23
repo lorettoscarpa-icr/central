@@ -551,6 +551,7 @@
     consertos:'<path d="M14.6 6.4a3.5 3.5 0 0 0-4.7 4.7l-6.5 6.5 2 2 6.5-6.5a3.5 3.5 0 0 0 4.7-4.7l-2.3 2.3-2-2 2.3-2.3z"/>',
     cartaopresente:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/>',
     envios:'<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>',
+    rastreio:'<circle cx="12" cy="10" r="3"/><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/>',
     catalogos:'<path d="M4 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z"/><path d="M20 4h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/>'
   };
   const PAINEIS=[
@@ -558,6 +559,7 @@
     {id:'metas',                nome:'Metas'},
     {id:'entregas',             nome:'Entregas'},
     {id:'envios',               nome:'Envios', url:BASE+'entregas/?painel=envios'},
+    {id:'rastreio',           nome:'Entregadores ao vivo', url:BASE+'rastreio/equipe.html'},
     {id:'encomendas',           nome:'Encomendas'},
     {id:'posvenda',             nome:'Pós-venda'},
     {id:'parcerias',            nome:'Parcerias',          pending:false},
@@ -590,18 +592,29 @@
      [..] = lista exata de painéis liberados para a pessoa. */
   const idsDe=email=>{
     const p=PESSOAS[norm(email)]; if(!p)return [];
-    if(p.paineis)return p.paineis.filter(id=>id in PANEL_NOME); /* lista exata por pessoa */
+    /* quem enxerga Entregas enxerga os entregadores ao vivo: é a mesma operação, e
+       assim ninguém precisa ser reeditado um por um pra ganhar o painel novo */
+    const comFrota=l=>{const r=[];l.forEach(id=>{r.push(id);if(id==='entregas'&&l.indexOf('rastreio')<0)r.push('rastreio');});return r.filter(id=>id in PANEL_NOME);};
+    if(p.paineis)return comFrota(p.paineis); /* lista exata por pessoa */
     if(p.areas==='*')return PAINEIS.map(x=>x.id).filter(id=>id in PANEL_NOME);
     const out=[], add=id=>{if((id in PANEL_NOME)&&!out.includes(id))out.push(id);};
     (p.areas||[]).forEach(a=>(AREAS[a]||[]).forEach(add)); /* ordem = ordem da área */
     (p.extra||[]).forEach(add);                            /* extras na ordem listada */
     const menos=new Set(p.menos||[]);
-    return out.filter(id=>!menos.has(id));
+    return comFrota(out).filter(id=>!menos.has(id));
   };
   const LS_KEY='ls_central_contas';
 
   let auth=null,db=null,FB_OK=false;
-  try{firebase.initializeApp(firebaseConfig);auth=firebase.auth();auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);try{db=firebase.firestore();}catch(_){}FB_OK=true;}
+  /* setPersistence devolve uma promessa. Sem tratar a falha, um navegador que bloqueia o
+     IndexedDB (aba privada, navegador dentro de app) derruba o Firebase pra memória — e aí
+     o login se perde a cada vez que o app abre, sem ninguém saber por quê. SESSION pelo
+     menos aguenta enquanto a aba viver. */
+  try{firebase.initializeApp(firebaseConfig);auth=firebase.auth();
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+      .catch(function(){ return auth.setPersistence(firebase.auth.Auth.Persistence.SESSION); })
+      .catch(function(e){ console.warn('login não fica guardado neste navegador',e); });
+    try{db=firebase.firestore();}catch(_){}FB_OK=true;}
   catch(e){console.warn(e);document.getElementById('avisoFB').style.display='block';}
 
   const $=id=>document.getElementById(id);
@@ -746,7 +759,15 @@
   function irAviso(p){$('bellPanel').classList.remove('open');abrir(p);}
   document.addEventListener('click',e=>{const p=$('bellPanel'),b=$('bellBtn');if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!b.contains(e.target))p.classList.remove('open');});
 
-  window.addEventListener('message',e=>{const d=e.data||{};if(d&&d.tipo==='central-ready'&&d.painel&&_subTab[d.painel])enviarTab(d.painel,_subTab[d.painel]);});
+  window.addEventListener('message',e=>{const d=e.data||{};
+    if(d&&d.tipo==='central-ready'&&d.painel&&_subTab[d.painel])enviarTab(d.painel,_subTab[d.painel]);
+    /* Um painel pedindo pra Central abrir outro. Antes o "Ver entregadores ao vivo" fazia
+       window.open: no celular isso tira a pessoa da Central, e voltar é recomeçar do zero —
+       login de novo. Aqui é só trocar de aba, sem sair de lugar nenhum. */
+    if(d&&d.tipo==='central-abrir'&&d.painel&&PANEL_URL[d.painel]){
+      const permitido=document.querySelector('.nav-item[data-p="'+d.painel+'"]');
+      if(permitido) abrir(d.painel);
+    }});
 
   if(FB_OK){auth.onAuthStateChanged(u=>{const c=u&&contaDe(u.email);if(c){c.email=u.email;mostrarShell(c);}else{mostrarLogin();}});}
   else{renderSaved();}
