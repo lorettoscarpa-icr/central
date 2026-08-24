@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="c6">
+<meta name="app-ver" content="c7">
 <title>Central Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Barlow:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -726,6 +726,12 @@
     delete frames[id]; delete frameLoaded[id];
   };
   function abrir(p){
+    /* PRIMEIRA coisa, antes de qualquer saída antecipada: quem manda no menu é o
+       painel que está entrando. Já quebrou uma vez por estar no fim — Comunicados e
+       Tarefas e os painéis "Em breve" saem de abrir() antes do fim, e herdavam a
+       lateral recolhida e o hambúrguer escondido do Estoque. No celular isso deixa a
+       pessoa sem nenhum menu na tela. */
+    aplicarMenuDoPainel(p);
     try{if(window.ctAbrir&&window.ctAbrir(p))return;}catch(_){}
     try{localStorage.setItem('ls_ultimo_painel',p);}catch(_){}
     document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
@@ -736,7 +742,6 @@
     Object.entries(frames).forEach(([k,f])=>f.classList.toggle('show',k===p));
     showLoader(!frameLoaded[p]);
     $('tbTitle').innerHTML='<b>'+(PANEL_NOME[p]||p)+'</b>';
-    aplicarMenuDoPainel(p);
   }
   /* Painel com menu próprio abre com a lateral da Central recolhida: fica um menu só
      na tela. O hambúrguer da Central continua trazendo ela de volta a qualquer hora —
