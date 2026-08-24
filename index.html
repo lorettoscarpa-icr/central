@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="c5">
+<meta name="app-ver" content="c6">
 <title>Central Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Barlow:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -56,6 +56,11 @@
   .topbar{height:60px;flex:none;background:var(--topbar);border-bottom:1px solid var(--linha);display:flex;align-items:center;gap:14px;padding:0 16px;z-index:50}
   .burger{width:40px;height:40px;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:7px;color:var(--creme);transition:.2s;flex:none}
   .burger:hover{background:rgba(201,169,80,.12);color:var(--gold)}
+  /* No celular o painel de menu próprio também tem hambúrguer, e dois empilhados
+     abrindo menus diferentes é pedir pra errar. Some com o daqui — mas SÓ depois que
+     o painel confirmar que está com o botão "Central" na barra dele (classe posta
+     pelo handshake). Painel em versão velha, sem o botão: o hambúrguer fica. */
+  @media(max-width:860px){.shell.painel-manda .burger{display:none}}
   .burger svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.9}
   .tb-brand{display:flex;align-items:center;gap:13px}
   .tb-logo{height:30px;width:auto;display:block;flex:none}
@@ -138,14 +143,6 @@
   .nav-group.open .nav-grouphead .gcaret{transform:rotate(90deg)}
   .nav-groupbody{display:none;margin:2px 0 8px 14px;padding-left:6px;border-left:1px solid var(--linha-fraca)}
   .nav-group.open .nav-groupbody{display:block}
-  .nav-subgroup{margin:0 0 2px}
-  .nav-subhead .subcaret{margin-left:auto;width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.7;color:var(--gold);transition:transform .2s;flex:none}
-  .nav-subgroup.open .nav-subhead .subcaret{transform:rotate(90deg)}
-  .nav-subbody{display:none;margin:2px 0 6px 30px;padding-left:8px;border-left:1px solid var(--linha-fraca)}
-  .nav-subgroup.open .nav-subbody{display:block}
-  .nav-subitem{display:block;width:100%;text-align:left;background:none;border:none;color:var(--creme-suave);font-family:'Barlow';font-size:13.5px;padding:8px 10px;border-radius:7px;cursor:pointer;transition:.15s}
-  .nav-subitem:hover{background:rgba(201,169,80,.08);color:var(--creme)}
-  .nav-subitem.active{background:rgba(201,169,80,.14);color:var(--creme)}
 
   .stage{flex:1;min-width:0;position:relative;background:var(--content)}
   .frame{position:absolute;inset:0;width:100%;height:100%;border:0;display:none}
@@ -598,14 +595,10 @@
     {id:'parcerias',            nome:'Parcerias',          pending:false},
     {id:'cartaopresente',       nome:'Presentes'},
     {id:'consertos',            nome:'Consertos',          pending:false},
-    /* espelha a barra lateral da Central do Estoque, na mesma ordem: quem só usa a
-       Central geral chega em qualquer aba sem ter que entrar no painel e procurar */
-    {id:'centralestoque',       nome:'Estoque', sub:[
-      {tab:'etiquetas',nome:'Etiquetas'},{tab:'conferencia',nome:'Conferência'},{tab:'entrada',nome:'Entrada'},
-      {tab:'reposicao',nome:'Reposição'},{tab:'pronta',nome:'Pronta-entrega'},{tab:'financeiro',nome:'Financeiro'},
-      {tab:'modelos',nome:'Catálogo'},{tab:'avarias',nome:'Defeitos'},{tab:'suprimentos',nome:'Suprimentos'},
-      {tab:'consertos',nome:'Consertos'}
-    ]},
+    /* proprioMenu: o painel já tem a barra lateral dele, completa. A Central recolhe a
+       dela ao abrir esse painel — senão são dois menus dizendo a mesma coisa, e no
+       celular dois hambúrgueres. Quem manda na navegação de dentro é o painel. */
+    {id:'centralestoque',       nome:'Estoque',            proprioMenu:true},
     {id:'loretto-icr',          nome:'ICR Control'},
     {id:'caixa-cruzamento',     nome:'Cruzamento de Caixa'},
     {id:'comissoes',            nome:'Pagamentos'},
@@ -619,9 +612,9 @@
   ];
   /* pending:true => painel ainda não publicado: aparece como "Em breve".
      Quando subir o repo, troque para pending:false (e use slug:'nome-do-repo' se o id≠repo). */
-  const PANEL_URL={},PANEL_NOME={},PANEL_PEND={};
+  const PANEL_URL={},PANEL_NOME={},PANEL_PEND={},PANEL_MENU={};
   window.PANEL_URL=PANEL_URL; window.PANEL_NOME=PANEL_NOME;
-  PAINEIS.forEach(p=>{PANEL_NOME[p.id]=p.nome;PANEL_PEND[p.id]=!!p.pending;PANEL_URL[p.id]=p.pending?null:(p.url||BASE+(p.slug||p.id)+'/');});
+  PAINEIS.forEach(p=>{PANEL_NOME[p.id]=p.nome;PANEL_PEND[p.id]=!!p.pending;PANEL_MENU[p.id]=!!p.proprioMenu;PANEL_URL[p.id]=p.pending?null:(p.url||BASE+(p.slug||p.id)+'/');});
 
   /* ===== ACESSO POR PESSOA — edite só aqui =====
      '*'  = vê TODOS os painéis (diretoria).
@@ -676,35 +669,16 @@
 
   /* ---- SHELL ---- */
   let papelAtual='vendedora', tab='metas', contaAtual=null;
-  const frames={}, frameLoaded={}, _subTab={};
+  const frames={}, frameLoaded={}, _embedOk={};
   function toggleNav(){$('shell').classList.toggle('nav-hidden');}
   function showLoader(s){$('stageLoader').style.display=s?'flex':'none';}
   function itemHTML(id){
-    const _p=PAINEIS.find(x=>x.id===id);
-    if(_p&&_p.sub&&_p.sub.length) return subgroupHTML(_p);
     const nome=PANEL_NOME[id]||id, ic=ICONS[id]||'<circle cx="12" cy="12" r="9"/>';
     const pend=PANEL_PEND[id];
     const tail=pend?'<span class="tag">Em breve</span>':((id==='metas'||id==='entregas')?`<span class="navbadge" data-badge="${id}"></span>`:'');
     return `<button class="nav-item${pend?' lock':''}" data-p="${id}" onclick="abrir('${id}')"><svg viewBox="0 0 24 24">${ic}</svg><span class="lbl">${nome}</span>${tail}</button>`;
   }
   function montarNav(ids){const host=$('navList'); if(!host)return; host.innerHTML=(window.ctNavItem?window.ctNavItem():'')+ids.map(itemHTML).join('');}
-  function subgroupHTML(p){
-    const ic=ICONS[p.id]||'<circle cx="12" cy="12" r="9"/>';
-    const subs=p.sub.map(s=>`<button class="nav-subitem" data-sub="${p.id}:${s.tab}" onclick="abrirSub('${p.id}','${s.tab}')">${s.nome}</button>`).join('');
-    return `<div class="nav-subgroup" data-p="${p.id}"><button class="nav-item nav-subhead" data-p="${p.id}" onclick="toggleSub('${p.id}')"><svg viewBox="0 0 24 24">${ic}</svg><span class="lbl">${p.nome}</span><svg class="subcaret" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button><div class="nav-subbody">${subs}</div></div>`;
-  }
-  function toggleSub(id){const g=document.querySelector('.nav-subgroup[data-p="'+id+'"]');if(g)g.classList.toggle('open');abrir(id);}
-  function abrirSub(id,tab){_subTab[id]=tab;abrir(id);enviarTab(id,tab);document.querySelectorAll('.nav-subgroup[data-p="'+id+'"] .nav-subitem').forEach(b=>b.classList.toggle('active',b.dataset.sub===id+':'+tab));}
-  /* Painel e Central moram no mesmo domínio, então dá pra clicar o item da barra
-     lateral de dentro do iframe — é o que faz a aba realmente trocar hoje. O
-     postMessage fica como recado para painel que um dia escute por conta própria. */
-  function enviarTab(id,tab){
-    const f=frames[id]; if(!f||!f.contentWindow)return;
-    try{const d=f.contentDocument,sel='[data-tab="'+tab+'"]';
-        const b=d&&(d.querySelector('.side-item'+sel)||d.querySelector(sel));
-        if(b){b.click();return;}}catch(_){}
-    try{f.contentWindow.postMessage({tipo:'central-tab',tab:tab},'*');}catch(_){}
-  }
   function grupoHTML(area,its){
     const lbl=area==='_outros'?'Outros':(AREA_LABEL[area]||area);
     return `<div class="nav-group" data-area="${area}"><button class="nav-grouphead" onclick="toggleGroup('${area}')"><span class="glabel">${lbl}</span><span class="gdot"></span><svg class="gcaret" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button><div class="nav-groupbody">${its.map(itemHTML).join('')}</div></div>`;
@@ -734,8 +708,12 @@
   function ensureFrame(p){
     if(frames[p]||!PANEL_URL[p])return frames[p];
     const f=document.createElement('iframe');f.className='frame';f.setAttribute('title',p);
-    f.addEventListener('load',()=>{frameLoaded[p]=true;if(tab===p)showLoader(false);if(_subTab[p])enviarTab(p,_subTab[p]);});
-    f.src=(window.LS_urlPainel?LS_urlPainel(p,PANEL_URL[p]):PANEL_URL[p]);
+    f.addEventListener('load',()=>{frameLoaded[p]=true;if(tab===p)showLoader(false);});
+    let src=(window.LS_urlPainel?LS_urlPainel(p,PANEL_URL[p]):PANEL_URL[p]);
+    /* avisa o painel que ele está dentro da Central: é assim que ele sabe que pode
+       trocar a marca dele pelo botão de voltar em vez de repetir o cabeçalho */
+    if(PANEL_MENU[p])src+=(src.indexOf('?')>=0?'&':'?')+'embed=1';
+    f.src=src;
     $('stage').appendChild(f);frames[p]=f;return f;
   }
   /* ganchos do aviso de painel atualizado: ele precisa saber qual está aberto e
@@ -751,14 +729,25 @@
     try{if(window.ctAbrir&&window.ctAbrir(p))return;}catch(_){}
     try{localStorage.setItem('ls_ultimo_painel',p);}catch(_){}
     document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
-    {const _a=document.querySelector('.nav-item[data-p="'+p+'"]');const _g=_a&&_a.closest('.nav-group');if(_g)_g.classList.add('open');const _sg=document.querySelector('.nav-subgroup[data-p="'+p+'"]');if(_sg)_sg.classList.add('open');}
+    {const _a=document.querySelector('.nav-item[data-p="'+p+'"]');const _g=_a&&_a.closest('.nav-group');if(_g)_g.classList.add('open');}
     if(!PANEL_URL[p]){tab=p;Object.values(frames).forEach(f=>f.classList.remove('show'));showLoader(false);$('seTitle').textContent=PANEL_NOME[p]||p;$('stageEmpty').classList.add('show');$('tbTitle').innerHTML='<b>'+(PANEL_NOME[p]||p)+'</b>';return;}
     tab=p;$('stageEmpty').classList.remove('show');
     ensureFrame(p);
     Object.entries(frames).forEach(([k,f])=>f.classList.toggle('show',k===p));
     showLoader(!frameLoaded[p]);
     $('tbTitle').innerHTML='<b>'+(PANEL_NOME[p]||p)+'</b>';
-    if(window.innerWidth<=820)$('shell').classList.add('nav-hidden');
+    aplicarMenuDoPainel(p);
+  }
+  /* Painel com menu próprio abre com a lateral da Central recolhida: fica um menu só
+     na tela. O hambúrguer da Central continua trazendo ela de volta a qualquer hora —
+     e é a saída garantida se o painel estiver numa versão velha, sem o botão "Central". */
+  function aplicarMenuDoPainel(p){
+    const sh=$('shell'); if(!sh)return;
+    /* o painel já confirmado continua valendo quando a pessoa volta pra ele: o iframe
+       fica vivo e não recarrega, então não vem confirmação nova */
+    sh.classList.toggle('painel-manda', !!(PANEL_MENU[p]&&_embedOk[p]));
+    if(PANEL_MENU[p]||window.innerWidth<=820) sh.classList.add('nav-hidden');
+    else sh.classList.remove('nav-hidden');
   }
   function mostrarShell(c){$('loginView').classList.remove('on');$('shellView').classList.add('on');aplicarPapel(c);}
   function mostrarLogin(){desligarAvisos();$('shellView').classList.remove('on');$('loginView').classList.add('on');resetLogin();renderSaved();}
@@ -805,7 +794,15 @@
   document.addEventListener('click',e=>{const p=$('bellPanel'),b=$('bellBtn');if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!b.contains(e.target))p.classList.remove('open');});
 
   window.addEventListener('message',e=>{const d=e.data||{};
-    if(d&&d.tipo==='central-ready'&&d.painel&&_subTab[d.painel])enviarTab(d.painel,_subTab[d.painel]);
+    /* O painel de menu próprio esconde a lateral da Central. O botão "Central" que ele
+       põe no lugar da marca dele devolve o menu — sem recarregar nada. */
+    if(d&&d.tipo==='central-menu'&&e.origin===location.origin){const sh=$('shell'); if(sh)sh.classList.remove('nav-hidden');}
+    /* "estou embutido e com o botão de voltar no lugar": só aí a Central abre mão do
+       hambúrguer dela no celular. Sem essa confirmação, ela mantém a saída. */
+    if(d&&d.tipo==='central-embed-ok'&&e.origin===location.origin){
+      const id=Object.keys(frames).find(k=>frames[k].contentWindow===e.source);
+      if(id&&PANEL_MENU[id]){_embedOk[id]=true; if(tab===id)aplicarMenuDoPainel(id);}
+    }
     /* Um painel pedindo pra Central abrir outro. Antes o "Ver entregadores ao vivo" fazia
        window.open: no celular isso tira a pessoa da Central, e voltar é recomeçar do zero —
        login de novo. Aqui é só trocar de aba, sem sair de lugar nenhum. */
