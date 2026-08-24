@@ -2,54 +2,203 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ==========================================================
-    // ATENÇÃO: este arquivo mostra APENAS as regras do Hub.
-    // Você provavelmente já tem regras do ICR Dashboard.
-    // NÃO substitua tudo — apenas ADICIONE este bloco
-    // dentro do match /databases/{database}/documents existente.
-    // ==========================================================
-
-    // Hub Central — configuração das URLs dos cards
-    match /hub_config/{document} {
-      // Qualquer pessoa pode ler (assim Yuri/Larissa veem URLs sem login)
-      allow read: if true;
-
-      // Só o admin autorizado pode escrever
-      allow write: if request.auth != null
-                && request.auth.token.email == "lorettoscarpa@gmail.com";
+    // ===== Helpers para Comunicados e Tarefas =====
+    function logado() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    // Diretoria (Gregory + Larissa) + Supervisora (Jhennifer): únicos que criam/editam/apagam
+    function gestorOuSup() {
+      return logado() && request.auth.token.email in [
+        'lorettoscarpa@gmail.com',
+        'larissalorettoscarpa@gmail.com',
+        'jhenniferlorettoscarpa@gmail.com'
+      ];
+    }
+    // true se a atualização mexeu SOMENTE nos campos informados
+    function soMudou(campos) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(campos);
     }
 
-    // ==========================================================
-    // O QUE FALTA — 24/08/2026
-    //
-    // Correção do que eu tinha escrito aqui antes: as regras de verdade
-    // TÊM um coringa no final que cobre qualquer coleção nova. Então
-    // `conferencias` não está "de fora" — ela cai no coringa, que exige
-    // login de e-mail (não-anônimo).
-    //
-    // O problema é outro: a Central de Estoque carrega só firebase-app e
-    // firebase-firestore. O módulo de AUTH (firebase-auth-compat) só é
-    // carregado no modo fábrica. Fora dali o painel fala com o Firestore
-    // SEM credencial nenhuma — e aí:
-    //
-    //   ls_fila_etiquetas, ls_catalogo, ls_rep_fotos…  → `if true`, passam
-    //   conferencias, ls_conf_licoes                   → coringa, recusadas
-    //   entregas                                       → exige auth, recusada
-    //
-    // Não é coincidência: quem escreveu as regras abriu justamente as
-    // coleções que o estoque usa. Faltaram estas duas.
-    //
-    // As duas guardam só dia, entregador, quais peças voltaram e nome de
-    // modelo — nada de cliente, endereço ou telefone. Por isso entram no
-    // mesmo grupo aberto das outras do estoque, e NÃO no coringa.
-    //
-    // `entregas` fica como está (exige login): tem nome, endereço e
-    // telefone de cliente. Pra conferência conseguir ler a lista do dia,
-    // o caminho certo é o painel carregar o auth e herdar o login da
-    // Central — arrumar isso no código, não afrouxar a regra.
-    // ==========================================================
-    match /conferencias/{document=**}    { allow read, write: if true; }
-    match /ls_conf_licoes/{document=**}  { allow read, write: if true; }
+    // ▼▼ ALTERAÇÃO 1 de 3 — Central de Catálogos ▼▼
+    // Só estes dois sobem, renomeiam e excluem catálogo/foto de coleção.
+    // Mudou quem pode? Mude AQUI e também em firebase/storage.rules
+    // e na constante EDITORES do index.html.
+    function editorCatalogo() {
+      return logado() && request.auth.token.email.lower() in [
+        'lorettoscarpa@gmail.com',
+        'lorraynelorettoscarpa@gmail.com'
+      ];
+    }
+    // ▲▲ fim da alteração 1 ▲▲
 
+    // Hub central — todos leem, só admin escreve
+    match /hub_config/{document} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.token.email == "lorettoscarpa@gmail.com";
+    }
+    // Lista única de acessos — todos os logados LEEM (o porteiro precisa),
+    // só a diretoria EDITA
+    match /ls_acessos/{document=**} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.token.email == "lorettoscarpa@gmail.com";
+    }
+    // Dashboard de tráfego pago — aberto (acesso pelo link privado)
+    match /ls_trafego/{document=**} { allow read, write: if true; }
+    // Conversor de vendas (Loretto + Ávia) — aberto (acesso pelo link privado)
+    match /ls_relatorios_vendas/{document=**} { allow read, write: if true; }
+    // Central de Etiquetas / Estoque — compartilhados (aberto, acesso pelo link privado)
+    match /ls_fila_etiquetas/{document=**} { allow read, write: if true; }
+    match /ls_etiq_prefs/{document=**}     { allow read, write: if true; }
+    match /ls_avarias/{document=**}        { allow read, write: if true; }
+    match /ls_catalogo/{document=**}       { allow read, write: if true; }
+
+    // ▼▼ NOVO — Conferência da volta (aba dentro do Estoque) ▼▼
+    // Sem estas duas linhas, tudo que o Yuri conferia sumia no primeiro
+    // recarregar: a gravação voltava 403 e o app engolia o erro.
+    // Ficam no mesmo grupo aberto das outras do Estoque porque o painel
+    // fala com o Firestore do mesmo jeito que elas — e porque guardam só
+    // dia, entregador, quais peças voltaram e nome de modelo. Nada de
+    // nome, endereço ou telefone de cliente.
+    match /conferencias/{document=**}   { allow read, write: if true; }
+    match /ls_conf_licoes/{document=**} { allow read, write: if true; }
+    // ▲▲ fim do novo ▲▲
+
+    // Suprimentos (aba dentro do Estoque) — aberto, igual às demais do estoque
+    match /suprimentos_config/{document=**}    { allow read, write: if true; }
+    match /suprimentos_historico/{document=**} { allow read, write: if true; }
+    // Reposição / Pronta-entrega (Estoque + painel da fábrica via link) — aberto, acesso pelo link privado
+    match /ls_rep_cfg/{document=**}    { allow read, write: if true; }
+    match /ls_rep_fotos/{document=**}  { allow read, write: if true; }
+    match /ls_pe/{document=**}         { allow read, write: if true; }
+    match /ls_pe_tokens/{document=**}  { allow read, write: if true; }
+    match /ls_pe_config/{document=**}  { allow read, write: if true; }
+    match /ls_pe_fotos/{document=**}   { allow read, write: if true; }
+    // Financeiro / Conferência de Caixa (dentro do Estoque) — aberto, acesso pelo link privado
+    match /ls_fin_entradas/{document=**}  { allow read, write: if true; }
+    match /ls_fin_arquivos/{document=**}  { allow read, write: if true; }
+    match /conferenciasCaixa/{document=**} { allow read, write: if true; }
+    // Central de Modelos (parceiros) — aberto (acesso pelo link privado)
+    match /modelos/{document=**} { allow read, write: if true; }
+    // Central de Metas / Retrospecto — aberto, acesso pelo link privado
+    match /ls_historico/{document=**}    { allow read, write: if true; }
+    match /ls_metas/{document=**}        { allow read, write: if true; }
+    match /ls_maior_venda/{document=**}  { allow read, write: if true; }
+    match /ls_retrospecto/{document=**}  { allow read, write: if true; }
+    match /_setup/{document=**}          { allow read, write: if true; }
+    // Central de Encomendas (vendedoras) — aberto, acesso pelo link privado
+    match /encomendas/{document=**} { allow read, write: if true; }
+    // Central de Pós-venda — aberto, acesso pelo link privado
+    match /ls_posvendas/{document=**} { allow read, write: if true; }
+    // Central de Coleções — aberto, acesso pelo link privado
+    match /colecoes_modelos/{document=**} { allow read, write: if true; }
+    match /colecoes_users/{document=**}   { allow read, write: if true; }
+    match /colecoes_fotos/{document=**}   { allow read, write: if true; }
+    // Central de Campanhas — aberto, acesso pelo link privado
+    match /campanhas_items/{document=**} { allow read, write: if true; }
+    match /campanhas_fotos/{document=**} { allow read, write: if true; }
+
+    // ▼▼ ALTERAÇÃO 2 de 3 — Central de Catálogos ▼▼
+    // Toda vendedora logada LÊ a lista (é o que faz a tela atualizar
+    // sozinha pra todo mundo). Criar, renomear e excluir: só os dois
+    // e-mails do editorCatalogo().
+    match /catalogos_arquivos/{item} {
+      allow read: if logado();
+      allow create, update, delete: if editorCatalogo();
+    }
+    // ▲▲ fim da alteração 2 ▲▲
+
+    // ===== Comunicados e Tarefas (Central) — regra específica no servidor =====
+    // Ler: qualquer logado. Criar/editar/apagar: só diretoria + Jhennifer.
+    // Marcar "visto" (vistos) segue liberado pra todos, senão a confirmação de leitura quebra.
+    match /ls_comunicados/{document=**} {
+      allow read:   if logado();
+      allow create: if gestorOuSup();
+      allow delete: if gestorOuSup();
+      allow update: if gestorOuSup()
+                    || (logado() && soMudou(['vistos']));
+    }
+    // Ler: qualquer logado. Criar/editar/apagar: só diretoria + Jhennifer.
+    // Concluir (feitosPor), reset de recorrência (feitosPor+periodo) e comentar (comentarios)
+    // seguem liberados pra qualquer logado, senão o painel quebra.
+    match /ls_tarefas/{document=**} {
+      allow read:   if logado();
+      allow create: if gestorOuSup();
+      allow delete: if gestorOuSup();
+      allow update: if gestorOuSup()
+                    || (logado() && soMudou(['feitosPor','periodo']))
+                    || (logado() && soMudou(['comentarios']));
+    }
+
+    // Central de Entregas: entregas + rastreio + fotos — qualquer logado, INCLUSIVE entregador anônimo
+    match /entregas/{document=**}      { allow read, write: if request.auth != null; }
+    match /rastreio/{document=**}      { allow read, write: if request.auth != null; }
+    match /comprovantes/{document=**}  { allow read, write: if request.auth != null; }
+    match /fotos_local/{document=**}   { allow read, write: if request.auth != null; }
+    match /fotos_produto/{document=**} { allow read, write: if request.auth != null; }
+
+    // Envios (vendas para fora de Goiânia) — guardam CPF e endereço da cliente, então
+    // o entregador anônimo entra com acesso mínimo: LÊ para saber o que levar ao ponto
+    // parceiro e só consegue marcar que deixou o pacote lá. Cadastrar, editar e apagar
+    // continuam sendo da vendedora e da operação (login com e-mail).
+    match /envios/{id} {
+      allow read: if request.auth != null;
+      allow create, delete: if logado();
+      // o entregador anônimo faz só dois movimentos: pegar a rota de envios
+      // e confirmar que deixou o pacote no ponto parceiro
+      allow update: if logado()
+                    || (request.auth != null && soMudou([
+                         'status','entregador','pontoId','roteadoEm',
+                         'despachadoEm','despachadoPor','atualizadoEm']));
+    }
+
+    // ===== Central de RH — dado sensível (CPF, salário, atestado) =====
+    // ESCRITA: só Gregory + Ávia (como sempre foi).
+    // LEITURA de /lancamentos: Gregory + Ávia + Jhennifer (Supervisora).
+    //   A Jhennifer precisa LER pra o painel dela montar: quem está na loja hoje,
+    //   calendário do mês, ausências do mês, cobertura e os eventos/pendências.
+    //   Ela NÃO escreve nada, e NÃO tem acesso a bancoHoras nem documentosRH.
+    function rhEscreve() {
+      return request.auth != null
+        && request.auth.token.email in [
+          'lorettoscarpa@gmail.com',
+          'aviaconsultoriaempresarial@gmail.com'
+        ];
+    }
+    function rhLeAusencias() {
+      return request.auth != null
+        && request.auth.token.email in [
+          'lorettoscarpa@gmail.com',
+          'aviaconsultoriaempresarial@gmail.com',
+          'jhenniferlorettoscarpa@gmail.com'
+          // ,'larissalorettoscarpa@gmail.com'  // <- descomente se a Larissa também precisar
+        ];
+    }
+    match /lancamentos/{document=**} {
+      allow read:  if rhLeAusencias();
+      allow write: if rhEscreve();
+    }
+    // Banco de horas e documentos: continuam SÓ Gregory + Ávia (o painel da Supervisora não usa)
+    match /bancoHoras/{document=**} {
+      allow read, write: if rhEscreve();
+    }
+    match /documentosRH/{document=**} {
+      allow read, write: if rhEscreve();
+    }
+    // Tudo o resto (ICR, futuros dashboards), MENOS hub_config, ls_acessos,
+    // as do RH e as de Comunicados/Tarefas: só conta de verdade (e-mail), NUNCA anônimo
+    //
+    // ▼▼ ALTERAÇÃO 3 de 3 — 'catalogos_arquivos' entrou nesta lista ▼▼
+    // SEM isto, esta regra coringa daria escrita a QUALQUER logado na
+    // coleção de catálogos, e a alteração 2 não serviria de nada: no
+    // Firestore as regras se somam, basta UMA liberar pra liberar.
+    match /{coll}/{document=**} {
+      allow read, write: if !(coll in ['hub_config','ls_acessos','lancamentos','bancoHoras','documentosRH','ls_comunicados','ls_tarefas','catalogos_arquivos'])
+        && request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    // ▲▲ fim da alteração 3 ▲▲
   }
 }
