@@ -20,30 +20,36 @@ service cloud.firestore {
     }
 
     // ==========================================================
-    // FALTANDO HOJE — medido em 23/08/2026 contra o banco de verdade.
-    // Estas três coleções NÃO existem nas regras, então o Firestore
-    // recusa tudo (403), inclusive pro Yuri logado. O app engolia o
-    // erro em silêncio:
+    // O QUE FALTA — 24/08/2026
     //
-    //   conferencias     → a conferência da volta. Cada peça que o
-    //                      Yuri marcava sumia no primeiro recarregar.
-    //   ls_conf_licoes   → os nomes de modelo que ele ensina ao
-    //                      sistema. Nunca foram aprendidos de fato.
-    //   devolucoes       → devoluções.
+    // Correção do que eu tinha escrito aqui antes: as regras de verdade
+    // TÊM um coringa no final que cobre qualquer coleção nova. Então
+    // `conferencias` não está "de fora" — ela cai no coringa, que exige
+    // login de e-mail (não-anônimo).
     //
-    // Enquanto isso não entrar no console, a central de estoque grava
-    // a conferência no aparelho e espelha em ls_fila_etiquetas.
-    // Depois de colar este bloco, ela volta sozinha pro lugar certo.
+    // O problema é outro: a Central de Estoque carrega só firebase-app e
+    // firebase-firestore. O módulo de AUTH (firebase-auth-compat) só é
+    // carregado no modo fábrica. Fora dali o painel fala com o Firestore
+    // SEM credencial nenhuma — e aí:
+    //
+    //   ls_fila_etiquetas, ls_catalogo, ls_rep_fotos…  → `if true`, passam
+    //   conferencias, ls_conf_licoes                   → coringa, recusadas
+    //   entregas                                       → exige auth, recusada
+    //
+    // Não é coincidência: quem escreveu as regras abriu justamente as
+    // coleções que o estoque usa. Faltaram estas duas.
+    //
+    // As duas guardam só dia, entregador, quais peças voltaram e nome de
+    // modelo — nada de cliente, endereço ou telefone. Por isso entram no
+    // mesmo grupo aberto das outras do estoque, e NÃO no coringa.
+    //
+    // `entregas` fica como está (exige login): tem nome, endereço e
+    // telefone de cliente. Pra conferência conseguir ler a lista do dia,
+    // o caminho certo é o painel carregar o auth e herdar o login da
+    // Central — arrumar isso no código, não afrouxar a regra.
     // ==========================================================
-    match /conferencias/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /ls_conf_licoes/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /devolucoes/{document} {
-      allow read, write: if request.auth != null;
-    }
+    match /conferencias/{document=**}    { allow read, write: if true; }
+    match /ls_conf_licoes/{document=**}  { allow read, write: if true; }
 
   }
 }
