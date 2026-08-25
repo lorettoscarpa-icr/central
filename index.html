@@ -679,7 +679,7 @@
   function itemHTML(id){
     const nome=PANEL_NOME[id]||id, ic=ICONS[id]||'<circle cx="12" cy="12" r="9"/>';
     const pend=PANEL_PEND[id];
-    const tail=pend?'<span class="tag">Em breve</span>':((id==='metas'||id==='entregas')?`<span class="navbadge" data-badge="${id}"></span>`:'');
+    const tail=pend?'<span class="tag">Em breve</span>':((id==='metas'||id==='entregas'||id==='vendasperdidas')?`<span class="navbadge" data-badge="${id}"></span>`:'');
     return `<button class="nav-item${pend?' lock':''}" data-p="${id}" onclick="abrir('${id}')"><svg viewBox="0 0 24 24">${ic}</svg><span class="lbl">${nome}</span>${tail}</button>`;
   }
   function montarNav(ids){const host=$('navList'); if(!host)return; host.innerHTML=(window.ctNavItem?window.ctNavItem():'')+ids.map(itemHTML).join('');}
@@ -763,7 +763,7 @@
   async function sair(){if(FB_OK){await auth.signOut();}else{mostrarLogin();}}
 
   /* ---- AVISOS (notificações reais) ---- */
-  let avisos=[], unsubEnt=null, _ent=null, _metasPend=false;
+  let avisos=[], unsubEnt=null, _ent=null, _metasPend=false, unsubVP=null, _vp=0;
   function matchVend(ev,nome){const a=slug(ev),b=slug(nome);return a&&b&&a.slice(0,4)===b.slice(0,4);}
   function dataDeEntrega(e){return e.dataEntrega||dateKey(new Date(e.criadoEm||Date.now()));}
   function setBadge(p,n){document.querySelectorAll('.nav-item[data-p="'+p+'"] .navbadge').forEach(b=>{b.textContent=n>0?n:'';b.style.display=n>0?'inline-flex':'none';});atualizarDotsGrupos();}
@@ -777,6 +777,8 @@
     if(_ent&&_ent.pend>0){avisos.push({painel:'entregas',urg:_ent.atras>0,txt:`${_ent.pend} entrega${_ent.pend>1?'s':''} aguardando${_ent.atras>0?` · ${_ent.atras} atrasada${_ent.atras>1?'s':''}`:''}`});}
     setBadge('entregas',_ent?_ent.pend:0);
     if(_metasPend){avisos.push({painel:'metas',urg:false,txt:'Lançar as vendas de hoje'});}
+    setBadge('vendasperdidas',_vp);
+    if(_vp>0){avisos.push({painel:'vendasperdidas',urg:false,txt:`${_vp} cliente${_vp>1?'s':''} esperando o aviso de que o modelo chegou`});}
     try{if(window.ctAvisos)window.ctAvisos(avisos);}catch(_){}renderAvisos();
   }
   function ligarAvisos(c){
@@ -790,6 +792,16 @@
         _ent={pend,atras};recompute();
       },err=>console.warn('avisos entregas',err));
     }catch(e){console.warn(e);}
+    /* vendas perdidas: modelo chegou e o cliente ainda não foi chamado.
+       vendedora vê só os dela; quem mais tem o painel vê o total da loja */
+    if(document.querySelector('.nav-item[data-p="vendasperdidas"]')){
+      try{
+        unsubVP=db.collection('ls_vendas_perdidas').where('status','==','chegou').onSnapshot(snap=>{
+          let n=0;snap.forEach(doc=>{const r=doc.data();if(vend&&!matchVend(r.vendedora,vend))return;n++;});
+          _vp=n;recompute();
+        },err=>console.warn('avisos vendas perdidas',err));
+      }catch(e){console.warn(e);}
+    }
     if(c.vend){
       const n=new Date();const key=`${c.nome}_${n.getFullYear()}_${String(n.getMonth()+1).padStart(2,'0')}`;
       db.collection('ls_historico').doc(key).get().then(doc=>{
@@ -797,7 +809,7 @@
       }).catch(e=>console.warn('avisos metas',e));
     }
   }
-  function desligarAvisos(){if(unsubEnt){try{unsubEnt();}catch(_){}unsubEnt=null;}_ent=null;_metasPend=false;avisos=[];setBadge('entregas',0);try{if(window.ctDesligar)window.ctDesligar();}catch(_){}}
+  function desligarAvisos(){if(unsubEnt){try{unsubEnt();}catch(_){}unsubEnt=null;}if(unsubVP){try{unsubVP();}catch(_){}unsubVP=null;}_vp=0;_ent=null;_metasPend=false;avisos=[];setBadge('entregas',0);setBadge('vendasperdidas',0);try{if(window.ctDesligar)window.ctDesligar();}catch(_){}}
   function toggleBell(ev){ev&&ev.stopPropagation();$('bellPanel').classList.toggle('open');}
   function irAviso(p){$('bellPanel').classList.remove('open');abrir(p);}
   document.addEventListener('click',e=>{const p=$('bellPanel'),b=$('bellBtn');if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!b.contains(e.target))p.classList.remove('open');});
