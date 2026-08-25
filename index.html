@@ -541,7 +541,7 @@
   const PESSOAS={
     'lorettoscarpa@gmail.com'         :{nome:'Gregory',  fem:false, areas:'*'},
     'larissalorettoscarpa@gmail.com'  :{nome:'Larissa',  fem:true,  areas:'*'},
-    'jhenniferlorettoscarpa@gmail.com':{nome:'Jhennifer',fem:true,  areas:['vendas'], paineis:['supervisora','metas','entregas','envios','encomendas','posvenda','vendasperdidas','parcerias','cartaopresente','consertos','catalogos']},
+    'jhenniferlorettoscarpa@gmail.com':{nome:'Jhennifer',fem:true,  areas:['vendas'], paineis:['supervisora','metas','entregas','envios','encomendas','vendasperdidas','posvenda','parcerias','cartaopresente','consertos','catalogos']},
     'ialeylorettoscarpa@gmail.com'    :{nome:'Ialey',    fem:true,  areas:['vendas'], vend:true, extra:['catalogos']},
     'michellylorettoscarpa@gmail.com' :{nome:'Michelly', fem:true,  areas:['vendas'], vend:true, extra:['catalogos']},
     'natalialorettoscarpa@gmail.com'  :{nome:'Natália',  fem:true,  areas:['vendas'], vend:true, extra:['catalogos']},
@@ -553,7 +553,7 @@
   };
   /* ===== ÁREAS — cada área e seus painéis (edite à vontade) ===== */
   const AREAS={
-    vendas:        ['metas','entregas','rastreio','envios','encomendas','posvenda','vendasperdidas','parcerias','cartaopresente','consertos'],
+    vendas:        ['metas','entregas','rastreio','envios','encomendas','vendasperdidas','posvenda','parcerias','cartaopresente','consertos'],
     estoque:       ['centralestoque'],
     entregas:      ['entregas'],   /* entregador: o comFrota abaixo soma os Entregadores ao vivo */
     financeiro_rh: ['loretto-icr','caixa-cruzamento','relatoriodevendas','comissoes','recursoshumanos'],
@@ -594,8 +594,8 @@
     {id:'rastreio',             nome:'Entregadores', url:BASE+'rastreio/equipe.html'},
     {id:'envios',               nome:'Envios', url:BASE+'entregas/?painel=envios'},
     {id:'encomendas',           nome:'Encomendas'},
-    {id:'posvenda',             nome:'Pós-venda'},
     {id:'vendasperdidas',       nome:'Vendas Perdidas'},
+    {id:'posvenda',             nome:'Pós-venda'},
     {id:'parcerias',            nome:'Parcerias',          pending:false},
     {id:'cartaopresente',       nome:'Presentes'},
     {id:'consertos',            nome:'Consertos',          pending:false},
