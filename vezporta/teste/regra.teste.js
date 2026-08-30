@@ -326,46 +326,121 @@ console.log('\n== afastamento: férias, folga e atestado ==');
   eq('entrando de férias, a vez sai dela', r.daVez !== 'natalia', true);
 }
 {
+  /* O caso real: ela sai duas semanas e a contagem dela para onde estava. */
   const e = base();
   e.pessoas.ialey.idas = 40; e.pessoas.ialey.vendas = 16;
   e.pessoas.michelly.idas = 44; e.pessoas.michelly.vendas = 20;
-  e.pessoas.natalia.idas = 2; e.pessoas.natalia.vendas = 1;   // voltou de duas semanas
+  e.pessoas.natalia.idas = 2; e.pessoas.natalia.vendas = 1;
   e.pessoas.natalia.afast = 'ferias';
-  eq('afastada fica fora da média', R.mediaAtiva(e.pessoas,'idas'), 42);
-  eq('e a média de quem ficou ignora a própria pessoa',
-     R.mediaAtiva(e.pessoas,'idas','natalia'), 42);
-  eq('e o atraso dela é calculado', R.atrasoSeVoltar(e.pessoas,'natalia','idas'), 40);
-  const r = R.nivelar(e, 'natalia');
-  eq('nivelar põe na média das ativas', [r.pessoas.natalia.idas, r.pessoas.natalia.vendas], [42, 18]);
-  eq('e não mexe em quem ficou',
-     [r.pessoas.ialey.idas, r.pessoas.michelly.idas], [40, 44]);
+  eq('de férias, ela não está na fila', R.elegiveis(e.pessoas), ['ialey', 'michelly']);
+  eq('e a fila não está zerada: a Ialey ainda deve 4', R.filaZerada(e.pessoas, 'idas'), false);
+  eq('faltam 4 idas para zerar', R.faltaParaZerar(e.pessoas, 'idas'), 4);
+
+  const v = R.voltou(e, 'natalia');
+  eq('voltou ao trabalho: a marca de ausência sai', R.afastada(v.pessoas.natalia), null);
+  eq('mas ela ainda não entra na fila', R.elegiveis(v.pessoas), ['ialey', 'michelly']);
+  eq('fica esperando a fila zerar', v.pessoas.natalia.esperando, true);
+  eq('e nenhuma ida dela foi apagada', [v.pessoas.natalia.idas, v.pessoas.natalia.vendas], [2, 1]);
+  eq('voltou não altera o estado que recebeu', e.pessoas.natalia.esperando, undefined);
 }
 {
-  /* o motivo de existir o nivelamento: sem ele, ela monopoliza a porta */
+  /* Enquanto ela espera, quem acumulou vez vai as vezes que acumulou — a regra da casa. */
+  let e = base('idas');
+  e.pessoas.ialey.idas = 40; e.pessoas.michelly.idas = 44; e.pessoas.natalia.idas = 2;
+  e.pessoas.natalia.vendas = 1;
+  e.pessoas.ialey.ultimaEm = 8000; e.pessoas.michelly.ultimaEm = 9000;
+  e.pessoas.natalia.ultimaEm = 100;          /* duas semanas fora: ninguém está há mais tempo */
+  e.pessoas.natalia.afast = 'ferias';
+  e = R.voltou(e, 'natalia');
+  e.daVez = R.proximaDaVez(e.pessoas, 'idas');
+  const quem = [];
+  for (let i = 0; i < 4; i++) { e = R.revalidar(e); quem.push(e.daVez); e = R.registrar(e, e.daVez, 'venda', 9000 + i); }
+  eq('a Ialey vai as 4 que estava devendo', quem, ['ialey', 'ialey', 'ialey', 'ialey']);
+  eq('só então a fila zera', R.filaZerada(e.pessoas, 'idas'), true);
+  eq('e ela entra', e.pessoas.natalia.esperando, false);
+  eq('na mesma marca das outras',
+     [R.conta(e.pessoas.natalia, 'idas'), R.conta(e.pessoas.ialey, 'idas')], [44, 44]);
+  eq('sem que a vida dela fosse reescrita', e.pessoas.natalia.idas, 2);
+  eq('a conversão dela continua a verdadeira', R.conversao(e.pessoas.natalia), 50);
+  eq('e a rodada nova começa por ela, que está há mais tempo sem ir',
+     R.proximaDaVez(e.pessoas, 'idas'), 'natalia');
+}
+{
+  /* O que a regra evita: sem esperar, ela pegaria a porta inteira por dias. */
   let e = base('idas');
   e.pessoas.ialey.idas = 40; e.pessoas.michelly.idas = 40; e.pessoas.natalia.idas = 2;
   e.daVez = 'ialey';
   let seguidas = 0;
-  for (let i = 0; i < 10; i++) { e = R.revalidar(e); e = R.registrar(e, e.daVez, 'venda', 9000+i);
+  for (let i = 0; i < 10; i++) { e = R.revalidar(e); e = R.registrar(e, e.daVez, 'venda', 9000 + i);
     if (e.pessoas.natalia.idas > 2) seguidas++; }
-  eq('sem nivelar, ela pega quase tudo ao voltar', seguidas >= 9, true);
+  eq('entrando crua, ela pega quase tudo', seguidas >= 9, true);
 
   let f = base('idas');
   f.pessoas.ialey.idas = 40; f.pessoas.michelly.idas = 40; f.pessoas.natalia.idas = 2;
-  f = R.nivelar(f, 'natalia');
+  f.pessoas.natalia.afast = 'ferias';
+  f = R.voltou(f, 'natalia');
+  eq('com a fila já zerada entre as duas, ela entra na hora', f.pessoas.natalia.esperando, false);
   f.daVez = 'ialey';
-  const antes = f.pessoas.natalia.idas;
-  for (let i = 0; i < 6; i++) { f = R.revalidar(f); f = R.registrar(f, f.daVez, 'venda', 9000+i); }
-  const c = [f.pessoas.ialey.idas, f.pessoas.michelly.idas, f.pessoas.natalia.idas];
-  eq('nivelada, ela volta a revezar normal', Math.max(...c) - Math.min(...c) <= 1, true);
-  eq('e entrou na média de quem ficou, não no zero', antes, 40);
+  for (let i = 0; i < 9; i++) { f = R.revalidar(f); f = R.registrar(f, f.daVez, 'venda', 9000 + i); }
+  const c = ['ialey', 'michelly', 'natalia'].map(k => R.conta(f.pessoas[k], 'idas'));
+  eq('e a partir daí reveza normal', Math.max(...c) - Math.min(...c) <= 1, true);
 }
 {
-  const e = base();
+  /* Ninguém para esperar: a fila está zerada por definição. */
+  let e = base('idas');
+  e.pessoas.michelly.presente = false; e.pessoas.ialey.presente = false;
+  e.pessoas.natalia.idas = 7; e.pessoas.natalia.afast = 'folga';
+  e = R.voltou(e, 'natalia');
+  eq('sozinha na loja, ela entra na hora', e.pessoas.natalia.esperando, false);
+  eq('e a fila dela recomeça do zero', R.conta(e.pessoas.natalia, 'idas'), 0);
+}
+{
+  /* Duas voltando juntas entram juntas, quando a rodada fecha. */
+  let e = base('idas');
+  e.pessoas.ialey.idas = 10; e.pessoas.michelly.idas = 8; e.pessoas.natalia.idas = 8;
+  e.pessoas.michelly.afast = 'atestado'; e.pessoas.natalia.afast = 'ferias';
+  e = R.voltou(e, 'michelly'); e = R.voltou(e, 'natalia');
+  eq('com uma só na fila, não há o que esperar',
+     [e.pessoas.michelly.esperando, e.pessoas.natalia.esperando], [false, false]);
+  eq('e as duas entram na marca de quem ficou',
+     [R.conta(e.pessoas.michelly,'idas'), R.conta(e.pessoas.natalia,'idas'), R.conta(e.pessoas.ialey,'idas')], [10, 10, 10]);
+}
+{
+  /* A fila zerando por venda, no meio do expediente. */
+  let e = base('idas');
+  e.pessoas.ialey.idas = 5; e.pessoas.michelly.idas = 6; e.pessoas.natalia.idas = 6;
+  e.pessoas.ialey.ultimaEm = 9000; e.pessoas.michelly.ultimaEm = 8000;
+  e.pessoas.natalia.ultimaEm = 100;            /* fora há dias: é a que está há mais tempo sem ir */
   e.pessoas.natalia.afast = 'folga';
-  const antes = JSON.stringify(e.pessoas);
-  R.nivelar(e, 'natalia');
-  eq('nivelar não altera o estado que recebeu', JSON.stringify(e.pessoas), antes);
+  e = R.voltou(e, 'natalia');
+  eq('ainda falta 1 para zerar', R.faltaParaZerar(e.pessoas, 'idas'), 1);
+  eq('e ela espera', e.pessoas.natalia.esperando, true);
+  e = R.registrar(e, 'ialey', 'venda', 9500);
+  eq('essa venda fechou a rodada e ela entrou', e.pessoas.natalia.esperando, false);
+  eq('a vez já é dela na rodada nova', e.daVez, 'natalia');
+}
+{
+  /* Enquanto espera, ela não pode ser chamada nem por engano. */
+  let e = base('idas');
+  e.pessoas.ialey.idas = 2; e.pessoas.michelly.idas = 9; e.pessoas.natalia.idas = 0;
+  e.pessoas.natalia.afast = 'ferias';
+  e = R.voltou(e, 'natalia');
+  e.daVez = 'natalia';                                  /* estado torto, de propósito */
+  e = R.revalidar(e);
+  eq('revalidar tira a vez de quem está esperando', e.daVez, 'ialey');
+  eq('e ela não aparece na ordem da fila',
+     R.ordemDistinta(e.pessoas, 'idas', e.daVez).map(x => x.email), ['ialey', 'michelly']);
+}
+{
+  /* Por vendas o critério é o mesmo, com a outra contagem. */
+  let e = base('vendas');
+  e.pessoas.ialey.vendas = 4; e.pessoas.michelly.vendas = 4; e.pessoas.natalia.vendas = 1;
+  e.pessoas.ialey.idas = 9; e.pessoas.michelly.idas = 9; e.pessoas.natalia.idas = 3;
+  e.pessoas.natalia.afast = 'ferias';
+  e = R.voltou(e, 'natalia');
+  eq('fila por vendas já zerada: entra na hora', e.pessoas.natalia.esperando, false);
+  eq('e nivela as duas contagens, para a troca de critério não a desenterrar',
+     [R.conta(e.pessoas.natalia,'vendas'), R.conta(e.pessoas.natalia,'idas')], [4, 9]);
 }
 
 console.log(`\nresultado final: ${ok} ok, ${falhou} falha(s)`);

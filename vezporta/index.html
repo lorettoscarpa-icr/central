@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v8">
+<meta name="app-ver" content="v9">
 <title>Vez na Porta · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -226,12 +226,12 @@
 <div class="msg" id="msg"></div>
 <input type="file" id="arqFoto" accept="image/*" style="display:none">
 
-<!-- afastamento: férias, folga ou atestado -->
+<!-- ausência: férias, folga ou atestado -->
 <div class="folha" id="folhaAfast" onclick="if(event.target===this)fecharAfastamento()">
   <div class="folha-cx">
-    <h3 id="afastTitulo">Afastar da vez</h3>
-    <p id="afastTexto">Enquanto estiver afastada ela não é chamada. Na volta, o painel pergunta
-       se quer nivelar a contagem.</p>
+    <h3 id="afastTitulo">Ausência</h3>
+    <p id="afastTexto">Enquanto estiver ausente ela não é chamada, e a contagem dela para onde
+       está. Na volta, ela espera a fila zerar para entrar.</p>
     <div id="listaAfast"></div>
   </div>
 </div>
@@ -293,7 +293,8 @@ const chave = e => e.replace(/[^a-z]/g,'');            /* e-mail vira chave curt
 function estadoInicial(){
   const pessoas = {};
   EQUIPE.forEach(p => pessoas[chave(p.email)] = {
-    nome:p.nome, email:p.email, idas:0, vendas:0, participa:p.participa, presente:true, afast:null, ultimaEm:0 });
+    nome:p.nome, email:p.email, idas:0, vendas:0, participa:p.participa, presente:true,
+    afast:null, esperando:false, base:null, ultimaEm:0 });
   return { pessoas, daVez:null, criterio:'idas', atualizadoEm:Date.now() };
 }
 
@@ -332,8 +333,8 @@ function pintar(){
   $('bCriterio').disabled = !souGestor;   /* trocar o critério muda quem é chamada */
   $('bCriterio').style.cursor = souGestor ? 'pointer' : 'default';
   $('explica').innerHTML = crit==='vendas'
-    ? 'A fila está governada pelas <b>vendas</b>: a próxima é quem <b>vendeu</b> menos vezes. Uma sequência de clientes que não compraram não empurra ninguém para o fim da fila.'
-    : 'A fila está governada pelas <b>idas à porta</b>: a próxima é quem <b>foi</b> menos vezes, tenha vendido ou não. Quem volta do almoço atrás na contagem pega várias seguidas até emparelhar.';
+    ? 'A fila está governada pelas <b>vendas</b>: a próxima é quem <b>vendeu</b> menos vezes na rodada. Uma sequência de clientes que não compraram não empurra ninguém para o fim da fila. Quem volta de uma ausência <b>espera a fila zerar</b> para entrar.'
+    : 'A fila está governada pelas <b>idas à porta</b>: a próxima é quem <b>foi</b> menos vezes na rodada, tenha vendido ou não. Quem volta do almoço emparelha pegando várias seguidas; quem volta de uma ausência <b>espera a fila zerar</b> para entrar.';
 
   /* A ordem em que serão chamadas, para ninguém precisar perguntar. Uma coluna por
      pessoa: quem está apta aparece, sempre — as três ficam à vista de uma vez.
@@ -357,13 +358,15 @@ function pintar(){
 
   const chaves = Object.keys(estado.pessoas).sort((a,b)=>
     estado.pessoas[a].nome.localeCompare(estado.pessoas[b].nome));
+  const falta = VezRegra.faltaParaZerar(estado.pessoas, crit);
   $('lista').innerHTML = chaves.map(k=>{
     const p = estado.pessoas[k];
     const af = VezRegra.afastada(p);
-    const fora = !p.participa || !p.presente || af;
+    const fora = !p.participa || !p.presente || af || p.esperando;
     const motivo = af ? ('de ' + VezRegra.AFASTAMENTOS[af]) :
+                   p.esperando ? ('esperando a fila zerar' + (falta ? ' · faltam '+falta : '')) :
                    (!p.participa ? 'fora do revezamento' : (!p.presente ? 'ausente agora' : '&nbsp;'));
-    return `<div class="pessoa ${fora?'fora':''} ${af?'afastada':''} ${estado.daVez===k?'davez':''}">
+    return `<div class="pessoa ${fora?'fora':''} ${af||p.esperando?'afastada':''} ${estado.daVez===k?'davez':''}">
       <button class="av" title="Trocar a foto de ${esc(p.nome)}" onclick="escolherFoto('${k}')">${fotoOuInicial(p)}<span class="cam"><svg viewBox="0 0 24 24"><path d="M3 8h4l2-2h6l2 2h4v12H3z"/><circle cx="12" cy="13" r="3.2"/></svg></span></button>
       <span class="pn"><b>${esc(p.nome)}</b><small>${motivo}</small></span>
       <span class="nums">
@@ -372,7 +375,7 @@ function pintar(){
         <span class="num"><b class="conv">${VezRegra.conversao(p)===null?'—':VezRegra.conversao(p)+'%'}</b><small>conv.</small></span>
       </span>
       <button class="tog ${p.presente?'on':''}" onclick="alternar('${k}','presente')">${p.presente?'na loja':'ausente'}</button>
-      ${souGestor ? `<button class="tog ${VezRegra.afastada(p)?'afast':''}" onclick="pedirAfastamento('${k}')">${VezRegra.afastada(p)?VezRegra.AFASTAMENTOS[VezRegra.afastada(p)]:'afastar'}</button>` : ''}
+      ${souGestor ? `<button class="tog ${af||p.esperando?'afast':''}" onclick="pedirAfastamento('${k}')">${af?VezRegra.AFASTAMENTOS[af]:(p.esperando?'esperando':'ausência')}</button>` : ''}
       ${souGestor ? `<button class="tog ${p.participa?'on':''}" onclick="alternar('${k}','participa')">${p.participa?'na vez':'fora'}</button>` : ''}
     </div>`;
   }).join('');
@@ -446,23 +449,36 @@ window.registrar = function(desfecho, motivo){
             : 'Registrado — a vez continua com '+p.nome);
 };
 
-/* Afastar é só sair da fila. Voltar é o caso delicado: quem some duas semanas volta
-   com dezenas de idas de diferença, e a regra de "vai quem foi menos vezes" a chamaria
-   seguidas vezes por dias. Ofereço nivelar pela média de quem ficou — mas perguntando,
-   porque mexer em contador de gente sem avisar destrói a confiança na ferramenta.
-   Quem recusar fica com o comportamento cru, que é uma escolha legítima. */
+/* Marcar ausência é só sair da fila: a contagem dela para onde está.
+
+   A volta é a parte que a loja resolveu na mão e agora está aqui: ela NÃO entra no meio
+   da rodada. Espera a fila zerar — quem acumulou vez vai as vezes que acumulou — e só
+   quando ninguém está mais devendo é que a rodada recomeça com ela dentro.
+
+   Isso substituiu o nivelamento por média que existia aqui: aquilo tirava da Ialey as
+   três vezes que ela tinha para ir, e ainda reescrevia idas e vendas de quem voltava,
+   estragando a conversão. A regra da casa é mais justa e não apaga o trabalho de
+   ninguém. Almoço continua sendo outra coisa: ausência curta, emparelha na hora. */
 let _afastAlvo = null;
 window.pedirAfastamento = function(k){
   _afastAlvo = k;
   const p = estado.pessoas[k], atual = VezRegra.afastada(p);
-  $('afastTitulo').textContent = atual ? p.nome + ' está de ' + VezRegra.AFASTAMENTOS[atual] : 'Afastar ' + p.nome;
-  $('afastTexto').textContent = atual
-    ? 'Ao voltar, o painel calcula quanto ela ficou para trás e pergunta se quer nivelar a contagem.'
-    : 'Enquanto estiver afastada ela não é chamada. Na volta, o painel pergunta se quer nivelar a contagem.';
+  const falta = VezRegra.faltaParaZerar(estado.pessoas, estado.criterio);
+  $('afastTitulo').textContent = atual ? p.nome + ' está de ' + VezRegra.AFASTAMENTOS[atual]
+                                : p.esperando ? p.nome + ' está esperando a fila zerar'
+                                : 'Ausência de ' + p.nome;
+  $('afastTexto').textContent = p.esperando && !atual
+    ? (falta ? 'Ela entra assim que a fila zerar — faltam ' + falta + ' ' +
+               (estado.criterio==='vendas'?'vendas':'idas') + ' para as outras emparelharem.'
+             : 'A fila já está zerada: ela entra na próxima.')
+    : atual
+      ? 'A contagem dela está parada. Quando voltar, espera a fila zerar para entrar — quem acumulou vez vai primeiro.'
+      : 'Enquanto estiver ausente ela não é chamada, e a contagem dela para onde está. Na volta, espera a fila zerar.';
   $('listaAfast').innerHTML =
     Object.keys(VezRegra.AFASTAMENTOS).map(t =>
       `<button class="mot" onclick="afastar('${t}')">${atual===t?'✓ ':''}${esc(VezRegra.AFASTAMENTOS[t][0].toUpperCase()+VezRegra.AFASTAMENTOS[t].slice(1))}</button>`).join('')
     + (atual ? `<button class="mot" onclick="afastar(null)"><b>Voltou ao trabalho</b></button>` : '')
+    + (p.esperando && !atual ? `<button class="mot" onclick="afastar('agora')"><b>Entrar na fila agora</b></button>` : '')
     + `<button class="mot pular" onclick="fecharAfastamento()">Cancelar</button>`;
   $('folhaAfast').classList.add('on');
 };
@@ -473,33 +489,31 @@ window.afastar = function(tipo){
   const k = _afastAlvo; if(!k) return;
   const novo = JSON.parse(JSON.stringify(estado));
   const p = novo.pessoas[k];
-  const antes = VezRegra.afastada(p);
 
-  if(tipo){                                   /* entrando ou trocando o tipo */
-    p.afast = tipo; delete p.ferias;          /* some com a marca antiga, se houver */
+  if(tipo && VezRegra.AFASTAMENTOS[tipo]){    /* entrando ou trocando o tipo */
+    p.afast = tipo; delete p.ferias; p.esperando = false;
     salvar(VezRegra.revalidar(novo), p.nome + ' — ' + VezRegra.AFASTAMENTOS[tipo] + ', fora da vez');
     return;
   }
 
-  /* voltando: calcula o atraso ANTES de limpar a marca */
-  const crit = novo.criterio;
-  const atraso = VezRegra.atrasoSeVoltar(novo.pessoas, k, crit);
-  const media  = VezRegra.mediaAtiva(novo.pessoas, crit==='vendas'?'vendas':'idas', k);
-  p.afast = null; delete p.ferias;
-  if(atraso > 3){
-    const rot = crit==='vendas' ? 'vendas' : 'idas';
-    if(confirm(
-      p.nome + ' volta de ' + (antes ? VezRegra.AFASTAMENTOS[antes] : 'afastamento') +
-      ' com ' + atraso + ' ' + rot + ' a menos que as outras.\n\n' +
-      'Sem nivelar, ela vai ser chamada seguidas vezes até emparelhar — pode pegar quase ' +
-      'todos os clientes por dias.\n\n' +
-      'Nivelar a contagem dela com a média de quem ficou (' + media + ' ' + rot + ')?')){
-      const nivelado = VezRegra.nivelar(novo, k);
-      salvar(VezRegra.revalidar(nivelado), p.nome + ' voltou — contagem nivelada em ' + media);
-      return;
-    }
+  /* Furar a espera é decisão da gestão, e existe porque a regra tem exceção na vida
+     real (a fila travada com alguém que não veio, um dia fraco). Entra na marca de
+     quem está na frente, igual entraria se a fila tivesse zerado. */
+  if(tipo === 'agora'){
+    /* a marca é lida ANTES de ela entrar: com ela já dentro, a contagem dela entraria
+       no cálculo e a conta mudaria de significado */
+    p.base = { idas:(p.idas||0) - VezRegra.nivelDaFila(novo.pessoas,'idas'),
+               vendas:(p.vendas||0) - VezRegra.nivelDaFila(novo.pessoas,'vendas') };
+    p.esperando = false;
+    salvar(VezRegra.revalidar(novo), p.nome + ' entrou na fila');
+    return;
   }
-  salvar(VezRegra.revalidar(novo), p.nome + ' voltou ao trabalho');
+
+  const depois = VezRegra.voltou(novo, k);
+  const falta = VezRegra.faltaParaZerar(depois.pessoas, depois.criterio);
+  salvar(VezRegra.revalidar(depois), depois.pessoas[k].esperando
+    ? p.nome + ' voltou — entra quando a fila zerar' + (falta ? ' (faltam '+falta+')' : '')
+    : p.nome + ' voltou e já entrou na fila');
 };
 
 window.alternar = function(k, campo){
@@ -660,7 +674,7 @@ function ligar(){
     const v = d.data();
     /* quem entrou na equipe depois entra sem apagar contagem de ninguém */
     EQUIPE.forEach(pp=>{ const k=chave(pp.email);
-      if(!v.pessoas[k]) v.pessoas[k]={nome:pp.nome,email:pp.email,idas:0,vendas:0,participa:pp.participa,presente:true,afast:null,ultimaEm:0}; });
+      if(!v.pessoas[k]) v.pessoas[k]={nome:pp.nome,email:pp.email,idas:0,vendas:0,participa:pp.participa,presente:true,afast:null,esperando:false,base:null,ultimaEm:0}; });
     estado = v; pintar();
   }, e=>toast('Sem conexão com o servidor'));
 
