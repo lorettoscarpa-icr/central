@@ -33,7 +33,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="c8">
+<meta name="app-ver" content="c9">
 <title>Central Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Barlow:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -127,6 +127,11 @@
   .side-inner::-webkit-scrollbar-thumb:hover{background:rgba(201,169,80,.38)}
   .side-inner{scrollbar-width:thin;scrollbar-color:rgba(201,169,80,.28) transparent}
   .nav-sec{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--creme-suave);opacity:.6;padding:8px 10px 8px}
+  /* o item que o aviso apontou pisca uma vez: sem isso a pessoa cai numa lista e
+     continua procurando, que era exatamente a queixa */
+  @keyframes ctAchei{0%{box-shadow:0 0 0 0 rgba(201,169,80,.55)}100%{box-shadow:0 0 0 14px rgba(201,169,80,0)}}
+  .ct-achei{animation:ctAchei 1.1s ease-out 2;border-color:var(--gold)!important}
+  @media (prefers-reduced-motion:reduce){.ct-achei{animation:none;border-color:var(--gold)!important}}
   .nav-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:none;color:var(--creme-suave);font-family:'Barlow';font-size:14.5px;font-weight:500;padding:11px 12px;border-radius:8px;cursor:pointer;position:relative;transition:.18s;margin-bottom:2px}
   /* aviso de versão nova: discreto, embaixo, e some se ela tocar no × */
   #lsAtualizar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));
@@ -703,7 +708,7 @@
 
   /* ---- SHELL ---- */
   let papelAtual='vendedora', tab='metas', contaAtual=null;
-  const frames={}, frameLoaded={}, _embedOk={};
+  const frames={}, frameLoaded={}, _embedOk={}, _foco={};
   function toggleNav(){$('shell').classList.toggle('nav-hidden');}
   function showLoader(s){$('stageLoader').style.display=s?'flex':'none';}
   function itemHTML(id){
@@ -742,11 +747,15 @@
   function ensureFrame(p){
     if(frames[p]||!PANEL_URL[p])return frames[p];
     const f=document.createElement('iframe');f.className='frame';f.setAttribute('title',p);
-    f.addEventListener('load',()=>{frameLoaded[p]=true;if(tab===p)showLoader(false);});
+    f.addEventListener('load',()=>{frameLoaded[p]=true;if(tab===p)showLoader(false);_foco[p]=null;});
     let src=(window.LS_urlPainel?LS_urlPainel(p,PANEL_URL[p]):PANEL_URL[p]);
     /* avisa o painel que ele está dentro da Central: é assim que ele sabe que pode
        trocar a marca dele pelo botão de voltar em vez de repetir o cabeçalho */
     if(PANEL_MENU[p])src+=(src.indexOf('?')>=0?'&':'?')+'embed=1';
+    /* Na PRIMEIRA abertura o foco vai na URL, não por chamada: o painel ainda vai
+       montar a tela, e o boot dele chama a aba padrão por último — foco entregue antes
+       disso era engolido. Na URL ele espera o painel dizer que está pronto. */
+    if(_foco[p])src+=(src.indexOf('?')>=0?'&':'?')+'foco='+encodeURIComponent(_foco[p]);
     f.src=src;
     $('stage').appendChild(f);frames[p]=f;return f;
   }
@@ -800,15 +809,17 @@
   function renderAvisos(){
     const dot=$('bellDot');const n=avisos.length;dot.style.display=n?'flex':'none';dot.textContent=n||'';
     const list=$('bellList');
-    list.innerHTML = n ? avisos.map(a=>`<button class="bell-item ${a.urg?'urg':''}" onclick="irAviso('${a.painel}')"><span class="bd"></span><span class="bt">${a.txt}</span><span class="bc">→</span></button>`).join('') : '<div class="bell-empty">Sem avisos por enquanto.</div>';
+    list.innerHTML = n ? avisos.map(a=>`<button class="bell-item ${a.urg?'urg':''}" onclick="irAviso('${a.painel}','${a.foco||''}')"><span class="bd"></span><span class="bt">${a.txt}</span><span class="bc">→</span></button>`).join('') : '<div class="bell-empty">Sem avisos por enquanto.</div>';
   }
   function recompute(){
     avisos=[];
-    if(_ent&&_ent.pend>0){avisos.push({painel:'entregas',urg:_ent.atras>0,txt:`${_ent.pend} entrega${_ent.pend>1?'s':''} aguardando${_ent.atras>0?` · ${_ent.atras} atrasada${_ent.atras>1?'s':''}`:''}`});}
+    /* tendo atrasada, o que precisa de gente é a aba de pendentes; sem atrasada, a
+       fila de aguardando do painel. O aviso leva pro que dói. */
+    if(_ent&&_ent.pend>0){avisos.push({painel:'entregas',urg:_ent.atras>0,foco:_ent.atras>0?'pendentes':'aguardando',txt:`${_ent.pend} entrega${_ent.pend>1?'s':''} aguardando${_ent.atras>0?` · ${_ent.atras} atrasada${_ent.atras>1?'s':''}`:''}`});}
     setBadge('entregas',_ent?_ent.pend:0);
-    if(_metasPend){avisos.push({painel:'metas',urg:false,txt:'Lançar as vendas de hoje'});}
+    if(_metasPend){avisos.push({painel:'metas',urg:false,foco:'lancamento',txt:'Lançar as vendas de hoje'});}
     setBadge('vendasperdidas',_vp);
-    if(_vp>0){avisos.push({painel:'vendasperdidas',urg:false,txt:`${_vp} cliente${_vp>1?'s':''} esperando o aviso de que o modelo chegou`});}
+    if(_vp>0){avisos.push({painel:'vendasperdidas',urg:false,foco:'chegaram',txt:`${_vp} cliente${_vp>1?'s':''} esperando o aviso de que o modelo chegou`});}
     try{if(window.ctAvisos)window.ctAvisos(avisos);}catch(_){}renderAvisos();
   }
   function ligarAvisos(c){
@@ -841,7 +852,27 @@
   }
   function desligarAvisos(){if(unsubEnt){try{unsubEnt();}catch(_){}unsubEnt=null;}if(unsubVP){try{unsubVP();}catch(_){}unsubVP=null;}_vp=0;_ent=null;_metasPend=false;avisos=[];setBadge('entregas',0);setBadge('vendasperdidas',0);try{if(window.ctDesligar)window.ctDesligar();}catch(_){}}
   function toggleBell(ev){ev&&ev.stopPropagation();$('bellPanel').classList.toggle('open');}
-  function irAviso(p){$('bellPanel').classList.remove('open');abrir(p);}
+  /* Antes daqui o clique no aviso só abria o painel e largava a pessoa na porta:
+     "3 entregas atrasadas" abria Entregas e ela que procurasse. Agora o aviso carrega
+     PARA ONDE ir, e o painel recebe esse foco assim que estiver de pé. */
+  function irAviso(p,foco){
+    $('bellPanel').classList.remove('open');
+    if(foco)_foco[p]=foco;
+    const jaExistia=!!frames[p];
+    abrir(p);                                   /* cria o iframe já com ?foco= se for a 1ª vez */
+    if(foco&&(p==='comtar'||jaExistia))entregarFoco(p);
+  }
+  /* Painel e Central no mesmo domínio: dá pra chamar a função dele direto. Painel que
+     ainda não sabe receber foco simplesmente não tem window.centralFoco — e aí o
+     comportamento é o de antes, abrir e parar. Nada quebra. */
+  function entregarFoco(p){
+    const foco=_foco[p]; if(!foco)return;
+    if(p==='comtar'){ _foco[p]=null; try{if(window.ctFoco)ctFoco(foco);}catch(_){} return; }
+    const f=frames[p]; if(!f||!frameLoaded[p])return;   /* primeira abertura: já foi na URL */
+    _foco[p]=null;
+    try{ const w=f.contentWindow; if(w&&typeof w.centralFoco==='function'){ w.centralFoco(foco); return; } }catch(_){}
+    try{ f.contentWindow.postMessage({tipo:'central-foco',foco:foco},location.origin); }catch(_){}
+  }
   document.addEventListener('click',e=>{const p=$('bellPanel'),b=$('bellBtn');if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!b.contains(e.target))p.classList.remove('open');});
 
   window.addEventListener('message',e=>{const d=e.data||{};
@@ -1073,7 +1104,7 @@
       const resps=c.comentarios||[]; const abertoC=_openComsC[c.id];
       const respBtn=`<button class="ct-cbtn ${abertoC?'on':''}" onclick="ctToggleComsC('${c.id}')">💬 ${resps.length?resps.length+' resposta'+(resps.length>1?'s':''):'Responder'}</button>`;
       const threadC=abertoC?`<div class="ct-thread">${resps.length?resps.map(k=>`<div class="ct-cm"><b>${esc(k.autor)}</b><span>${fmtHora(k.ts)}</span>${k.texto?`<p>${esc(k.texto)}</p>`:''}${k.foto?`<img class="ct-cm-foto" src="${k.foto}" onclick="ctVerFoto(this.src)" alt="">`:''}</div>`).join(''):'<div class="ct-cm-vazio">Sem respostas ainda.</div>'}<div class="ct-cm-add"><input id="ctcmc-${c.id}" placeholder="Responder…" onkeydown="if(event.key==='Enter')ctEnviarComentCom('${c.id}')"><button class="ct-cm-cam" onclick="ctCmFotoPickCom('${c.id}')" title="Anexar foto">📷</button><button onclick="ctEnviarComentCom('${c.id}')">Enviar</button></div></div>`:'';
-      return `<div class="ct-card${c.fixado?' fix':''}">
+      return `<div class="ct-card${c.fixado?' fix':''}" data-com="${c.id}">
         ${c.fixado?'<div class="ct-fixtag">📌 Fixado</div>':''}
         <div class="ct-card-top">${avatar(c.autor)}<div class="ct-card-meta"><b>${esc(c.autor)}</b><span>${fmtDataHora(c.criadoEm)} · ${esc(pub)} ${val}</span></div><div class="ct-actgrp">${pin}${acts}</div></div>
         <div class="ct-card-txt">${esc(c.texto)}</div>
@@ -1240,10 +1271,35 @@
   function comsNaoVistos(){ if(!contaAtual)return[]; const nome=contaAtual.nome; return _coms.filter(comVisivel).filter(c=>(c.vistos||[]).indexOf(nome)<0); }
   function updBadge(){ const b=document.getElementById('ctBadge'); if(!b)return; const n=minhasPendentes().length+comsNaoVistos().length;
     if(n>0){ b.textContent=n; b.style.display='inline-flex'; } else { b.style.display='none'; } }
+  /* Recebe o foco vindo do aviso. 'com:<id>' vai no comunicado exato; 'tarefas' põe a
+     lista nas minhas pendentes. Espera o render terminar antes de procurar o item. */
+  window.ctFoco=function(foco){
+    if(!foco)return;
+    if(foco==='tarefas'){
+      _view='minhas';
+      document.querySelectorAll('.ct-gtab').forEach((b,i)=>b.classList.toggle('on',i===0));
+      renderTars();
+      setTimeout(()=>{const h=document.getElementById('ctTarList');if(h)h.scrollIntoView({behavior:'smooth',block:'center'});},60);
+      return;
+    }
+    if(foco.indexOf('com:')===0){
+      const id=foco.slice(4);
+      const achar=(tentativa)=>{
+        const el=document.querySelector('.ct-card[data-com="'+id+'"]');
+        if(!el){ if(tentativa<10)setTimeout(()=>achar(tentativa+1),120); return; }
+        el.scrollIntoView({behavior:'smooth',block:'center'});
+        el.classList.remove('ct-achei'); void el.offsetWidth; el.classList.add('ct-achei');
+        setTimeout(()=>el.classList.remove('ct-achei'),2600);
+      };
+      achar(0);
+    }
+  };
+
   window.ctAvisos=function(arr){
-    comsNaoVistos().slice(0,4).forEach(c=>arr.push({painel:'comtar',urg:!!c.fixado,txt:'Comunicado: '+(c.texto||'').slice(0,42)}));
+    /* o aviso de comunicado já sabe QUAL comunicado é: leva direto nele */
+    comsNaoVistos().slice(0,4).forEach(c=>arr.push({painel:'comtar',urg:!!c.fixado,foco:'com:'+c.id,txt:'Comunicado: '+(c.texto||'').slice(0,42)}));
     const pend=minhasPendentes(); if(pend.length){ const urg=pend.some(t=>t.prioridade==='urgente'||(t.prazo&&t.prazo<Date.now()));
-      arr.push({painel:'comtar',urg:urg,txt:pend.length+(pend.length>1?' tarefas pra você':' tarefa pra você')}); }
+      arr.push({painel:'comtar',urg:urg,foco:'tarefas',txt:pend.length+(pend.length>1?' tarefas pra você':' tarefa pra você')}); }
   };
 })();
 
