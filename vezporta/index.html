@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v9">
+<meta name="app-ver" content="v10">
 <title>Vez na Porta · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -356,7 +356,13 @@ function pintar(){
       <span class="nm">${esc(p.nome)}${rep}</span></span>`;
   }).join('');
 
+  /* Quem está no revezamento vem primeiro, em ordem alfabética; quem está fora dele
+     desce para o fim. Na prática é a Jhennifer: ela aparecia entre a Ialey e a
+     Michelly, no meio de quem elas conferem o dia inteiro, sendo que normalmente nem
+     participa da vez. Férias e almoço não mudam a posição de ninguém — só sair do
+     revezamento muda, e isso quase não acontece. */
   const chaves = Object.keys(estado.pessoas).sort((a,b)=>
+    (estado.pessoas[a].participa?0:1) - (estado.pessoas[b].participa?0:1) ||
     estado.pessoas[a].nome.localeCompare(estado.pessoas[b].nome));
   const falta = VezRegra.faltaParaZerar(estado.pessoas, crit);
   $('lista').innerHTML = chaves.map(k=>{
