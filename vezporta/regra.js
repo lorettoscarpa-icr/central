@@ -75,7 +75,29 @@
     return novo;
   }
 
-  var api = { proximaDaVez: proximaDaVez, registrar: registrar, revalidar: revalidar, elegiveis: elegiveis };
+  /* A fila inteira, na ordem em que serão chamadas. Não basta ordenar por contagem:
+     a segunda da fila só é conhecida depois de supor que a primeira já foi. Então
+     simula, uma vez de cada, sem tocar no estado real.
+     Devolve lista de e-mails-chave, começando por quem está com a vez agora.       */
+  function ordemDaFila(pessoas, criterio, daVez, quantas) {
+    var copia = JSON.parse(JSON.stringify(pessoas));
+    var chave = (criterio === 'vendas') ? 'vendas' : 'idas';
+    var ordem = [], limite = quantas || elegiveis(pessoas).length;
+    var atual = (daVez && copia[daVez] && copia[daVez].participa && copia[daVez].presente)
+      ? daVez : proximaDaVez(copia, criterio);
+    var relogio = Date.now();
+    while (atual && ordem.length < limite) {
+      ordem.push(atual);
+      /* supõe que ela foi e vendeu, para descobrir quem viria depois */
+      copia[atual][chave] = (copia[atual][chave] || 0) + 1;
+      copia[atual].ultimaEm = ++relogio;
+      atual = proximaDaVez(copia, criterio);
+    }
+    return ordem;
+  }
+
+  var api = { proximaDaVez: proximaDaVez, registrar: registrar, revalidar: revalidar,
+              elegiveis: elegiveis, ordemDaFila: ordemDaFila };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.VezRegra = api;
 })(typeof window !== 'undefined' ? window : this);

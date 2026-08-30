@@ -138,5 +138,36 @@ console.log('\n== registrar não altera o estado que recebeu ==');
   eq('o objeto original fica intacto', JSON.stringify(e), antes);
 }
 
-console.log(`\nresultado: ${ok} ok, ${falhou} falha(s)`);
+
+console.log('\n== a ordem da fila que elas veem ==');
+{
+  const e = base('idas');
+  e.pessoas.ialey.idas = 5; e.pessoas.michelly.idas = 4; e.pessoas.natalia.idas = 2;
+  e.daVez = 'ialey';
+  eq('começa por quem está com a vez, depois em ordem de contagem',
+     R.ordemDaFila(e.pessoas, 'idas', 'ialey'), ['ialey', 'natalia', 'natalia', 'michelly'].slice(0,3));
+}
+{
+  const e = base('idas');
+  e.pessoas.ialey.idas = 0; e.pessoas.michelly.idas = 0; e.pessoas.natalia.idas = 0;
+  e.daVez = 'michelly';
+  const o = R.ordemDaFila(e.pessoas, 'idas', 'michelly');
+  eq('todas empatadas: a da vez primeiro, e ninguém repete na volta', o.length, 3);
+  eq('e as três aparecem', [...new Set(o)].length, 3);
+}
+{
+  const e = base('idas');
+  e.pessoas.natalia.presente = false;
+  e.daVez = 'ialey';
+  const o = R.ordemDaFila(e.pessoas, 'idas', 'ialey');
+  eq('quem está ausente não aparece na ordem', o.includes('natalia'), false);
+}
+{
+  const e = base('idas');
+  e.pessoas.ialey.idas = 9;
+  const antes = JSON.stringify(e.pessoas);
+  R.ordemDaFila(e.pessoas, 'idas', 'ialey');
+  eq('calcular a ordem não altera contador de ninguém', JSON.stringify(e.pessoas), antes);
+}
+console.log(`\nresultado final: ${ok} ok, ${falhou} falha(s)`);
 process.exit(falhou ? 1 : 0);

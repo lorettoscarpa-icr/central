@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v1">
+<meta name="app-ver" content="v2">
 <title>Vez na Porta · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -35,6 +35,23 @@
     background:var(--gold-claro);border-radius:99px;padding:3px 12px}
   .vez.ninguem .nome{font-size:24px;color:var(--creme-suave)}
 
+  /* a ordem da fila: elas perguntam "sou eu depois de quem?" o dia inteiro */
+  .fila{display:flex;align-items:center;gap:7px;overflow-x:auto;padding:2px 0 10px;margin-bottom:4px}
+  .fila-item{display:flex;align-items:center;gap:7px;flex:none;background:rgba(0,0,0,.18);
+    border:1px solid var(--linha);border-radius:99px;padding:5px 12px 5px 5px}
+  .fila-item.agora{border-color:var(--gold);background:rgba(201,169,80,.14)}
+  .fila-item .pos{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);font-weight:600}
+  .fila-item .nm{font-size:13.5px;font-weight:600;white-space:nowrap}
+  .fila-seta{color:var(--creme-suave);flex:none;font-size:13px}
+  .avf{width:28px;height:28px;border-radius:50%;flex:none;border:1px solid var(--gold);overflow:hidden;
+    display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;
+    font-size:12px;color:var(--gold);background:rgba(0,0,0,.3)}
+  .avf{overflow:hidden}
+  .avf img,.av img{width:100%;height:100%;object-fit:cover;display:block}
+  .vez .foto{width:84px;height:84px;border-radius:50%;margin:0 auto 8px;border:2px solid var(--gold);
+    overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);
+    font-family:'Playfair Display',serif;font-size:34px;color:var(--gold)}
+
   .acoes{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:8px}
   .btn{border:1px solid var(--linha);background:rgba(0,0,0,.18);color:var(--creme);
     border-radius:11px;padding:15px 10px;font-family:'Barlow',sans-serif;font-size:15px;font-weight:600;
@@ -52,9 +69,16 @@
     border-radius:11px;padding:11px 13px;margin-bottom:7px}
   .pessoa.fora{opacity:.45}
   .pessoa.davez{border-color:var(--gold);background:rgba(201,169,80,.1)}
-  .av{width:38px;height:38px;border-radius:50%;flex:none;border:1.5px solid var(--gold);
+  /* overflow:hidden é o que recorta a foto no círculo — sem ele a imagem vaza quadrada */
+  .av{width:38px;height:38px;border-radius:50%;flex:none;border:1.5px solid var(--gold);overflow:hidden;
     display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;
-    font-size:16px;color:var(--gold);background:rgba(0,0,0,.25)}
+    font-size:16px;color:var(--gold);background:rgba(0,0,0,.25);position:relative;cursor:pointer;padding:0}
+  .av:hover{border-color:var(--gold-claro)}
+  /* a própria foto é o botão de trocar: numa tela de 390px não sobra espaço para mais
+     um botão na linha, e tocar no rosto para trocar o rosto é o gesto óbvio */
+  .av .cam{position:absolute;right:-1px;bottom:-1px;width:15px;height:15px;border-radius:50%;
+    background:var(--verde-noite);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center}
+  .av .cam svg{width:8px;height:8px;stroke:var(--gold);fill:none;stroke-width:2.2}
   .pn{flex:1;min-width:0}
   .pn b{font-size:15px;font-weight:600;display:block}
   .pn small{font-size:11.5px;color:var(--creme-suave)}
@@ -90,9 +114,12 @@
 
   <div class="vez ninguem" id="cartaoVez">
     <div class="rot">é a vez de</div>
+    <div class="foto" id="fotoVez"></div>
     <div class="nome" id="nomeVez">carregando…</div>
     <div id="euBadge"></div>
   </div>
+
+  <div class="fila" id="fila"></div>
 
   <div class="acoes">
     <!-- nascem desabilitados: sem conexão o pintar() não roda, e botão que aceita
@@ -116,6 +143,7 @@
   <div class="hist" id="hist">—</div>
 </div>
 <div class="msg" id="msg"></div>
+<input type="file" id="arqFoto" accept="image/*" style="display:none">
 
 <script src="./regra.js"></script>
 <script>
@@ -153,10 +181,21 @@ function estadoInicial(){
 }
 
 /* ---------- desenho ---------- */
+/* Foto se houver; senão a inicial. As fotos ficam no próprio documento de estado,
+   redimensionadas a 128px — elas mesmas põem pelo celular, sem passar por ninguém. */
+function fotoOuInicial(p){
+  const f = estado.fotos && estado.fotos[chave(p.email)];
+  return f ? `<img src="${f}" alt="">` : esc(p.nome[0]);
+}
+function avatar(p, classe){ return `<span class="${classe}">${fotoOuInicial(p)}</span>`; }
+
 function pintar(){
   if(!estado) return;
   const dv = estado.daVez ? estado.pessoas[estado.daVez] : null;
   const cartao = $('cartaoVez');
+  const fv = estado.fotos && dv && estado.fotos[estado.daVez];
+  $('fotoVez').innerHTML = dv ? (fv ? `<img src="${fv}" alt="">` : esc(dv.nome[0])) : '';
+  $('fotoVez').style.display = dv ? 'flex' : 'none';
   $('nomeVez').textContent = dv ? dv.nome : 'ninguém disponível';
   cartao.classList.toggle('ninguem', !dv);
   const souEu = dv && dv.email === meuEmail;
@@ -169,6 +208,25 @@ function pintar(){
     ? 'A fila está governada pelas <b>vendas</b>: a próxima é quem <b>vendeu</b> menos vezes. Uma sequência de clientes que não compraram não empurra ninguém para o fim da fila.'
     : 'A fila está governada pelas <b>idas à porta</b>: a próxima é quem <b>foi</b> menos vezes, tenha vendido ou não. Quem volta do almoço atrás na contagem pega várias seguidas até emparelhar.';
 
+  /* A ordem em que serão chamadas, para ninguém precisar perguntar.
+     Quem está atrás na contagem é chamada várias vezes seguidas até emparelhar —
+     é o mecanismo funcionando. Repetição em sequência vira "×2" em vez de aparecer
+     duas vezes na fila, que lido rápido parece defeito. */
+  const ordem = VezRegra.ordemDaFila(estado.pessoas, crit, estado.daVez);
+  const grupos = [];
+  ordem.forEach(k => {
+    const ult = grupos[grupos.length-1];
+    if(ult && ult.k === k) ult.n++; else grupos.push({k, n:1});
+  });
+  $('fila').innerHTML = grupos.length ? grupos.map((g,i)=>{
+    const p = estado.pessoas[g.k];
+    const pos = i===0 ? 'agora' : (i===1 ? 'depois' : 'e então');
+    const vezes = g.n>1 ? ` <b>×${g.n}</b>` : '';
+    return `<span class="fila-item ${i===0?'agora':''}">${avatar(p,'avf')}
+      <span><span class="pos">${pos}</span>
+      <span class="nm">${esc(p.nome)}${vezes}</span></span></span>`;
+  }).join('<span class="fila-seta">›</span>') : '';
+
   const chaves = Object.keys(estado.pessoas).sort((a,b)=>
     estado.pessoas[a].nome.localeCompare(estado.pessoas[b].nome));
   $('lista').innerHTML = chaves.map(k=>{
@@ -176,7 +234,7 @@ function pintar(){
     const fora = !p.participa || !p.presente;
     const motivo = !p.participa ? 'fora do revezamento' : (!p.presente ? 'ausente agora' : '&nbsp;');
     return `<div class="pessoa ${fora?'fora':''} ${estado.daVez===k?'davez':''}">
-      <span class="av">${esc(p.nome[0])}</span>
+      <button class="av" title="Trocar a foto de ${esc(p.nome)}" onclick="escolherFoto('${k}')">${fotoOuInicial(p)}<span class="cam"><svg viewBox="0 0 24 24"><path d="M3 8h4l2-2h6l2 2h4v12H3z"/><circle cx="12" cy="13" r="3.2"/></svg></span></button>
       <span class="pn"><b>${esc(p.nome)}</b><small>${motivo}</small></span>
       <span class="nums">
         <span class="num ${crit==='idas'?'governa':''}"><b>${p.idas||0}</b><small>idas</small></span>
@@ -256,6 +314,32 @@ window.desfazer = function(){
   historico = historico.slice(1);
   salvar(novo, 'Desfeito — a vez voltou para '+p.nome);
 };
+
+/* ---------- foto ----------
+   Redimensiona no próprio celular antes de subir: a câmera manda 3 MB e o documento
+   de estado tem 1 MB no total. 128px de lado dá avatar nítido com poucos KB.        */
+let _fotoAlvo = null;
+window.escolherFoto = function(k){ _fotoAlvo = k; $('arqFoto').value=''; $('arqFoto').click(); };
+
+$('arqFoto').addEventListener('change', function(){
+  const arq = this.files && this.files[0]; if(!arq || !_fotoAlvo) return;
+  const leitor = new FileReader();
+  leitor.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const L = 128, c = document.createElement('canvas'); c.width = c.height = L;
+      const lado = Math.min(img.width, img.height);          /* corta quadrado pelo centro */
+      c.getContext('2d').drawImage(img, (img.width-lado)/2, (img.height-lado)/2, lado, lado, 0, 0, L, L);
+      const novo = JSON.parse(JSON.stringify(estado));
+      novo.fotos = novo.fotos || {};
+      novo.fotos[_fotoAlvo] = c.toDataURL('image/jpeg', 0.82);
+      salvar(novo, 'Foto atualizada');
+    };
+    img.onerror = () => toast('Não consegui ler essa imagem');
+    img.src = e.target.result;
+  };
+  leitor.readAsDataURL(arq);
+});
 
 /* ---------- sincronia ---------- */
 function ligar(){

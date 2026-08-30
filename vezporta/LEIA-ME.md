@@ -25,6 +25,18 @@ governa a fila:
 
 Comece por idas, teste uma semana e trave no que fizer mais sentido na prática.
 
+## A fila visível e as fotos
+
+A tela mostra a ordem inteira, não só de quem é a vez: `AGORA Ialey › DEPOIS Natália ×2`.
+Quem está atrás na contagem aparece com `×2` porque vai mesmo ser chamada duas vezes
+seguidas até emparelhar — é o mecanismo funcionando, e mostrar assim evita a leitura
+de que o mesmo nome apareceu repetido por engano.
+
+A foto é o botão: tocar no rosto de alguém abre a câmera ou a galeria e troca a foto
+dela. A imagem é cortada em quadrado pelo centro e reduzida a 128px no próprio
+celular antes de subir — a câmera manda 3 MB e o documento de estado tem 1 MB no total.
+Sem foto, aparece a inicial em dourado.
+
 ## Onde mora
 
 Em `central/vezporta/`, dentro do repositório da Central, e não em repositório
