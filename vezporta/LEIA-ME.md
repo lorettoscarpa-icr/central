@@ -60,6 +60,33 @@ mostra o acumulado, que é o que responde "a Michelly ficou pra trás?".
 quem está atrás e quanto. Quem está ausente fica fora da conta — senão viraria alarme
 falso todo dia de folga.
 
+## Quem vê o quê
+
+O chão de loja fica com a operação; métrica de desempenho é de gestão.
+
+| | Vendedora | Gestão |
+|---|---|---|
+| A vez, a fila e as três ações | sim | sim |
+| Idas e vendas de cada uma | sim | sim |
+| Marcar-se ausente (almoço) | sim | sim |
+| Desfazer o último e ver os registros | sim | sim |
+| **Conversão de cada uma** | não | sim |
+| **Movimento da loja** | não | sim |
+| **Resumo de 7 e 30 dias** | não | sim |
+| **Tirar alguém do revezamento** | não | sim |
+| **Trocar o critério da fila** | não | sim |
+
+Gestão = diretoria e supervisora, a mesma régua do `podeCriar()` da Central.
+
+**Isto esconde, não bloqueia.** As regras do Firestore deixam qualquer conta logada ler
+`ls_vez` e `ls_vez_hist` — pelo console do navegador os números aparecem igual. Para
+virar barreira de verdade seriam precisas duas mudanças: `ls_vez_hist` com regra por
+e-mail de gestão, e o desfazer guardando o último registro dentro de `ls_vez/estado`,
+já que hoje ele depende de ler o histórico.
+
+E note que **a conversão não é dado novo**: é `vendas ÷ idas`, e os dois números
+continuam visíveis por decisão sua. Esconder a coluna tira o destaque, não o acesso.
+
 ## Onde mora
 
 Em `central/vezporta/`, dentro do repositório da Central, e não em repositório

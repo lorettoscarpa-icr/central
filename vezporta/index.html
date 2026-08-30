@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v3">
+<meta name="app-ver" content="v4">
 <title>Vez na Porta · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -147,6 +147,12 @@
     padding:8px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif}
   .aba.on{border-color:var(--gold);color:var(--gold-claro);background:rgba(201,169,80,.1)}
 
+  /* Movimento e Resumo só aparecem para gestão. Fica em CSS, num seletor só, em vez
+     de espalhar condição pela montagem da tela — some inteiro, sem deixar buraco. */
+  .soGestor{display:none}
+  body.gestor .soGestor{display:block}
+  body.gestor .abas.soGestor{display:flex}
+
   .msg{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:var(--verde-noite);
     border:1px solid var(--gold);color:var(--creme);padding:11px 18px;border-radius:99px;font-size:13.5px;
     opacity:0;pointer-events:none;transition:.2s;z-index:9}
@@ -187,23 +193,23 @@
     <button class="tog" onclick="desfazer()">↩ Desfazer último</button>
   </div>
 
-  <div class="sec">Movimento da loja — hoje</div>
-  <div class="mov">
+  <div class="sec soGestor">Movimento da loja — hoje</div>
+  <div class="mov soGestor">
     <span class="n" id="movN">0</span>
     <span class="txt" id="movTxt">clientes que entraram hoje</span>
     <button onclick="entrouSemAtendimento()">+ entrou e saiu</button>
   </div>
-  <div class="aviso">Cada atendimento registrado aqui já conta como cliente que entrou. O botão
+  <div class="aviso soGestor">Cada atendimento registrado aqui já conta como cliente que entrou. O botão
     acima é só para quem <b>entrou e saiu sem ser atendido</b> — sem isso, o movimento da loja
     fica menor do que foi de verdade.</div>
 
-  <div class="sec">Resumo</div>
-  <div class="abas">
+  <div class="sec soGestor">Resumo</div>
+  <div class="abas soGestor">
     <button class="aba on" id="abaDia"    onclick="verResumo('dia')">Hoje</button>
     <button class="aba"    id="abaSemana" onclick="verResumo('semana')">7 dias</button>
     <button class="aba"    id="abaMes"    onclick="verResumo('mes')">30 dias</button>
   </div>
-  <div id="resumo"></div>
+  <div id="resumo" class="soGestor"></div>
 
   <div class="sec">Últimos registros</div>
   <div class="hist" id="hist">—</div>
@@ -248,6 +254,16 @@ const EQUIPE = [
 const MOTIVOS = ['Sem a numeração','Sem a cor','Modelo esgotado','Não trabalhamos o modelo','Não quis esperar encomenda','Outro'];
 const COL_PERDIDAS = 'ls_vendas_perdidas';
 
+/* Métrica de desempenho é assunto de gestão: o chão de loja fica com a vez e a
+   contagem, e só. Mesma régua do podeCriar() da Central — diretoria e supervisora.
+
+   ATENÇÃO, isto esconde, não bloqueia: as regras do Firestore deixam qualquer conta
+   logada ler ls_vez e ls_vez_hist. Para virar barreira de verdade, o histórico
+   precisaria de coleção com regra por e-mail, e o desfazer precisaria guardar o
+   último registro no próprio estado. */
+const GESTORES = ['lorettoscarpa@gmail.com','larissalorettoscarpa@gmail.com','jhenniferlorettoscarpa@gmail.com'];
+let souGestor = false;
+
 const $ = id => document.getElementById(id);
 let db=null, auth=null, meuEmail='', estado=null, historico=[];
 
@@ -271,8 +287,16 @@ function fotoOuInicial(p){
 }
 function avatar(p, classe){ return `<span class="${classe}">${fotoOuInicial(p)}</span>`; }
 
+/* Liga e desliga o que é de gestão. Roda a cada pintura porque a sessão pode chegar
+   depois da primeira: o onAuthStateChanged é assíncrono. */
+function aplicarPapel(){
+  souGestor = GESTORES.indexOf((meuEmail||'').toLowerCase()) >= 0;
+  document.body.classList.toggle('gestor', souGestor);
+}
+
 function pintar(){
   if(!estado) return;
+  aplicarPapel();
   const dv = estado.daVez ? estado.pessoas[estado.daVez] : null;
   const cartao = $('cartaoVez');
   const fv = estado.fotos && dv && estado.fotos[estado.daVez];
@@ -285,7 +309,9 @@ function pintar(){
   ['bVenda','bSem','bTroca'].forEach(b => $(b).disabled = !dv);
 
   const crit = estado.criterio;
-  $('bCriterio').textContent = 'Fila por: ' + (crit==='vendas' ? 'vendas' : 'idas à porta');
+  $('bCriterio').textContent = (souGestor ? 'Fila por: ' : 'A fila segue as ') + (crit==='vendas' ? 'vendas' : 'idas à porta');
+  $('bCriterio').disabled = !souGestor;   /* trocar o critério muda quem é chamada */
+  $('bCriterio').style.cursor = souGestor ? 'pointer' : 'default';
   $('explica').innerHTML = crit==='vendas'
     ? 'A fila está governada pelas <b>vendas</b>: a próxima é quem <b>vendeu</b> menos vezes. Uma sequência de clientes que não compraram não empurra ninguém para o fim da fila.'
     : 'A fila está governada pelas <b>idas à porta</b>: a próxima é quem <b>foi</b> menos vezes, tenha vendido ou não. Quem volta do almoço atrás na contagem pega várias seguidas até emparelhar.';
@@ -321,10 +347,10 @@ function pintar(){
       <span class="nums">
         <span class="num ${crit==='idas'?'governa':''}"><b>${p.idas||0}</b><small>idas</small></span>
         <span class="num ${crit==='vendas'?'governa':''}"><b>${p.vendas||0}</b><small>vendas</small></span>
-        <span class="num"><b class="conv">${VezRegra.conversao(p)===null?'—':VezRegra.conversao(p)+'%'}</b><small>conv.</small></span>
+        ${souGestor ? `<span class="num"><b class="conv">${VezRegra.conversao(p)===null?'—':VezRegra.conversao(p)+'%'}</b><small>conv.</small></span>` : ''}
       </span>
       <button class="tog ${p.presente?'on':''}" onclick="alternar('${k}','presente')">${p.presente?'na loja':'ausente'}</button>
-      <button class="tog ${p.participa?'on':''}" onclick="alternar('${k}','participa')">${p.participa?'na vez':'fora'}</button>
+      ${souGestor ? `<button class="tog ${p.participa?'on':''}" onclick="alternar('${k}','participa')">${p.participa?'na vez':'fora'}</button>` : ''}
     </div>`;
   }).join('');
 
@@ -338,7 +364,9 @@ function pintar(){
     cxD.classList.add('on');
   } else cxD.classList.remove('on');
 
-  /* 3. movimento: atendidos hoje + os que entraram e saíram sozinhos */
+  /* 3. movimento: atendidos hoje + os que entraram e saíram sozinhos.
+     Só para gestão — e nem calcula quando não vai aparecer. */
+  if(souGestor){
   const hoje = diaDe(Date.now());
   const atendidosHoje = historico.filter(h => h.desfecho!=='troca' && diaDe(h.quando)===hoje).length;
   const soPassaram = (estado.passaram && estado.passaram[hoje]) || 0;
@@ -351,6 +379,7 @@ function pintar(){
     : 'nenhum cliente registrado hoje ainda';
 
   desenharResumo();
+  }
 
   $('hist').innerHTML = historico.length ? historico.slice(0,12).map(h=>{
     const t = h.desfecho==='venda' ? '<span class="tag t-venda">vendeu</span>'
