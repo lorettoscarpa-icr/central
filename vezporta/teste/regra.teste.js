@@ -169,6 +169,72 @@ console.log('\n== a ordem da fila que elas veem ==');
   R.ordemDaFila(e.pessoas, 'idas', 'ialey');
   eq('calcular a ordem não altera contador de ninguém', JSON.stringify(e.pessoas), antes);
 }
+console.log('\n== a ordem das três, uma linha por pessoa ==');
+{
+  const e = base('idas');
+  e.pessoas.ialey.idas = 5; e.pessoas.michelly.idas = 4; e.pessoas.natalia.idas = 2;
+  const o = R.ordemDistinta(e.pessoas, 'idas', 'ialey');
+  eq('as três aparecem, mesmo com alguém repetindo',
+     o.map(x => x.email), ['ialey', 'natalia', 'michelly']);
+  eq('e diz quantas vezes cada uma vai na rodada',
+     o.map(x => x.vezes), [1, 2, 1]);
+}
+{
+  const e = base('idas');
+  const o = R.ordemDistinta(e.pessoas, 'idas', 'michelly');
+  eq('empatadas: começa por quem está com a vez', o[0].email, 'michelly');
+  eq('e ninguém vai duas vezes', o.map(x => x.vezes), [1, 1, 1]);
+}
+{
+  const e = base('idas');
+  e.pessoas.natalia.presente = false;
+  const o = R.ordemDistinta(e.pessoas, 'idas', 'ialey');
+  eq('quem está no almoço não ocupa lugar na ordem', o.map(x => x.email), ['ialey', 'michelly']);
+}
+{
+  const e = base('idas');
+  e.pessoas.natalia.afast = 'ferias';
+  eq('quem está afastada também não',
+     R.ordemDistinta(e.pessoas, 'idas', 'ialey').map(x => x.email), ['ialey', 'michelly']);
+}
+{
+  const e = base('idas');
+  e.pessoas.ialey.afast = 'atestado';
+  eq('afastada não segura a vez nem na simulação',
+     R.ordemDistinta(e.pessoas, 'idas', 'ialey').map(x => x.email).includes('ialey'), false);
+}
+{
+  const e = base('idas');
+  e.pessoas.ialey.idas = 40; e.pessoas.michelly.idas = 1; e.pessoas.natalia.idas = 0;
+  const o = R.ordemDistinta(e.pessoas, 'idas', 'ialey');
+  eq('diferença grande não faz ninguém sumir da tela', o.length, 3);
+  /* Ialey abre a lista porque a vez é dela AGORA — ainda não vendeu. Depois dela,
+     quem está muito atrás vem antes, e ela não é chamada de novo na rodada. */
+  eq('e quem está atrás vem logo depois de quem segura a vez',
+     o.map(x => x.email), ['ialey', 'natalia', 'michelly']);
+  eq('quem está muito na frente não repete na rodada', o[0].vezes, 1);
+}
+{
+  const e = base('idas');
+  Object.keys(e.pessoas).forEach(k => e.pessoas[k].presente = false);
+  eq('ninguém apta devolve lista vazia', R.ordemDistinta(e.pessoas, 'idas', 'ialey'), []);
+}
+{
+  const e = base('idas');
+  e.pessoas.ialey.idas = 7;
+  const antes = JSON.stringify(e.pessoas);
+  R.ordemDistinta(e.pessoas, 'idas', 'ialey');
+  eq('calcular a ordem não altera contador de ninguém', JSON.stringify(e.pessoas), antes);
+}
+{
+  const e = base('vendas');
+  e.pessoas.ialey.vendas = 3; e.pessoas.michelly.vendas = 1; e.pessoas.natalia.vendas = 1;
+  e.pessoas.michelly.ultimaEm = 200; e.pessoas.natalia.ultimaEm = 100;
+  eq('por vendas, a ordem segue as vendas',
+     R.ordemDistinta(e.pessoas, 'vendas', 'ialey').map(x => x.email),
+     ['ialey', 'natalia', 'michelly']);
+}
+
 console.log('\n== taxa de conversão ==');
 eq('4 vendas em 10 idas dá 40%', R.conversao({idas:10, vendas:4}), 40);
 eq('1 em 3 arredonda para 33%',  R.conversao({idas:3,  vendas:1}), 33);

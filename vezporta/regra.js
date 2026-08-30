@@ -75,10 +75,15 @@
   /* A próxima da vez. criterio: 'idas' (cada ida à porta) ou 'vendas' (vez concluída).
      Devolve o e-mail, ou null se não há ninguém disponível. */
   function proximaDaVez(pessoas, criterio) {
-    var aptas = elegiveis(pessoas);
-    if (!aptas.length) return null;
+    return ordenarAptas(pessoas, criterio)[0] || null;
+  }
+
+  /* Todas as aptas, da primeira à última a ser chamada se ninguém mais fosse à porta.
+     Vive separado de proximaDaVez porque a ordem inteira também é usada como desempate
+     de quem sobrou, lá em ordemDistinta. */
+  function ordenarAptas(pessoas, criterio) {
     var chave = (criterio === 'vendas') ? 'vendas' : 'idas';
-    aptas.sort(function (a, b) {
+    return elegiveis(pessoas).sort(function (a, b) {
       var pa = pessoas[a], pb = pessoas[b];
       /* menos vezes primeiro: é o que faz quem voltou do almoço emparelhar sozinha */
       if ((pa[chave] || 0) !== (pb[chave] || 0)) return (pa[chave] || 0) - (pb[chave] || 0);
@@ -86,7 +91,6 @@
       if ((pa.ultimaEm || 0) !== (pb.ultimaEm || 0)) return (pa.ultimaEm || 0) - (pb.ultimaEm || 0);
       return (pa.nome || '').localeCompare(pb.nome || '');
     });
-    return aptas[0];
   }
 
   /* Aplica um desfecho e devolve o estado NOVO, sem alterar o que entrou.
@@ -137,7 +141,8 @@
     var copia = JSON.parse(JSON.stringify(pessoas));
     var chave = (criterio === 'vendas') ? 'vendas' : 'idas';
     var ordem = [], limite = quantas || elegiveis(pessoas).length;
-    var atual = (daVez && copia[daVez] && copia[daVez].participa && copia[daVez].presente)
+    var atual = (daVez && copia[daVez] && copia[daVez].participa && copia[daVez].presente
+                 && !afastada(copia[daVez]))
       ? daVez : proximaDaVez(copia, criterio);
     var relogio = Date.now();
     while (atual && ordem.length < limite) {
@@ -147,6 +152,44 @@
       copia[atual].ultimaEm = ++relogio;
       atual = proximaDaVez(copia, criterio);
     }
+    return ordem;
+  }
+
+  /* A mesma ordem, mas com cada pessoa aparecendo UMA vez — é o que a tela mostra.
+
+     ordemDaFila devolve a sequência crua de chamadas, e quem está atrás na contagem
+     aparece várias vezes seguidas antes de a terceira entrar. Mostrar isso cru fazia
+     a fila exibir duas pessoas quando são três, e a pergunta que elas fazem o dia
+     inteiro é justamente "eu venho depois de quem?".
+
+     Então roda a simulação até fechar UMA rodada — o instante em que a última das
+     aptas é chamada pela primeira vez — e devolve [{email, vezes}] na ordem da
+     primeira chamada. 'vezes' é quantas vezes a pessoa é chamada dentro dessa
+     rodada: 2 significa "ela vai duas antes de a fila girar", que é o mecanismo de
+     emparelhamento aparecendo, não defeito.                                        */
+  function ordemDistinta(pessoas, criterio, daVez) {
+    var aptas = elegiveis(pessoas);
+    if (!aptas.length) return [];
+    var chave = (criterio === 'vendas') ? 'vendas' : 'idas';
+    var contas = aptas.map(function (e) { return pessoas[e][chave] || 0; });
+    /* teto de simulação: no pior caso a mais atrasada é chamada uma vez por unidade
+       de diferença antes de a última entrar. Com folga, e limitado — isto roda a
+       cada repintura de tela. */
+    var folga = Math.max.apply(null, contas) - Math.min.apply(null, contas);
+    var seq = ordemDaFila(pessoas, criterio, daVez, aptas.length * (folga + 2));
+
+    var vistos = {}, ordem = [];
+    for (var i = 0; i < seq.length; i++) {
+      var e = seq[i];
+      if (!vistos[e]) { vistos[e] = { email: e, vezes: 0 }; ordem.push(vistos[e]); }
+      vistos[e].vezes++;
+      if (ordem.length === aptas.length) break;   /* rodada fechada */
+    }
+    /* Rede de segurança: se o teto acabou antes de todas entrarem, ninguém some da
+       tela — as que faltam vão para o fim, na ordem em que seriam chamadas. */
+    ordenarAptas(pessoas, criterio).forEach(function (e) {
+      if (!vistos[e]) ordem.push({ email: e, vezes: 1 });
+    });
     return ordem;
   }
 
@@ -187,7 +230,7 @@
   }
 
   var api = { proximaDaVez: proximaDaVez, registrar: registrar, revalidar: revalidar,
-              elegiveis: elegiveis, ordemDaFila: ordemDaFila,
+              elegiveis: elegiveis, ordemDaFila: ordemDaFila, ordemDistinta: ordemDistinta,
               conversao: conversao, desequilibrio: desequilibrio, resumoPorDia: resumoPorDia,
               nivelar: nivelar, mediaAtiva: mediaAtiva, atrasoSeVoltar: atrasoSeVoltar,
               afastada: afastada, AFASTAMENTOS: AFASTAMENTOS };

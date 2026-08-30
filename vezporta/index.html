@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v7">
+<meta name="app-ver" content="v8">
 <title>Vez na Porta · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -35,18 +35,24 @@
     background:var(--gold-claro);border-radius:99px;padding:3px 12px}
   .vez.ninguem .nome{font-size:24px;color:var(--creme-suave)}
 
-  /* a ordem da fila: elas perguntam "sou eu depois de quem?" o dia inteiro */
-  .fila{display:flex;align-items:center;gap:7px;overflow-x:auto;padding:2px 0 10px;margin-bottom:4px}
-  .fila-item{display:flex;align-items:center;gap:7px;flex:none;background:rgba(0,0,0,.18);
-    border:1px solid var(--linha);border-radius:99px;padding:5px 12px 5px 5px}
+  /* A ordem da fila: elas perguntam "sou eu depois de quem?" o dia inteiro.
+
+     Era uma tira horizontal com setas, e em tela de 360px ela cortava justamente na
+     terceira — a única que ninguém sabe de cabeça. Agora é uma coluna por pessoa:
+     as três (quatro, se a Jhennifer entrar) cabem inteiras, sem rolar pro lado. */
+  .fila{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:7px;margin-bottom:12px}
+  .fila-rot{font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--creme-suave);
+    text-align:center;margin-bottom:7px}
+  .fila-item{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;
+    background:rgba(0,0,0,.18);border:1px solid var(--linha);border-radius:13px;padding:9px 5px 10px}
   .fila-item.agora{border-color:var(--gold);background:rgba(201,169,80,.14)}
-  .fila-item .pos{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);font-weight:600}
-  .fila-item .nm{font-size:13.5px;font-weight:600;white-space:nowrap}
-  .fila-seta{color:var(--creme-suave);flex:none;font-size:13px}
-  .avf{width:28px;height:28px;border-radius:50%;flex:none;border:1px solid var(--gold);overflow:hidden;
+  .fila-item .pos{font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--gold);font-weight:700}
+  .fila-item .nm{font-size:12.5px;font-weight:600;max-width:100%;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .fila-item .rep{color:var(--gold-claro)}
+  .avf{width:36px;height:36px;border-radius:50%;flex:none;border:1px solid var(--gold);overflow:hidden;
     display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;
-    font-size:12px;color:var(--gold);background:rgba(0,0,0,.3)}
-  .avf{overflow:hidden}
+    font-size:15px;color:var(--gold);background:rgba(0,0,0,.3)}
   .avf img,.av img{width:100%;height:100%;object-fit:cover;display:block}
   .vez .foto{width:84px;height:84px;border-radius:50%;margin:0 auto 8px;border:2px solid var(--gold);
     overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);
@@ -173,6 +179,7 @@
     <div id="euBadge"></div>
   </div>
 
+  <div class="fila-rot" id="filaRot" hidden>a ordem de hoje</div>
   <div class="fila" id="fila"></div>
 
   <div class="acoes">
@@ -328,24 +335,25 @@ function pintar(){
     ? 'A fila está governada pelas <b>vendas</b>: a próxima é quem <b>vendeu</b> menos vezes. Uma sequência de clientes que não compraram não empurra ninguém para o fim da fila.'
     : 'A fila está governada pelas <b>idas à porta</b>: a próxima é quem <b>foi</b> menos vezes, tenha vendido ou não. Quem volta do almoço atrás na contagem pega várias seguidas até emparelhar.';
 
-  /* A ordem em que serão chamadas, para ninguém precisar perguntar.
-     Quem está atrás na contagem é chamada várias vezes seguidas até emparelhar —
-     é o mecanismo funcionando. Repetição em sequência vira "×2" em vez de aparecer
-     duas vezes na fila, que lido rápido parece defeito. */
-  const ordem = VezRegra.ordemDaFila(estado.pessoas, crit, estado.daVez);
-  const grupos = [];
-  ordem.forEach(k => {
-    const ult = grupos[grupos.length-1];
-    if(ult && ult.k === k) ult.n++; else grupos.push({k, n:1});
-  });
-  $('fila').innerHTML = grupos.length ? grupos.map((g,i)=>{
-    const p = estado.pessoas[g.k];
-    const pos = i===0 ? 'agora' : (i===1 ? 'depois' : 'e então');
-    const vezes = g.n>1 ? ` <b>×${g.n}</b>` : '';
-    return `<span class="fila-item ${i===0?'agora':''}">${avatar(p,'avf')}
-      <span><span class="pos">${pos}</span>
-      <span class="nm">${esc(p.nome)}${vezes}</span></span></span>`;
-  }).join('<span class="fila-seta">›</span>') : '';
+  /* A ordem em que serão chamadas, para ninguém precisar perguntar. Uma coluna por
+     pessoa: quem está apta aparece, sempre — as três ficam à vista de uma vez.
+
+     Quem está atrás na contagem é chamada várias vezes seguidas até emparelhar. Isso
+     vira "×2" ao lado do nome em vez de ocupar duas colunas e empurrar a terceira
+     pessoa para fora da tela, que era o defeito de antes. */
+  const ordem = VezRegra.ordemDistinta(estado.pessoas, crit, estado.daVez);
+  $('filaRot').hidden = ordem.length < 2;
+  $('fila').innerHTML = ordem.map((g,i)=>{
+    const p = estado.pessoas[g.email];
+    const pos = i===0 ? 'agora' : (i+1)+'ª';
+    const rep = g.vezes>1 ? ` <span class="rep">×${g.vezes}</span>` : '';
+    const dica = g.vezes>1
+      ? `${p.nome} vai ${g.vezes} vezes antes de a fila girar — está atrás na contagem`
+      : (i===0 ? `${p.nome} está com a vez agora` : `${p.nome} é a ${i+1}ª a ser chamada`);
+    return `<span class="fila-item ${i===0?'agora':''}" title="${esc(dica)}">
+      <span class="pos">${pos}</span>${avatar(p,'avf')}
+      <span class="nm">${esc(p.nome)}${rep}</span></span>`;
+  }).join('');
 
   const chaves = Object.keys(estado.pessoas).sort((a,b)=>
     estado.pessoas[a].nome.localeCompare(estado.pessoas[b].nome));
