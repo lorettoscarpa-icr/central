@@ -68,7 +68,11 @@ service cloud.firestore {
     match /ls_fila_etiquetas/{document=**} { allow read, write: if logado(); }
     match /ls_etiq_prefs/{document=**}     { allow read, write: if logado(); }
     match /ls_avarias/{document=**}        { allow read, write: if logado(); }
-    match /ls_catalogo/{document=**}       { allow read, write: if logado(); }
+    /* o painel do entregador lê o catálogo para montar os cards.
+       Não dá para exigir logado() aqui sem tirar o entregador do ar: ele entra por
+       login anônimo. Exigir sessão já barra o acesso REST sem token nenhum, que era
+       o pior caso. Fechar de vez depende de dar identidade real ao entregador. */
+    match /ls_catalogo/{document=**}       { allow read, write: if request.auth != null; }
 
     // ▼▼ NOVO — Conferência da volta (aba dentro do Estoque) ▼▼
     // Sem estas duas linhas, tudo que o Yuri conferia sumia no primeiro
@@ -77,8 +81,16 @@ service cloud.firestore {
     // fala com o Firestore do mesmo jeito que elas — e porque guardam só
     // dia, entregador, quais peças voltaram e nome de modelo. Nada de
     // nome, endereço ou telefone de cliente.
-    match /conferencias/{document=**}   { allow read, write: if logado(); }
-    match /ls_conf_licoes/{document=**} { allow read, write: if logado(); }
+    /* Conferência da volta — o app do entregador (anônimo) assina esta coleção.
+       Não dá para exigir logado() aqui sem tirar o entregador do ar: ele entra por
+       login anônimo. Exigir sessão já barra o acesso REST sem token nenhum, que era
+       o pior caso. Fechar de vez depende de dar identidade real ao entregador. */
+    match /conferencias/{document=**}   { allow read, write: if request.auth != null; }
+    /* idem: cores aprendidas na conferência, lidas pelo painel do entregador.
+       Não dá para exigir logado() aqui sem tirar o entregador do ar: ele entra por
+       login anônimo. Exigir sessão já barra o acesso REST sem token nenhum, que era
+       o pior caso. Fechar de vez depende de dar identidade real ao entregador. */
+    match /ls_conf_licoes/{document=**} { allow read, write: if request.auth != null; }
     // ▲▲ fim do novo ▲▲
 
     // Suprimentos (aba dentro do Estoque) — aberto, igual às demais do estoque
@@ -86,7 +98,11 @@ service cloud.firestore {
     match /suprimentos_historico/{document=**} { allow read, write: if logado(); }
     // Reposição / Pronta-entrega (Estoque + painel da fábrica via link) — aberto, acesso pelo link privado
     match /ls_rep_cfg/{document=**}    { allow read, write: if logado(); }
-    match /ls_rep_fotos/{document=**}  { allow read, write: if logado(); }
+    /* fotos de modelo exibidas no card da entrega.
+       Não dá para exigir logado() aqui sem tirar o entregador do ar: ele entra por
+       login anônimo. Exigir sessão já barra o acesso REST sem token nenhum, que era
+       o pior caso. Fechar de vez depende de dar identidade real ao entregador. */
+    match /ls_rep_fotos/{document=**}  { allow read, write: if request.auth != null; }
     match /ls_pe/{document=**}         { allow read, write: if logado(); }
     match /ls_pe_tokens/{document=**}  { allow read, write: if logado(); }
     match /ls_pe_config/{document=**}  { allow read, write: if logado(); }
