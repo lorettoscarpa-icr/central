@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v4">
+<meta name="app-ver" content="v5">
 <title>Vez na Porta · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -347,7 +347,7 @@ function pintar(){
       <span class="nums">
         <span class="num ${crit==='idas'?'governa':''}"><b>${p.idas||0}</b><small>idas</small></span>
         <span class="num ${crit==='vendas'?'governa':''}"><b>${p.vendas||0}</b><small>vendas</small></span>
-        ${souGestor ? `<span class="num"><b class="conv">${VezRegra.conversao(p)===null?'—':VezRegra.conversao(p)+'%'}</b><small>conv.</small></span>` : ''}
+        <span class="num"><b class="conv">${VezRegra.conversao(p)===null?'—':VezRegra.conversao(p)+'%'}</b><small>conv.</small></span>
       </span>
       <button class="tog ${p.presente?'on':''}" onclick="alternar('${k}','presente')">${p.presente?'na loja':'ausente'}</button>
       ${souGestor ? `<button class="tog ${p.participa?'on':''}" onclick="alternar('${k}','participa')">${p.participa?'na vez':'fora'}</button>` : ''}

@@ -70,7 +70,7 @@ O chão de loja fica com a operação; métrica de desempenho é de gestão.
 | Idas e vendas de cada uma | sim | sim |
 | Marcar-se ausente (almoço) | sim | sim |
 | Desfazer o último e ver os registros | sim | sim |
-| **Conversão de cada uma** | não | sim |
+| Conversão de cada uma | sim | sim |
 | **Movimento da loja** | não | sim |
 | **Resumo de 7 e 30 dias** | não | sim |
 | **Tirar alguém do revezamento** | não | sim |
@@ -84,8 +84,8 @@ virar barreira de verdade seriam precisas duas mudanças: `ls_vez_hist` com regr
 e-mail de gestão, e o desfazer guardando o último registro dentro de `ls_vez/estado`,
 já que hoje ele depende de ler o histórico.
 
-E note que **a conversão não é dado novo**: é `vendas ÷ idas`, e os dois números
-continuam visíveis por decisão sua. Esconder a coluna tira o destaque, não o acesso.
+A conversão é visível para todas por decisão do dono — e faz sentido: ela é
+`vendas ÷ idas`, uma divisão dos dois números que já estavam à vista de qualquer jeito.
 
 ## Onde mora
 
