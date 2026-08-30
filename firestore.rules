@@ -147,6 +147,26 @@ service cloud.firestore {
     match /ls_vez/{document=**}      { allow read, write: if logado(); }
     match /ls_vez_hist/{document=**} { allow read, write: if logado(); }
 
+    /* Ausências avisadas pela própria equipe (dentro de Comunicados e Tarefas).
+       Todo mundo LÊ: a loja precisa saber quem sai às 14h. Cada uma escreve a SUA —
+       o documento tem de nascer com o e-mail de quem está gravando em criadoPor, e o
+       campo email (de quem é a ausência) só pode ser de outra pessoa se quem grava
+       for diretoria ou supervisora, que é o caso de "ela ligou dizendo que não vem".
+       Apagar e corrigir: a dona do aviso, quem o lançou, ou a gestão.
+       Não guarda atestado nem motivo médico — isso é RH, e mora em /lancamentos. */
+    match /ls_ausencias/{id} {
+      allow read: if logado();
+      allow create: if logado()
+                    && request.resource.data.criadoPor == request.auth.token.email
+                    && (request.resource.data.email == request.auth.token.email || gestorOuSup());
+      // resource é null quando o documento não existe — sem esta guarda, um create
+      // feito com set() derruba a avaliação deste ramo com erro em vez de só negar
+      allow update, delete: if logado() && resource != null
+                    && (resource.data.email == request.auth.token.email
+                        || resource.data.criadoPor == request.auth.token.email
+                        || gestorOuSup());
+    }
+
     // ===== Comunicados e Tarefas (Central) — regra específica no servidor =====
     // Ler: qualquer logado. Criar/editar/apagar: só diretoria + Jhennifer.
     // Marcar "visto" (vistos) segue liberado pra todos, senão a confirmação de leitura quebra.
@@ -231,8 +251,10 @@ service cloud.firestore {
     // SEM isto, esta regra coringa daria escrita a QUALQUER logado na
     // coleção de catálogos, e a alteração 2 não serviria de nada: no
     // Firestore as regras se somam, basta UMA liberar pra liberar.
+    // (mesmo motivo de 'ls_ausencias' estar aqui: sem isto qualquer logado
+    // apagaria o aviso de ausência de qualquer outra pessoa)
     match /{coll}/{document=**} {
-      allow read, write: if !(coll in ['hub_config','ls_acessos','lancamentos','bancoHoras','documentosRH','ls_comunicados','ls_tarefas','catalogos_arquivos'])
+      allow read, write: if !(coll in ['hub_config','ls_acessos','lancamentos','bancoHoras','documentosRH','ls_comunicados','ls_tarefas','catalogos_arquivos','ls_ausencias'])
         && request.auth != null
         && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
