@@ -12,15 +12,25 @@
 (function (raiz) {
   'use strict';
 
-  /* Quem pode ser chamada agora. Ficam fora: quem não participa do revezamento,
-     quem está ausente (almoço) e quem está de férias.
+  /* Afastamento: férias, folga ou atestado. É estado próprio, não "ausente por muito
+     tempo", por dois motivos: some da fila de vez sem alguém religar por engano na
+     manhã seguinte, e a volta exige nivelar a contagem — ver nivelar() abaixo.
 
-     Férias é estado próprio, não "ausente por muito tempo", por dois motivos: some
-     da fila de vez sem alguém religar por engano na manhã seguinte, e a volta exige
-     nivelar a contagem — ver nivelar() abaixo.                                     */
+     Os três se comportam igual na fila; o tipo existe para a tela dizer o motivo e
+     para o histórico registrar por que a pessoa saiu.                              */
+  var AFASTAMENTOS = { ferias: 'férias', folga: 'folga', atestado: 'atestado' };
+
+  function afastada(p) {
+    /* p.ferias é a forma antiga, booleana. Fica reconhecida para não perder estado
+       de quem já estava marcada quando o tipo passou a existir. */
+    return p.afast || (p.ferias ? 'ferias' : null);
+  }
+
+  /* Quem pode ser chamada agora. Ficam fora: quem não participa do revezamento,
+     quem está ausente (almoço) e quem está afastada. */
   function elegiveis(pessoas) {
     return Object.keys(pessoas).filter(function (e) {
-      return pessoas[e].participa && pessoas[e].presente && !pessoas[e].ferias;
+      return pessoas[e].participa && pessoas[e].presente && !afastada(pessoas[e]);
     });
   }
 
@@ -113,7 +123,7 @@
   function revalidar(estado) {
     var novo = JSON.parse(JSON.stringify(estado));
     var p = novo.pessoas[novo.daVez];
-    if (!novo.daVez || !p || !p.participa || !p.presente || p.ferias) {
+    if (!novo.daVez || !p || !p.participa || !p.presente || afastada(p)) {
       novo.daVez = proximaDaVez(novo.pessoas, novo.criterio);
     }
     return novo;
@@ -179,7 +189,8 @@
   var api = { proximaDaVez: proximaDaVez, registrar: registrar, revalidar: revalidar,
               elegiveis: elegiveis, ordemDaFila: ordemDaFila,
               conversao: conversao, desequilibrio: desequilibrio, resumoPorDia: resumoPorDia,
-              nivelar: nivelar, mediaAtiva: mediaAtiva, atrasoSeVoltar: atrasoSeVoltar };
+              nivelar: nivelar, mediaAtiva: mediaAtiva, atrasoSeVoltar: atrasoSeVoltar,
+              afastada: afastada, AFASTAMENTOS: AFASTAMENTOS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.VezRegra = api;
 })(typeof window !== 'undefined' ? window : this);

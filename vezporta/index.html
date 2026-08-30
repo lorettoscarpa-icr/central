@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v6">
+<meta name="app-ver" content="v7">
 <title>Vez na Porta · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -73,8 +73,8 @@
   .pessoa .nums{order:4;width:100%;justify-content:flex-start;gap:22px;
     padding-top:9px;margin-top:2px;border-top:1px solid rgba(241,237,225,.08)}
   .pessoa.fora{opacity:.45}
-  .pessoa.ferias{opacity:.5;border-style:dashed}
-  .tog.ferias{border-color:var(--alerta);color:var(--alerta)}
+  .pessoa.afastada{opacity:.5;border-style:dashed}
+  .tog.afast{border-color:var(--alerta);color:var(--alerta)}
   .pessoa.davez{border-color:var(--gold);background:rgba(201,169,80,.1)}
   /* overflow:hidden é o que recorta a foto no círculo — sem ele a imagem vaza quadrada */
   .av{width:38px;height:38px;border-radius:50%;flex:none;border:1.5px solid var(--gold);overflow:hidden;
@@ -219,6 +219,16 @@
 <div class="msg" id="msg"></div>
 <input type="file" id="arqFoto" accept="image/*" style="display:none">
 
+<!-- afastamento: férias, folga ou atestado -->
+<div class="folha" id="folhaAfast" onclick="if(event.target===this)fecharAfastamento()">
+  <div class="folha-cx">
+    <h3 id="afastTitulo">Afastar da vez</h3>
+    <p id="afastTexto">Enquanto estiver afastada ela não é chamada. Na volta, o painel pergunta
+       se quer nivelar a contagem.</p>
+    <div id="listaAfast"></div>
+  </div>
+</div>
+
 <!-- 1. motivo da não-venda: um toque, e o registro cai no painel Vendas Perdidas -->
 <div class="folha" id="folhaMotivo" onclick="if(event.target===this)fecharMotivo()">
   <div class="folha-cx">
@@ -276,7 +286,7 @@ const chave = e => e.replace(/[^a-z]/g,'');            /* e-mail vira chave curt
 function estadoInicial(){
   const pessoas = {};
   EQUIPE.forEach(p => pessoas[chave(p.email)] = {
-    nome:p.nome, email:p.email, idas:0, vendas:0, participa:p.participa, presente:true, ferias:false, ultimaEm:0 });
+    nome:p.nome, email:p.email, idas:0, vendas:0, participa:p.participa, presente:true, afast:null, ultimaEm:0 });
   return { pessoas, daVez:null, criterio:'idas', atualizadoEm:Date.now() };
 }
 
@@ -341,10 +351,11 @@ function pintar(){
     estado.pessoas[a].nome.localeCompare(estado.pessoas[b].nome));
   $('lista').innerHTML = chaves.map(k=>{
     const p = estado.pessoas[k];
-    const fora = !p.participa || !p.presente || p.ferias;
-    const motivo = p.ferias ? 'de férias' :
+    const af = VezRegra.afastada(p);
+    const fora = !p.participa || !p.presente || af;
+    const motivo = af ? ('de ' + VezRegra.AFASTAMENTOS[af]) :
                    (!p.participa ? 'fora do revezamento' : (!p.presente ? 'ausente agora' : '&nbsp;'));
-    return `<div class="pessoa ${fora?'fora':''} ${p.ferias?'ferias':''} ${estado.daVez===k?'davez':''}">
+    return `<div class="pessoa ${fora?'fora':''} ${af?'afastada':''} ${estado.daVez===k?'davez':''}">
       <button class="av" title="Trocar a foto de ${esc(p.nome)}" onclick="escolherFoto('${k}')">${fotoOuInicial(p)}<span class="cam"><svg viewBox="0 0 24 24"><path d="M3 8h4l2-2h6l2 2h4v12H3z"/><circle cx="12" cy="13" r="3.2"/></svg></span></button>
       <span class="pn"><b>${esc(p.nome)}</b><small>${motivo}</small></span>
       <span class="nums">
@@ -353,7 +364,7 @@ function pintar(){
         <span class="num"><b class="conv">${VezRegra.conversao(p)===null?'—':VezRegra.conversao(p)+'%'}</b><small>conv.</small></span>
       </span>
       <button class="tog ${p.presente?'on':''}" onclick="alternar('${k}','presente')">${p.presente?'na loja':'ausente'}</button>
-      ${souGestor ? `<button class="tog ${p.ferias?'ferias':''}" onclick="alternarFerias('${k}')">${p.ferias?'de férias':'férias'}</button>` : ''}
+      ${souGestor ? `<button class="tog ${VezRegra.afastada(p)?'afast':''}" onclick="pedirAfastamento('${k}')">${VezRegra.afastada(p)?VezRegra.AFASTAMENTOS[VezRegra.afastada(p)]:'afastar'}</button>` : ''}
       ${souGestor ? `<button class="tog ${p.participa?'on':''}" onclick="alternar('${k}','participa')">${p.participa?'na vez':'fora'}</button>` : ''}
     </div>`;
   }).join('');
@@ -427,28 +438,51 @@ window.registrar = function(desfecho, motivo){
             : 'Registrado — a vez continua com '+p.nome);
 };
 
-/* Entrar de férias é só sair da fila. Voltar é o caso delicado: quem some duas semanas
-   volta com dezenas de idas de diferença, e a regra de "vai quem foi menos vezes" a
-   chamaria seguidas vezes por dias. Ofereço nivelar pela média de quem ficou — mas
-   perguntando, porque mexer em contador de gente sem avisar destrói a confiança na
-   ferramenta. Quem recusar fica com o comportamento cru, que é uma escolha legítima. */
-window.alternarFerias = function(k){
+/* Afastar é só sair da fila. Voltar é o caso delicado: quem some duas semanas volta
+   com dezenas de idas de diferença, e a regra de "vai quem foi menos vezes" a chamaria
+   seguidas vezes por dias. Ofereço nivelar pela média de quem ficou — mas perguntando,
+   porque mexer em contador de gente sem avisar destrói a confiança na ferramenta.
+   Quem recusar fica com o comportamento cru, que é uma escolha legítima. */
+let _afastAlvo = null;
+window.pedirAfastamento = function(k){
+  _afastAlvo = k;
+  const p = estado.pessoas[k], atual = VezRegra.afastada(p);
+  $('afastTitulo').textContent = atual ? p.nome + ' está de ' + VezRegra.AFASTAMENTOS[atual] : 'Afastar ' + p.nome;
+  $('afastTexto').textContent = atual
+    ? 'Ao voltar, o painel calcula quanto ela ficou para trás e pergunta se quer nivelar a contagem.'
+    : 'Enquanto estiver afastada ela não é chamada. Na volta, o painel pergunta se quer nivelar a contagem.';
+  $('listaAfast').innerHTML =
+    Object.keys(VezRegra.AFASTAMENTOS).map(t =>
+      `<button class="mot" onclick="afastar('${t}')">${atual===t?'✓ ':''}${esc(VezRegra.AFASTAMENTOS[t][0].toUpperCase()+VezRegra.AFASTAMENTOS[t].slice(1))}</button>`).join('')
+    + (atual ? `<button class="mot" onclick="afastar(null)"><b>Voltou ao trabalho</b></button>` : '')
+    + `<button class="mot pular" onclick="fecharAfastamento()">Cancelar</button>`;
+  $('folhaAfast').classList.add('on');
+};
+window.fecharAfastamento = function(){ $('folhaAfast').classList.remove('on'); };
+
+window.afastar = function(tipo){
+  fecharAfastamento();
+  const k = _afastAlvo; if(!k) return;
   const novo = JSON.parse(JSON.stringify(estado));
   const p = novo.pessoas[k];
-  if(!p.ferias){
-    p.ferias = true;
-    salvar(VezRegra.revalidar(novo), p.nome + ' entrou de férias — fora da vez');
+  const antes = VezRegra.afastada(p);
+
+  if(tipo){                                   /* entrando ou trocando o tipo */
+    p.afast = tipo; delete p.ferias;          /* some com a marca antiga, se houver */
+    salvar(VezRegra.revalidar(novo), p.nome + ' — ' + VezRegra.AFASTAMENTOS[tipo] + ', fora da vez');
     return;
   }
+
   /* voltando: calcula o atraso ANTES de limpar a marca */
   const crit = novo.criterio;
   const atraso = VezRegra.atrasoSeVoltar(novo.pessoas, k, crit);
   const media  = VezRegra.mediaAtiva(novo.pessoas, crit==='vendas'?'vendas':'idas', k);
-  p.ferias = false;
+  p.afast = null; delete p.ferias;
   if(atraso > 3){
     const rot = crit==='vendas' ? 'vendas' : 'idas';
     if(confirm(
-      p.nome + ' volta com ' + atraso + ' ' + rot + ' a menos que as outras.\n\n' +
+      p.nome + ' volta de ' + (antes ? VezRegra.AFASTAMENTOS[antes] : 'afastamento') +
+      ' com ' + atraso + ' ' + rot + ' a menos que as outras.\n\n' +
       'Sem nivelar, ela vai ser chamada seguidas vezes até emparelhar — pode pegar quase ' +
       'todos os clientes por dias.\n\n' +
       'Nivelar a contagem dela com a média de quem ficou (' + media + ' ' + rot + ')?')){
@@ -457,7 +491,7 @@ window.alternarFerias = function(k){
       return;
     }
   }
-  salvar(VezRegra.revalidar(novo), p.nome + ' voltou das férias');
+  salvar(VezRegra.revalidar(novo), p.nome + ' voltou ao trabalho');
 };
 
 window.alternar = function(k, campo){
@@ -618,7 +652,7 @@ function ligar(){
     const v = d.data();
     /* quem entrou na equipe depois entra sem apagar contagem de ninguém */
     EQUIPE.forEach(pp=>{ const k=chave(pp.email);
-      if(!v.pessoas[k]) v.pessoas[k]={nome:pp.nome,email:pp.email,idas:0,vendas:0,participa:pp.participa,presente:true,ferias:false,ultimaEm:0}; });
+      if(!v.pessoas[k]) v.pessoas[k]={nome:pp.nome,email:pp.email,idas:0,vendas:0,participa:pp.participa,presente:true,afast:null,ultimaEm:0}; });
     estado = v; pintar();
   }, e=>toast('Sem conexão com o servidor'));
 

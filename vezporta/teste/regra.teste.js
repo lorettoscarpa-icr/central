@@ -224,17 +224,38 @@ console.log('\n== resumo por dia ==');
 }
 eq('histórico vazio devolve lista vazia', R.resumoPorDia([]), []);
 
-console.log('\n== modo férias ==');
+console.log('\n== afastamento: férias, folga e atestado ==');
+{
+  ['ferias','folga','atestado'].forEach(tipo=>{
+    const e = base();
+    e.pessoas.natalia.afast = tipo;
+    eq('de '+R.AFASTAMENTOS[tipo]+' não é chamada', R.proximaDaVez(e.pessoas,'idas') !== 'natalia', true);
+    eq('e some da fila ('+tipo+')', R.ordemDaFila(e.pessoas,'idas','ialey').includes('natalia'), false);
+  });
+}
 {
   const e = base();
-  e.pessoas.natalia.ferias = true;
+  e.pessoas.natalia.ferias = true;      // forma antiga, booleana
+  eq('reconhece o formato antigo (ferias:true)', R.afastada(e.pessoas.natalia), 'ferias');
+  eq('e tira da fila igual', R.proximaDaVez(e.pessoas,'idas') !== 'natalia', true);
+}
+{
+  const e = base();
+  e.pessoas.natalia.afast = 'atestado';
+  e.daVez = 'natalia';
+  eq('afastando, a vez sai dela', R.revalidar(e).daVez !== 'natalia', true);
+}
+
+{
+  const e = base();
+  e.pessoas.natalia.afast = 'ferias';
   eq('de férias não é chamada', R.proximaDaVez(e.pessoas, 'idas') !== 'natalia', true);
   eq('e some da ordem da fila', R.ordemDaFila(e.pessoas,'idas','ialey').includes('natalia'), false);
 }
 {
   const e = base();
   e.daVez = 'natalia';
-  e.pessoas.natalia.ferias = true;
+  e.pessoas.natalia.afast = 'ferias';
   const r = R.revalidar(e);
   eq('entrando de férias, a vez sai dela', r.daVez !== 'natalia', true);
 }
@@ -243,8 +264,8 @@ console.log('\n== modo férias ==');
   e.pessoas.ialey.idas = 40; e.pessoas.ialey.vendas = 16;
   e.pessoas.michelly.idas = 44; e.pessoas.michelly.vendas = 20;
   e.pessoas.natalia.idas = 2; e.pessoas.natalia.vendas = 1;   // voltou de duas semanas
-  e.pessoas.natalia.ferias = true;
-  eq('férias fica fora da média', R.mediaAtiva(e.pessoas,'idas'), 42);
+  e.pessoas.natalia.afast = 'ferias';
+  eq('afastada fica fora da média', R.mediaAtiva(e.pessoas,'idas'), 42);
   eq('e a média de quem ficou ignora a própria pessoa',
      R.mediaAtiva(e.pessoas,'idas','natalia'), 42);
   eq('e o atraso dela é calculado', R.atrasoSeVoltar(e.pessoas,'natalia','idas'), 40);
@@ -275,7 +296,7 @@ console.log('\n== modo férias ==');
 }
 {
   const e = base();
-  e.pessoas.natalia.ferias = true;
+  e.pessoas.natalia.afast = 'folga';
   const antes = JSON.stringify(e.pessoas);
   R.nivelar(e, 'natalia');
   eq('nivelar não altera o estado que recebeu', JSON.stringify(e.pessoas), antes);

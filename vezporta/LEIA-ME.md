@@ -13,17 +13,21 @@ Jhennifer fica na lista com o botão "fora" ligado — entra na vez só quando q
 - Voltar do almoço **não tira a vez** de quem já está com ela — ela pode estar
   atendendo agora. Quem voltou emparelha nas próximas.
 
-## Modo férias
+## Afastamento: férias, folga e atestado
 
-Três estados diferentes, de propósito:
+Quatro estados diferentes, de propósito:
 
 | | O que é | Quem marca |
 |---|---|---|
 | **ausente** | almoço, saída rápida — volta no mesmo dia | a própria |
-| **férias** | dias ou semanas fora | gestão |
+| **férias / folga / atestado** | dias ou semanas fora | gestão |
 | **fora do revezamento** | não participa da vez (a supervisora, por exemplo) | gestão |
 
-Férias não é "ausente por muito tempo". São dois motivos:
+Gestão aqui é **a diretoria e a supervisora** — as três contas de `GESTORES`. Os três
+tipos de afastamento se comportam igual na fila; o tipo existe para a tela dizer o
+motivo e o histórico registrar por que a pessoa saiu.
+
+Afastamento não é "ausente por muito tempo". São dois motivos:
 
 1. **Ninguém religa por engano.** "Ausente" na manhã seguinte parece esquecimento de
    ontem e alguém desmarca.
@@ -32,13 +36,16 @@ Férias não é "ausente por muito tempo". São dois motivos:
    dias, monopolizando a porta. Há um teste que prova: sem nivelar, ela pega 9 dos 10
    clientes seguintes.
 
-Ao tirar alguém das férias, o painel calcula o atraso e **pergunta** se quer nivelar a
-contagem dela pela média de quem ficou. Recusar é escolha legítima e deixa o
+Ao marcar "voltou ao trabalho", o painel calcula o atraso e **pergunta** se quer
+nivelar a contagem pela média de quem ficou. Recusar é escolha legítima e deixa o
 comportamento cru. Perguntar, e não fazer calado, é regra: é contador de gente.
 
 O nivelamento usa a média de **quem ficou**, excluindo a própria pessoa da conta — se
-incluísse, o resultado dependeria de a tela limpar a marca de férias antes ou depois,
-e a mesma chamada daria número diferente conforme a ordem.
+incluísse, o resultado dependeria de a tela limpar a marca antes ou depois, e a mesma
+chamada daria número diferente conforme a ordem.
+
+O formato antigo (`ferias: true`, booleano) continua reconhecido, para não perder
+estado de quem já estivesse marcada.
 
 ## Os dois contadores
 
