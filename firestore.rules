@@ -19,6 +19,21 @@ service cloud.firestore {
     function soMudou(campos) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(campos);
     }
+    /* hasOnly() diz QUAIS campos mudaram, nunca PARA O QUE. Sozinho ele deixava
+       qualquer logado marcar tarefa como concluída no nome de outra pessoa e apagar
+       comentário alheio. As três funções abaixo olham o conteúdo. */
+
+    // só o próprio e-mail de quem escreve pode entrar ou sair da lista
+    function soMexeuNoMeu(campo) {
+      let novo = request.resource.data[campo];
+      let velho = resource.data[campo];
+      let eu = [request.auth.token.email];
+      return novo.hasOnly(velho.concat(eu)) && velho.hasOnly(novo.concat(eu));
+    }
+    // lista que só pode crescer: ninguém apaga o que já está registrado
+    function soCresceu(campo) {
+      return request.resource.data[campo].size() >= resource.data[campo].size();
+    }
 
     // ▼▼ ALTERAÇÃO 1 de 3 — Central de Catálogos ▼▼
     // Só estes dois sobem, renomeiam e excluem catálogo/foto de coleção.
@@ -41,19 +56,19 @@ service cloud.firestore {
     // Lista única de acessos — todos os logados LEEM (o porteiro precisa),
     // só a diretoria EDITA
     match /ls_acessos/{document=**} {
-      allow read:  if request.auth != null;
+      allow read:  if logado();
       allow write: if request.auth != null
         && request.auth.token.email == "lorettoscarpa@gmail.com";
     }
     // Dashboard de tráfego pago — aberto (acesso pelo link privado)
-    match /ls_trafego/{document=**} { allow read, write: if true; }
+    match /ls_trafego/{document=**} { allow read, write: if logado(); }
     // Conversor de vendas (Loretto + Ávia) — aberto (acesso pelo link privado)
-    match /ls_relatorios_vendas/{document=**} { allow read, write: if true; }
+    match /ls_relatorios_vendas/{document=**} { allow read, write: if logado(); }
     // Central de Etiquetas / Estoque — compartilhados (aberto, acesso pelo link privado)
-    match /ls_fila_etiquetas/{document=**} { allow read, write: if true; }
-    match /ls_etiq_prefs/{document=**}     { allow read, write: if true; }
-    match /ls_avarias/{document=**}        { allow read, write: if true; }
-    match /ls_catalogo/{document=**}       { allow read, write: if true; }
+    match /ls_fila_etiquetas/{document=**} { allow read, write: if logado(); }
+    match /ls_etiq_prefs/{document=**}     { allow read, write: if logado(); }
+    match /ls_avarias/{document=**}        { allow read, write: if logado(); }
+    match /ls_catalogo/{document=**}       { allow read, write: if logado(); }
 
     // ▼▼ NOVO — Conferência da volta (aba dentro do Estoque) ▼▼
     // Sem estas duas linhas, tudo que o Yuri conferia sumia no primeiro
@@ -62,43 +77,43 @@ service cloud.firestore {
     // fala com o Firestore do mesmo jeito que elas — e porque guardam só
     // dia, entregador, quais peças voltaram e nome de modelo. Nada de
     // nome, endereço ou telefone de cliente.
-    match /conferencias/{document=**}   { allow read, write: if true; }
-    match /ls_conf_licoes/{document=**} { allow read, write: if true; }
+    match /conferencias/{document=**}   { allow read, write: if logado(); }
+    match /ls_conf_licoes/{document=**} { allow read, write: if logado(); }
     // ▲▲ fim do novo ▲▲
 
     // Suprimentos (aba dentro do Estoque) — aberto, igual às demais do estoque
-    match /suprimentos_config/{document=**}    { allow read, write: if true; }
-    match /suprimentos_historico/{document=**} { allow read, write: if true; }
+    match /suprimentos_config/{document=**}    { allow read, write: if logado(); }
+    match /suprimentos_historico/{document=**} { allow read, write: if logado(); }
     // Reposição / Pronta-entrega (Estoque + painel da fábrica via link) — aberto, acesso pelo link privado
-    match /ls_rep_cfg/{document=**}    { allow read, write: if true; }
-    match /ls_rep_fotos/{document=**}  { allow read, write: if true; }
-    match /ls_pe/{document=**}         { allow read, write: if true; }
-    match /ls_pe_tokens/{document=**}  { allow read, write: if true; }
-    match /ls_pe_config/{document=**}  { allow read, write: if true; }
-    match /ls_pe_fotos/{document=**}   { allow read, write: if true; }
+    match /ls_rep_cfg/{document=**}    { allow read, write: if logado(); }
+    match /ls_rep_fotos/{document=**}  { allow read, write: if logado(); }
+    match /ls_pe/{document=**}         { allow read, write: if logado(); }
+    match /ls_pe_tokens/{document=**}  { allow read, write: if logado(); }
+    match /ls_pe_config/{document=**}  { allow read, write: if logado(); }
+    match /ls_pe_fotos/{document=**}   { allow read, write: if logado(); }
     // Financeiro / Conferência de Caixa (dentro do Estoque) — aberto, acesso pelo link privado
-    match /ls_fin_entradas/{document=**}  { allow read, write: if true; }
-    match /ls_fin_arquivos/{document=**}  { allow read, write: if true; }
-    match /conferenciasCaixa/{document=**} { allow read, write: if true; }
+    match /ls_fin_entradas/{document=**}  { allow read, write: if logado(); }
+    match /ls_fin_arquivos/{document=**}  { allow read, write: if logado(); }
+    match /conferenciasCaixa/{document=**} { allow read, write: if logado(); }
     // Central de Modelos (parceiros) — aberto (acesso pelo link privado)
-    match /modelos/{document=**} { allow read, write: if true; }
+    match /modelos/{document=**} { allow read, write: if logado(); }
     // Central de Metas / Retrospecto — aberto, acesso pelo link privado
-    match /ls_historico/{document=**}    { allow read, write: if true; }
-    match /ls_metas/{document=**}        { allow read, write: if true; }
-    match /ls_maior_venda/{document=**}  { allow read, write: if true; }
-    match /ls_retrospecto/{document=**}  { allow read, write: if true; }
-    match /_setup/{document=**}          { allow read, write: if true; }
+    match /ls_historico/{document=**}    { allow read, write: if logado(); }
+    match /ls_metas/{document=**}        { allow read, write: if logado(); }
+    match /ls_maior_venda/{document=**}  { allow read, write: if logado(); }
+    match /ls_retrospecto/{document=**}  { allow read, write: if logado(); }
+    match /_setup/{document=**}          { allow read, write: if logado(); }
     // Central de Encomendas (vendedoras) — aberto, acesso pelo link privado
-    match /encomendas/{document=**} { allow read, write: if true; }
+    match /encomendas/{document=**} { allow read, write: if logado(); }
     // Central de Pós-venda — aberto, acesso pelo link privado
-    match /ls_posvendas/{document=**} { allow read, write: if true; }
+    match /ls_posvendas/{document=**} { allow read, write: if logado(); }
     // Central de Coleções — aberto, acesso pelo link privado
-    match /colecoes_modelos/{document=**} { allow read, write: if true; }
-    match /colecoes_users/{document=**}   { allow read, write: if true; }
-    match /colecoes_fotos/{document=**}   { allow read, write: if true; }
+    match /colecoes_modelos/{document=**} { allow read, write: if logado(); }
+    match /colecoes_users/{document=**}   { allow read, write: if logado(); }
+    match /colecoes_fotos/{document=**}   { allow read, write: if logado(); }
     // Central de Campanhas — aberto, acesso pelo link privado
-    match /campanhas_items/{document=**} { allow read, write: if true; }
-    match /campanhas_fotos/{document=**} { allow read, write: if true; }
+    match /campanhas_items/{document=**} { allow read, write: if logado(); }
+    match /campanhas_fotos/{document=**} { allow read, write: if logado(); }
 
     // ▼▼ ALTERAÇÃO 2 de 3 — Central de Catálogos ▼▼
     // Toda vendedora logada LÊ a lista (é o que faz a tela atualizar
@@ -118,7 +133,7 @@ service cloud.firestore {
       allow create: if gestorOuSup();
       allow delete: if gestorOuSup();
       allow update: if gestorOuSup()
-                    || (logado() && soMudou(['vistos']));
+                    || (logado() && soMudou(['vistos']) && soCresceu('vistos'));
     }
     // Ler: qualquer logado. Criar/editar/apagar: só diretoria + Jhennifer.
     // Concluir (feitosPor), reset de recorrência (feitosPor+periodo) e comentar (comentarios)
@@ -128,8 +143,8 @@ service cloud.firestore {
       allow create: if gestorOuSup();
       allow delete: if gestorOuSup();
       allow update: if gestorOuSup()
-                    || (logado() && soMudou(['feitosPor','periodo']))
-                    || (logado() && soMudou(['comentarios']));
+                    || (logado() && soMudou(['feitosPor','periodo']) && soMexeuNoMeu('feitosPor'))
+                    || (logado() && soMudou(['comentarios']) && soCresceu('comentarios'));
     }
 
     // Central de Entregas: entregas + rastreio + fotos — qualquer logado, INCLUSIVE entregador anônimo

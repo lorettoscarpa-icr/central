@@ -33,7 +33,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="c9">
+<meta name="app-ver" content="c10">
 <title>Central Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Barlow:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -888,7 +888,7 @@
     /* Um painel pedindo pra Central abrir outro. Antes o "Ver entregadores ao vivo" fazia
        window.open: no celular isso tira a pessoa da Central, e voltar é recomeçar do zero —
        login de novo. Aqui é só trocar de aba, sem sair de lugar nenhum. */
-    if(d&&d.tipo==='central-abrir'&&d.painel&&PANEL_URL[d.painel]){
+    if(d&&d.tipo==='central-abrir'&&e.origin===location.origin&&d.painel&&PANEL_URL[d.painel]){
       const permitido=document.querySelector('.nav-item[data-p="'+d.painel+'"]');
       if(permitido) abrir(d.painel);
     }});
@@ -925,6 +925,9 @@
   function telDe(email){ return TEL[norm(email)]||''; }
   function avatar(nome){ const f=FOTOS_DATA[nome]; return f?`<img class="ct-av" src="${f}" alt="">`:`<span class="ct-av ct-ini">${(nome||'?')[0]}</span>`; }
   function areasDe(c){ return c.areas==='*'?['*']:(c.areas||[]); }
+  /* URL vinda do banco não entra crua em src=: aspas fecham o atributo e o resto vira
+     handler. Só passa foto embutida (data:image) ou https. */
+  function fotoSegura(u){const s=String(u||'');return /^(data:image\/[a-z+.-]+;base64,[A-Za-z0-9+/=]+|https:\/\/[^"'\s<>]+)$/i.test(s)?s:'';}
   function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
   function fmtData(ms){ if(!ms)return''; const d=new Date(ms),h=new Date(); const dia=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}); return d.getFullYear()===h.getFullYear()?dia:d.toLocaleDateString('pt-BR'); }
   function fmtHora(ms){ if(!ms)return''; return new Date(ms).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
@@ -1103,12 +1106,12 @@
       const acts=podeCriar()?`<button class="ct-ic" onclick="ctEditarCom('${c.id}')" title="Editar">✎</button><button class="ct-x" onclick="ctApagarCom('${c.id}')" title="Apagar">×</button>`:'';
       const resps=c.comentarios||[]; const abertoC=_openComsC[c.id];
       const respBtn=`<button class="ct-cbtn ${abertoC?'on':''}" onclick="ctToggleComsC('${c.id}')">💬 ${resps.length?resps.length+' resposta'+(resps.length>1?'s':''):'Responder'}</button>`;
-      const threadC=abertoC?`<div class="ct-thread">${resps.length?resps.map(k=>`<div class="ct-cm"><b>${esc(k.autor)}</b><span>${fmtHora(k.ts)}</span>${k.texto?`<p>${esc(k.texto)}</p>`:''}${k.foto?`<img class="ct-cm-foto" src="${k.foto}" onclick="ctVerFoto(this.src)" alt="">`:''}</div>`).join(''):'<div class="ct-cm-vazio">Sem respostas ainda.</div>'}<div class="ct-cm-add"><input id="ctcmc-${c.id}" placeholder="Responder…" onkeydown="if(event.key==='Enter')ctEnviarComentCom('${c.id}')"><button class="ct-cm-cam" onclick="ctCmFotoPickCom('${c.id}')" title="Anexar foto">📷</button><button onclick="ctEnviarComentCom('${c.id}')">Enviar</button></div></div>`:'';
+      const threadC=abertoC?`<div class="ct-thread">${resps.length?resps.map(k=>`<div class="ct-cm"><b>${esc(k.autor)}</b><span>${fmtHora(k.ts)}</span>${k.texto?`<p>${esc(k.texto)}</p>`:''}${fotoSegura(k.foto)?`<img class="ct-cm-foto" src="${fotoSegura(k.foto)}" onclick="ctVerFoto(this.src)" alt="">`:''}</div>`).join(''):'<div class="ct-cm-vazio">Sem respostas ainda.</div>'}<div class="ct-cm-add"><input id="ctcmc-${c.id}" placeholder="Responder…" onkeydown="if(event.key==='Enter')ctEnviarComentCom('${c.id}')"><button class="ct-cm-cam" onclick="ctCmFotoPickCom('${c.id}')" title="Anexar foto">📷</button><button onclick="ctEnviarComentCom('${c.id}')">Enviar</button></div></div>`:'';
       return `<div class="ct-card${c.fixado?' fix':''}" data-com="${c.id}">
         ${c.fixado?'<div class="ct-fixtag">📌 Fixado</div>':''}
         <div class="ct-card-top">${avatar(c.autor)}<div class="ct-card-meta"><b>${esc(c.autor)}</b><span>${fmtDataHora(c.criadoEm)} · ${esc(pub)} ${val}</span></div><div class="ct-actgrp">${pin}${acts}</div></div>
         <div class="ct-card-txt">${esc(c.texto)}</div>
-        ${c.foto?`<img class="ct-foto" src="${c.foto}" onclick="ctVerFoto(this.src)" alt="">`:''}
+        ${c.foto?`<img class="ct-foto" src="${fotoSegura(c.foto)}" onclick="ctVerFoto(this.src)" alt="">`:''}
         <div class="ct-card-foot"><span class="ct-eye">👁 ${vistos.length} ${vistos.length===1?'viu':'viram'}</span>${vistos.length?`<span class="ct-vlist">${vistos.slice(0,6).map(esc).join(', ')}${vistos.length>6?'…':''}</span>`:''}${respBtn}</div>
         ${threadC}
       </div>`;
@@ -1169,10 +1172,10 @@
       const coms=t.comentarios||[]; const aberto=_openComs[t.id];
       const comBtn=_selMode?'':`<button class="ct-cbtn ${aberto?'on':''}" onclick="ctToggleComs('${t.id}')">💬 ${coms.length?coms.length+' resposta'+(coms.length>1?'s':''):'Responder'}</button>`;
       const podeComentar=souAlvo||myEmail()===norm(t.autorEmail);
-      const thread=(aberto&&!_selMode)?`<div class="ct-thread">${coms.length?coms.map(k=>`<div class="ct-cm"><b>${esc(k.autor)}</b><span>${fmtHora(k.ts)}</span>${k.texto?`<p>${esc(k.texto)}</p>`:''}${k.foto?`<img class="ct-cm-foto" src="${k.foto}" onclick="ctVerFoto(this.src)" alt="">`:''}</div>`).join(''):'<div class="ct-cm-vazio">Sem comentários ainda.</div>'}${podeComentar?`<div class="ct-cm-add"><input id="ctcm-${t.id}" placeholder="Escrever…" onkeydown="if(event.key==='Enter')ctEnviarComent('${t.id}')"><button class="ct-cm-cam" onclick="ctCmFotoPick('${t.id}')" title="Anexar foto">📷</button><button onclick="ctEnviarComent('${t.id}')">Enviar</button></div>`:''}</div>`:'';
+      const thread=(aberto&&!_selMode)?`<div class="ct-thread">${coms.length?coms.map(k=>`<div class="ct-cm"><b>${esc(k.autor)}</b><span>${fmtHora(k.ts)}</span>${k.texto?`<p>${esc(k.texto)}</p>`:''}${fotoSegura(k.foto)?`<img class="ct-cm-foto" src="${fotoSegura(k.foto)}" onclick="ctVerFoto(this.src)" alt="">`:''}</div>`).join(''):'<div class="ct-cm-vazio">Sem comentários ainda.</div>'}${podeComentar?`<div class="ct-cm-add"><input id="ctcm-${t.id}" placeholder="Escrever…" onkeydown="if(event.key==='Enter')ctEnviarComent('${t.id}')"><button class="ct-cm-cam" onclick="ctCmFotoPick('${t.id}')" title="Anexar foto">📷</button><button onclick="ctEnviarComent('${t.id}')">Enviar</button></div>`:''}</div>`:'';
       return `<div class="ct-tar ${st}${_selMode&&_selTar[t.id]?' sel':''}">
         <div class="ct-tar-main">${chk}<div class="ct-tar-txt"><b>${esc(t.texto)}</b>${t.sub?`<small>${esc(t.sub)}</small>`:''}<div class="ct-tar-sub"><span class="ct-tar-de">de ${esc(t.autor)} · ${fmtDataHora(t.criadoEm)}</span>${urg}${rec}${prog}</div></div><div class="ct-actgrp">${wa}${acts}</div></div>
-        ${t.foto?`<img class="ct-foto" src="${t.foto}" onclick="ctVerFoto(this.src)" alt="">`:''}
+        ${t.foto?`<img class="ct-foto" src="${fotoSegura(t.foto)}" onclick="ctVerFoto(this.src)" alt="">`:''}
         <div class="ct-tar-foot"><div class="ct-avs">${avs}</div><div class="ct-tar-acts">${comBtn}${prazo}${btnConcluir}</div></div>
         ${progbar}
         ${thread}
