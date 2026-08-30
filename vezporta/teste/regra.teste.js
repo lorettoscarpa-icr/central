@@ -224,5 +224,62 @@ console.log('\n== resumo por dia ==');
 }
 eq('histórico vazio devolve lista vazia', R.resumoPorDia([]), []);
 
+console.log('\n== modo férias ==');
+{
+  const e = base();
+  e.pessoas.natalia.ferias = true;
+  eq('de férias não é chamada', R.proximaDaVez(e.pessoas, 'idas') !== 'natalia', true);
+  eq('e some da ordem da fila', R.ordemDaFila(e.pessoas,'idas','ialey').includes('natalia'), false);
+}
+{
+  const e = base();
+  e.daVez = 'natalia';
+  e.pessoas.natalia.ferias = true;
+  const r = R.revalidar(e);
+  eq('entrando de férias, a vez sai dela', r.daVez !== 'natalia', true);
+}
+{
+  const e = base();
+  e.pessoas.ialey.idas = 40; e.pessoas.ialey.vendas = 16;
+  e.pessoas.michelly.idas = 44; e.pessoas.michelly.vendas = 20;
+  e.pessoas.natalia.idas = 2; e.pessoas.natalia.vendas = 1;   // voltou de duas semanas
+  e.pessoas.natalia.ferias = true;
+  eq('férias fica fora da média', R.mediaAtiva(e.pessoas,'idas'), 42);
+  eq('e a média de quem ficou ignora a própria pessoa',
+     R.mediaAtiva(e.pessoas,'idas','natalia'), 42);
+  eq('e o atraso dela é calculado', R.atrasoSeVoltar(e.pessoas,'natalia','idas'), 40);
+  const r = R.nivelar(e, 'natalia');
+  eq('nivelar põe na média das ativas', [r.pessoas.natalia.idas, r.pessoas.natalia.vendas], [42, 18]);
+  eq('e não mexe em quem ficou',
+     [r.pessoas.ialey.idas, r.pessoas.michelly.idas], [40, 44]);
+}
+{
+  /* o motivo de existir o nivelamento: sem ele, ela monopoliza a porta */
+  let e = base('idas');
+  e.pessoas.ialey.idas = 40; e.pessoas.michelly.idas = 40; e.pessoas.natalia.idas = 2;
+  e.daVez = 'ialey';
+  let seguidas = 0;
+  for (let i = 0; i < 10; i++) { e = R.revalidar(e); e = R.registrar(e, e.daVez, 'venda', 9000+i);
+    if (e.pessoas.natalia.idas > 2) seguidas++; }
+  eq('sem nivelar, ela pega quase tudo ao voltar', seguidas >= 9, true);
+
+  let f = base('idas');
+  f.pessoas.ialey.idas = 40; f.pessoas.michelly.idas = 40; f.pessoas.natalia.idas = 2;
+  f = R.nivelar(f, 'natalia');
+  f.daVez = 'ialey';
+  const antes = f.pessoas.natalia.idas;
+  for (let i = 0; i < 6; i++) { f = R.revalidar(f); f = R.registrar(f, f.daVez, 'venda', 9000+i); }
+  const c = [f.pessoas.ialey.idas, f.pessoas.michelly.idas, f.pessoas.natalia.idas];
+  eq('nivelada, ela volta a revezar normal', Math.max(...c) - Math.min(...c) <= 1, true);
+  eq('e entrou na média de quem ficou, não no zero', antes, 40);
+}
+{
+  const e = base();
+  e.pessoas.natalia.ferias = true;
+  const antes = JSON.stringify(e.pessoas);
+  R.nivelar(e, 'natalia');
+  eq('nivelar não altera o estado que recebeu', JSON.stringify(e.pessoas), antes);
+}
+
 console.log(`\nresultado final: ${ok} ok, ${falhou} falha(s)`);
 process.exit(falhou ? 1 : 0);

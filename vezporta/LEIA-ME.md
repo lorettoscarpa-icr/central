@@ -13,6 +13,33 @@ Jhennifer fica na lista com o botão "fora" ligado — entra na vez só quando q
 - Voltar do almoço **não tira a vez** de quem já está com ela — ela pode estar
   atendendo agora. Quem voltou emparelha nas próximas.
 
+## Modo férias
+
+Três estados diferentes, de propósito:
+
+| | O que é | Quem marca |
+|---|---|---|
+| **ausente** | almoço, saída rápida — volta no mesmo dia | a própria |
+| **férias** | dias ou semanas fora | gestão |
+| **fora do revezamento** | não participa da vez (a supervisora, por exemplo) | gestão |
+
+Férias não é "ausente por muito tempo". São dois motivos:
+
+1. **Ninguém religa por engano.** "Ausente" na manhã seguinte parece esquecimento de
+   ontem e alguém desmarca.
+2. **A volta precisa de nivelamento.** Quem some duas semanas volta com dezenas de
+   idas a menos, e a regra de "vai quem foi menos vezes" a chamaria seguidas vezes por
+   dias, monopolizando a porta. Há um teste que prova: sem nivelar, ela pega 9 dos 10
+   clientes seguintes.
+
+Ao tirar alguém das férias, o painel calcula o atraso e **pergunta** se quer nivelar a
+contagem dela pela média de quem ficou. Recusar é escolha legítima e deixa o
+comportamento cru. Perguntar, e não fazer calado, é regra: é contador de gente.
+
+O nivelamento usa a média de **quem ficou**, excluindo a própria pessoa da conta — se
+incluísse, o resultado dependeria de a tela limpar a marca de férias antes ou depois,
+e a mesma chamada daria número diferente conforme a ordem.
+
 ## Os dois contadores
 
 A tela mostra **idas à porta** e **vendas**. O botão do rodapé escolhe qual dos dois

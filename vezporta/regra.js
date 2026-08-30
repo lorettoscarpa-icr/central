@@ -12,10 +12,54 @@
 (function (raiz) {
   'use strict';
 
-  /* Quem pode ser chamada agora. Ausente (almoço) e quem não participa ficam fora. */
+  /* Quem pode ser chamada agora. Ficam fora: quem não participa do revezamento,
+     quem está ausente (almoço) e quem está de férias.
+
+     Férias é estado próprio, não "ausente por muito tempo", por dois motivos: some
+     da fila de vez sem alguém religar por engano na manhã seguinte, e a volta exige
+     nivelar a contagem — ver nivelar() abaixo.                                     */
   function elegiveis(pessoas) {
-    return Object.keys(pessoas)
-      .filter(function (e) { return pessoas[e].participa && pessoas[e].presente; });
+    return Object.keys(pessoas).filter(function (e) {
+      return pessoas[e].participa && pessoas[e].presente && !pessoas[e].ferias;
+    });
+  }
+
+  /* Média das contagens de quem está ativo, arredondada. Base do nivelamento.
+
+     'exceto' tira alguém da conta. Serve para nivelar quem volta de férias pela média
+     de QUEM FICOU: sem isso o resultado dependeria de a tela limpar a marca de férias
+     antes ou depois de nivelar, e a mesma chamada daria número diferente conforme a
+     ordem. Explícito é melhor que sutil aqui — é contador de gente.                 */
+  function mediaAtiva(pessoas, chave, exceto) {
+    var aptas = elegiveis(pessoas).filter(function (e) { return e !== exceto; });
+    if (!aptas.length) return 0;
+    var soma = aptas.reduce(function (t, e) { return t + (pessoas[e][chave] || 0); }, 0);
+    return Math.round(soma / aptas.length);
+  }
+
+  /* Traz a contagem de quem voltou para a média de quem ficou.
+
+     Sem isto, quem tira duas semanas volta com ~40 idas de diferença, e a regra de
+     "vai quem foi menos vezes" a chamaria seguidas vezes por dias — monopolizando a
+     porta e fazendo o revezamento parecer quebrado. Nivelar pela MÉDIA (e não pelo
+     mínimo) é o neutro: ela não ganha nem perde lugar por ter viajado.             */
+  function nivelar(estado, email) {
+    var novo = JSON.parse(JSON.stringify(estado));
+    var p = novo.pessoas[email];
+    if (!p) return novo;
+    p.idas = mediaAtiva(novo.pessoas, 'idas', email);
+    p.vendas = mediaAtiva(novo.pessoas, 'vendas', email);
+    p.ultimaEm = Date.now();
+    return novo;
+  }
+
+  /* Quanto ela ficaria atrás se voltasse sem nivelar — é o que a tela mostra para a
+     pessoa decidir se nivela ou não. */
+  function atrasoSeVoltar(pessoas, email, criterio) {
+    var chave = (criterio === 'vendas') ? 'vendas' : 'idas';
+    var p = pessoas[email];
+    if (!p) return 0;
+    return Math.max(0, mediaAtiva(pessoas, chave, email) - (p[chave] || 0));
   }
 
   /* A próxima da vez. criterio: 'idas' (cada ida à porta) ou 'vendas' (vez concluída).
@@ -69,7 +113,7 @@
   function revalidar(estado) {
     var novo = JSON.parse(JSON.stringify(estado));
     var p = novo.pessoas[novo.daVez];
-    if (!novo.daVez || !p || !p.participa || !p.presente) {
+    if (!novo.daVez || !p || !p.participa || !p.presente || p.ferias) {
       novo.daVez = proximaDaVez(novo.pessoas, novo.criterio);
     }
     return novo;
@@ -134,7 +178,8 @@
 
   var api = { proximaDaVez: proximaDaVez, registrar: registrar, revalidar: revalidar,
               elegiveis: elegiveis, ordemDaFila: ordemDaFila,
-              conversao: conversao, desequilibrio: desequilibrio, resumoPorDia: resumoPorDia };
+              conversao: conversao, desequilibrio: desequilibrio, resumoPorDia: resumoPorDia,
+              nivelar: nivelar, mediaAtiva: mediaAtiva, atrasoSeVoltar: atrasoSeVoltar };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.VezRegra = api;
 })(typeof window !== 'undefined' ? window : this);
