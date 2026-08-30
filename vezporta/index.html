@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v2">
+<meta name="app-ver" content="v3">
 <title>Vez na Porta · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -65,8 +65,13 @@
 
   /* ===== contagem ===== */
   .sec{font-size:11.5px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:600;margin:22px 0 9px}
-  .pessoa{display:flex;align-items:center;gap:12px;background:rgba(0,0,0,.16);border:1px solid var(--linha);
-    border-radius:11px;padding:11px 13px;margin-bottom:7px}
+  /* Com idas, vendas E conversão a linha não cabe em 390px: os números subiam por cima
+     do nome. Duas linhas — quem é em cima, quanto embaixo. */
+  .pessoa{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(0,0,0,.16);
+    border:1px solid var(--linha);border-radius:11px;padding:11px 13px;margin-bottom:7px}
+  .pessoa .av{order:1} .pessoa .pn{order:2} .pessoa .tog{order:3}
+  .pessoa .nums{order:4;width:100%;justify-content:flex-start;gap:22px;
+    padding-top:9px;margin-top:2px;border-top:1px solid rgba(241,237,225,.08)}
   .pessoa.fora{opacity:.45}
   .pessoa.davez{border-color:var(--gold);background:rgba(201,169,80,.1)}
   /* overflow:hidden é o que recorta a foto no círculo — sem ele a imagem vaza quadrada */
@@ -79,10 +84,11 @@
   .av .cam{position:absolute;right:-1px;bottom:-1px;width:15px;height:15px;border-radius:50%;
     background:var(--verde-noite);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center}
   .av .cam svg{width:8px;height:8px;stroke:var(--gold);fill:none;stroke-width:2.2}
-  .pn{flex:1;min-width:0}
+  .pn{flex:1;min-width:64px}
   .pn b{font-size:15px;font-weight:600;display:block}
   .pn small{font-size:11.5px;color:var(--creme-suave)}
   .nums{display:flex;gap:14px;text-align:center;flex:none}
+  .num{min-width:44px}
   .num b{display:block;font-family:'Playfair Display',serif;font-size:20px;line-height:1}
   .num small{font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--creme-suave)}
   .num.governa b{color:var(--gold-claro)}
@@ -101,6 +107,46 @@
   .t-troca{background:rgba(241,237,225,.12);color:var(--creme-suave)}
   .rodape{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
   .rodape .tog{flex:1;min-width:140px;text-align:center}
+  /* 5. aviso de desequilíbrio */
+  .desnivel{border:1px solid var(--alerta);background:rgba(208,138,69,.12);border-radius:11px;
+    padding:11px 13px;font-size:13px;line-height:1.5;margin-bottom:12px;display:none}
+  .desnivel.on{display:block}
+  .desnivel b{color:var(--alerta)}
+  /* 2. taxa de conversão */
+  .conv{font-size:11px;color:var(--gold-claro);font-weight:600;white-space:nowrap}
+  /* 3. movimento da loja */
+  .mov{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.16);border:1px solid var(--linha);
+    border-radius:11px;padding:11px 13px;margin-bottom:7px}
+  .mov .n{font-family:'Playfair Display',serif;font-size:24px;line-height:1;color:var(--gold-claro)}
+  .mov .txt{flex:1;font-size:12.5px;color:var(--creme-suave);line-height:1.4}
+  .mov button{border:1px solid var(--linha);background:transparent;color:var(--creme);border-radius:9px;
+    padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;flex:none}
+  .mov button:hover{border-color:var(--gold)}
+  /* 1. folha de motivos */
+  .folha{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;z-index:20}
+  .folha.on{display:flex}
+  .folha-cx{background:var(--verde-escuro);border-top:2px solid var(--gold);border-radius:16px 16px 0 0;
+    width:100%;max-height:86vh;overflow:auto;padding:18px 16px calc(20px + env(safe-area-inset-bottom))}
+  .folha h3{font-family:'Playfair Display',serif;font-size:19px;color:var(--gold-claro);margin-bottom:3px}
+  .folha p{font-size:12.5px;color:var(--creme-suave);margin-bottom:14px;line-height:1.5}
+  .mot{display:block;width:100%;text-align:left;border:1px solid var(--linha);background:rgba(0,0,0,.18);
+    color:var(--creme);border-radius:10px;padding:13px 14px;margin-bottom:7px;font-size:14.5px;
+    font-family:'Barlow',sans-serif;cursor:pointer}
+  .mot:hover{border-color:var(--gold)}
+  .mot.pular{color:var(--creme-suave);font-size:13px;border-style:dashed}
+  /* 4. resumo por dia */
+  .dia{border:1px solid var(--linha);border-radius:11px;padding:10px 13px;margin-bottom:7px;background:rgba(0,0,0,.14)}
+  .dia-h{display:flex;align-items:baseline;gap:8px;margin-bottom:5px}
+  .dia-h b{font-size:14px}
+  .dia-h small{font-size:11.5px;color:var(--creme-suave);margin-left:auto}
+  .dia-p{font-size:12px;color:var(--creme-suave);line-height:1.7}
+  .dia-p span{display:inline-block;margin-right:12px}
+  .dia-p i{font-style:normal;color:var(--creme);font-weight:600}
+  .abas{display:flex;gap:6px;margin-bottom:9px}
+  .aba{flex:1;border:1px solid var(--linha);background:transparent;color:var(--creme-suave);border-radius:9px;
+    padding:8px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif}
+  .aba.on{border-color:var(--gold);color:var(--gold-claro);background:rgba(201,169,80,.1)}
+
   .msg{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:var(--verde-noite);
     border:1px solid var(--gold);color:var(--creme);padding:11px 18px;border-radius:99px;font-size:13.5px;
     opacity:0;pointer-events:none;transition:.2s;z-index:9}
@@ -125,10 +171,12 @@
     <!-- nascem desabilitados: sem conexão o pintar() não roda, e botão que aceita
          toque sem registrar nada é pior do que botão apagado -->
     <button class="btn btn-venda" id="bVenda" disabled onclick="registrar('venda')">Vendeu — passa a vez</button>
-    <button class="btn" id="bSem" disabled onclick="registrar('sem-venda')">Não vendeu</button>
+    <button class="btn" id="bSem" disabled onclick="pedirMotivo()">Não vendeu</button>
     <button class="btn" id="bTroca" disabled onclick="registrar('troca')">Era troca</button>
   </div>
   <div class="dica">A vez só passa quando vende. Sem venda, ela continua com quem está.<br>Troca não conta como ida à porta.</div>
+
+  <div class="desnivel" id="desnivel"></div>
 
   <div class="sec">Contagem</div>
   <div id="lista"></div>
@@ -139,11 +187,40 @@
     <button class="tog" onclick="desfazer()">↩ Desfazer último</button>
   </div>
 
+  <div class="sec">Movimento da loja — hoje</div>
+  <div class="mov">
+    <span class="n" id="movN">0</span>
+    <span class="txt" id="movTxt">clientes que entraram hoje</span>
+    <button onclick="entrouSemAtendimento()">+ entrou e saiu</button>
+  </div>
+  <div class="aviso">Cada atendimento registrado aqui já conta como cliente que entrou. O botão
+    acima é só para quem <b>entrou e saiu sem ser atendido</b> — sem isso, o movimento da loja
+    fica menor do que foi de verdade.</div>
+
+  <div class="sec">Resumo</div>
+  <div class="abas">
+    <button class="aba on" id="abaDia"    onclick="verResumo('dia')">Hoje</button>
+    <button class="aba"    id="abaSemana" onclick="verResumo('semana')">7 dias</button>
+    <button class="aba"    id="abaMes"    onclick="verResumo('mes')">30 dias</button>
+  </div>
+  <div id="resumo"></div>
+
   <div class="sec">Últimos registros</div>
   <div class="hist" id="hist">—</div>
 </div>
 <div class="msg" id="msg"></div>
 <input type="file" id="arqFoto" accept="image/*" style="display:none">
+
+<!-- 1. motivo da não-venda: um toque, e o registro cai no painel Vendas Perdidas -->
+<div class="folha" id="folhaMotivo" onclick="if(event.target===this)fecharMotivo()">
+  <div class="folha-cx">
+    <h3>Por que não comprou?</h3>
+    <p>Vai para o painel <b>Vendas Perdidas</b> junto com o nome de quem atendeu. Assim ninguém
+       precisa digitar de novo lá.</p>
+    <div id="listaMotivos"></div>
+    <button class="mot pular" onclick="confirmarSemVenda(null)">Não sei / não registrar agora</button>
+  </div>
+</div>
 
 <script src="./regra.js"></script>
 <script>
@@ -165,6 +242,11 @@ const EQUIPE = [
   {email:'natalialorettoscarpa@gmail.com',  nome:'Natália',   participa:true },
   {email:'jhenniferlorettoscarpa@gmail.com',nome:'Jhennifer', participa:false},
 ];
+
+/* Mesma lista do painel Vendas Perdidas (const MOTIVOS lá). Se mudar lá, mude aqui:
+   duas listas divergentes fariam o relatório dele misturar rótulos diferentes. */
+const MOTIVOS = ['Sem a numeração','Sem a cor','Modelo esgotado','Não trabalhamos o modelo','Não quis esperar encomenda','Outro'];
+const COL_PERDIDAS = 'ls_vendas_perdidas';
 
 const $ = id => document.getElementById(id);
 let db=null, auth=null, meuEmail='', estado=null, historico=[];
@@ -239,11 +321,36 @@ function pintar(){
       <span class="nums">
         <span class="num ${crit==='idas'?'governa':''}"><b>${p.idas||0}</b><small>idas</small></span>
         <span class="num ${crit==='vendas'?'governa':''}"><b>${p.vendas||0}</b><small>vendas</small></span>
+        <span class="num"><b class="conv">${VezRegra.conversao(p)===null?'—':VezRegra.conversao(p)+'%'}</b><small>conv.</small></span>
       </span>
       <button class="tog ${p.presente?'on':''}" onclick="alternar('${k}','presente')">${p.presente?'na loja':'ausente'}</button>
       <button class="tog ${p.participa?'on':''}" onclick="alternar('${k}','participa')">${p.participa?'na vez':'fora'}</button>
     </div>`;
   }).join('');
+
+  /* 5. avisa quando a diferença passa de 3, que é o ponto em que alguém reclama */
+  const d = VezRegra.desequilibrio(estado.pessoas, crit);
+  const cxD = $('desnivel');
+  if(d.diferenca > 3){
+    const quem = estado.pessoas[d.atras].nome;
+    cxD.innerHTML = `<b>${esc(quem)} está ${d.diferenca} atrás</b> em ${crit==='vendas'?'vendas':'idas à porta'}. ` +
+      `Ela vai ser chamada seguidas vezes até emparelhar — é o revezamento se ajustando, não precisa corrigir na mão.`;
+    cxD.classList.add('on');
+  } else cxD.classList.remove('on');
+
+  /* 3. movimento: atendidos hoje + os que entraram e saíram sozinhos */
+  const hoje = diaDe(Date.now());
+  const atendidosHoje = historico.filter(h => h.desfecho!=='troca' && diaDe(h.quando)===hoje).length;
+  const soPassaram = (estado.passaram && estado.passaram[hoje]) || 0;
+  const totalHoje = atendidosHoje + soPassaram;
+  $('movN').textContent = totalHoje;
+  const plural = (n,um,muitos) => n===1 ? um : muitos;
+  $('movTxt').innerHTML = totalHoje
+    ? `${plural(totalHoje,'cliente entrou','clientes entraram')} hoje — <b>${atendidosHoje}</b> ${plural(atendidosHoje,'atendido','atendidos')}, ` +
+      `<b>${soPassaram}</b> ${plural(soPassaram,'saiu','saíram')} sem atendimento`
+    : 'nenhum cliente registrado hoje ainda';
+
+  desenharResumo();
 
   $('hist').innerHTML = historico.length ? historico.slice(0,12).map(h=>{
     const t = h.desfecho==='venda' ? '<span class="tag t-venda">vendeu</span>'
@@ -270,13 +377,14 @@ function salvar(novo, msg){
     .catch(e=>toast('Não salvou: '+(e.code||e.message)));
 }
 
-window.registrar = function(desfecho){
+window.registrar = function(desfecho, motivo){
   if(!estado || !estado.daVez) return;
   const k = estado.daVez, p = estado.pessoas[k], agora = Date.now();
   const novo = VezRegra.registrar(estado, k, desfecho, agora);
   if(db){
     db.collection('ls_vez_hist').add({
       email:p.email, nome:p.nome, desfecho, quando:agora,
+      motivo: motivo || null,
       registradoPor:meuEmail || null
     }).catch(()=>{});
   }
@@ -315,6 +423,102 @@ window.desfazer = function(){
   salvar(novo, 'Desfeito — a vez voltou para '+p.nome);
 };
 
+const diaDe = ts => { const d=new Date(ts);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+
+/* ---------- 1. motivo da não-venda ----------
+   O botão "Não vendeu" abre os motivos. Escolher um registra a vez E grava no painel
+   Vendas Perdidas, que já existe: sem isso a vendedora digitaria a mesma coisa duas
+   vezes, e na correria simplesmente não digita. Dá para pular, porque forçar motivo
+   faria ela deixar de marcar a vez — que é o dado mais importante desta tela.       */
+window.pedirMotivo = function(){
+  if(!estado || !estado.daVez) return;
+  $('listaMotivos').innerHTML = MOTIVOS.map(m =>
+    `<button class="mot" onclick="confirmarSemVenda('${m.replace(/'/g,"\\'")}')">${esc(m)}</button>`).join('');
+  $('folhaMotivo').classList.add('on');
+};
+window.fecharMotivo = function(){ $('folhaMotivo').classList.remove('on'); };
+
+window.confirmarSemVenda = function(motivo){
+  fecharMotivo();
+  const k = estado.daVez, p = estado.pessoas[k];
+  registrar('sem-venda', motivo);
+  if(motivo && db){
+    const agora = new Date(), dia = diaDe(agora.getTime());
+    /* Mesmo formato que o painel Vendas Perdidas grava (função salvar() lá), para o
+       registro aparecer nas listas dele sem tratamento especial. */
+    db.collection(COL_PERDIDAS).add({
+      mes: dia.slice(0,7), dataAtendimento: dia,
+      vendedora: p.nome, canal: 'Loja física',
+      clienteNome: '', clienteZap: '', avisar: false,
+      motivo: motivo, categoria: null, numeracao: null, cor: null, modelo: '', valor: null,
+      obs: 'Registrado na Vez na Porta',
+      status: 'pendente', atendimentoId: 'vez-'+Date.now(),
+      origem: 'vezporta',
+      criadoEm: agora.toISOString()
+    }).then(()=>toast('Motivo registrado em Vendas Perdidas'))
+      .catch(()=>toast('Vez registrada, mas o motivo não subiu'));
+  }
+};
+
+/* ---------- 3. movimento da loja ----------
+   Só conta o que alguém marca. Cliente que entra e sai sem ninguém tocar em nada não
+   aparece — está escrito na tela para o número não ser lido como verdade absoluta.  */
+window.entrouSemAtendimento = function(){
+  const novo = JSON.parse(JSON.stringify(estado));
+  const dia = diaDe(Date.now());
+  novo.passaram = novo.passaram || {};
+  novo.passaram[dia] = (novo.passaram[dia] || 0) + 1;
+  salvar(novo, 'Contabilizado — entrou e saiu');
+};
+
+/* ---------- 4. resumo por dia, 7 e 30 dias ---------- */
+let periodoResumo = 'dia';
+window.verResumo = function(p){
+  periodoResumo = p;
+  ['dia','semana','mes'].forEach(x => $('aba'+x[0].toUpperCase()+x.slice(1)).classList.toggle('on', x===p));
+  desenharResumo();
+};
+
+function desenharResumo(){
+  const dias = VezRegra.resumoPorDia(historico);
+  const quantos = periodoResumo==='dia' ? 1 : (periodoResumo==='semana' ? 7 : 30);
+  const recorte = dias.slice(0, quantos);
+  if(!recorte.length){ $('resumo').innerHTML = '<div class="dia"><div class="dia-p">Nada registrado no período.</div></div>'; return; }
+
+  if(periodoResumo === 'dia'){
+    $('resumo').innerHTML = recorte.map(d => cartaoDia(d, true)).join('');
+    return;
+  }
+  /* em 7 e 30 dias interessa o acumulado, não dia a dia: é o que responde
+     "a Michelly ficou pra trás?" sem ninguém somar na mão */
+  const soma = {idas:0, vendas:0, trocas:0, pessoas:{}};
+  recorte.forEach(d => {
+    soma.idas += d.idas; soma.vendas += d.vendas; soma.trocas += d.trocas;
+    Object.keys(d.pessoas).forEach(n => {
+      soma.pessoas[n] = soma.pessoas[n] || {idas:0, vendas:0};
+      soma.pessoas[n].idas += d.pessoas[n].idas;
+      soma.pessoas[n].vendas += d.pessoas[n].vendas;
+    });
+  });
+  soma.dia = recorte.length + (recorte.length===1?' dia':' dias')+' com movimento';
+  $('resumo').innerHTML = cartaoDia(soma, false);
+}
+
+function cartaoDia(d, comData){
+  const conv = d.idas ? Math.round(d.vendas/d.idas*100) : null;
+  const rot = comData
+    ? new Date(d.dia+'T12:00').toLocaleDateString('pt-BR',{weekday:'short', day:'2-digit', month:'short'})
+    : d.dia;
+  const pessoas = Object.keys(d.pessoas).sort().map(n=>{
+    const x = d.pessoas[n], c = x.idas ? Math.round(x.vendas/x.idas*100) : null;
+    return `<span><i>${esc(n)}</i> ${x.idas} idas · ${x.vendas} vendas${c===null?'':' · '+c+'%'}</span>`;
+  }).join('');
+  return `<div class="dia">
+    <div class="dia-h"><b>${esc(rot)}</b><small>${d.idas} idas · ${d.vendas} vendas${conv===null?'':' · '+conv+'% conversão'}${d.trocas?' · '+d.trocas+' troca'+(d.trocas>1?'s':''):''}</small></div>
+    <div class="dia-p">${pessoas || 'sem atendimento'}</div></div>`;
+}
+
 /* ---------- foto ----------
    Redimensiona no próprio celular antes de subir: a câmera manda 3 MB e o documento
    de estado tem 1 MB no total. 128px de lado dá avatar nítido com poucos KB.        */
@@ -352,7 +556,8 @@ function ligar(){
     estado = v; pintar();
   }, e=>toast('Sem conexão com o servidor'));
 
-  db.collection('ls_vez_hist').orderBy('quando','desc').limit(30).onSnapshot(s=>{
+  /* 400 registros cobrem com folga os 30 dias do resumo sem pesar o carregamento */
+  db.collection('ls_vez_hist').orderBy('quando','desc').limit(400).onSnapshot(s=>{
     historico = []; s.forEach(d=>historico.push(Object.assign({id:d.id}, d.data())));
     pintar();
   }, ()=>{});

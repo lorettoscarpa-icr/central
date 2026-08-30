@@ -37,6 +37,29 @@ dela. A imagem é cortada em quadrado pelo centro e reduzida a 128px no próprio
 celular antes de subir — a câmera manda 3 MB e o documento de estado tem 1 MB no total.
 Sem foto, aparece a inicial em dourado.
 
+## As cinco melhorias
+
+**1. Motivo da não-venda.** "Não vendeu" abre os seis motivos e grava o registro no
+painel **Vendas Perdidas**, no mesmo formato que ele já usa — ninguém digita duas
+vezes. Dá para pular: exigir motivo faria a vendedora deixar de marcar a vez, que é o
+dado mais importante desta tela. A lista de motivos é cópia da constante `MOTIVOS` do
+painel Vendas Perdidas; mudou lá, mude aqui.
+
+**2. Taxa de conversão** por pessoa, na terceira coluna. Sem ida nenhuma mostra `—`,
+não `0%`: quem ainda não atendeu não converteu mal, apenas não atendeu.
+
+**3. Movimento da loja.** Cada atendimento registrado já conta como cliente que
+entrou. O botão "+ entrou e saiu" cobre quem entrou e saiu sem atendimento. Está
+escrito na tela que o número só vale se alguém marcar — cliente que ninguém registra
+não aparece, e ler esse total como verdade absoluta seria erro.
+
+**4. Resumo por dia, 7 e 30 dias**, com quebra por pessoa e conversão. Em 7 e 30 dias
+mostra o acumulado, que é o que responde "a Michelly ficou pra trás?".
+
+**5. Aviso de desequilíbrio.** Passando de 3 de diferença, aparece uma faixa dizendo
+quem está atrás e quanto. Quem está ausente fica fora da conta — senão viraria alarme
+falso todo dia de folga.
+
 ## Onde mora
 
 Em `central/vezporta/`, dentro do repositório da Central, e não em repositório

@@ -169,5 +169,60 @@ console.log('\n== a ordem da fila que elas veem ==');
   R.ordemDaFila(e.pessoas, 'idas', 'ialey');
   eq('calcular a ordem não altera contador de ninguém', JSON.stringify(e.pessoas), antes);
 }
+console.log('\n== taxa de conversão ==');
+eq('4 vendas em 10 idas dá 40%', R.conversao({idas:10, vendas:4}), 40);
+eq('1 em 3 arredonda para 33%',  R.conversao({idas:3,  vendas:1}), 33);
+eq('sem ida nenhuma devolve null, não 0%', R.conversao({idas:0, vendas:0}), null);
+eq('vendeu em todas dá 100%', R.conversao({idas:5, vendas:5}), 100);
+
+console.log('\n== aviso de desequilíbrio ==');
+{
+  const e = base();
+  e.pessoas.ialey.idas = 9; e.pessoas.michelly.idas = 5; e.pessoas.natalia.idas = 4;
+  const d = R.desequilibrio(e.pessoas, 'idas');
+  eq('acha a diferença entre a primeira e a última', d.diferenca, 5);
+  eq('e quem está atrás', d.atras, 'natalia');
+}
+{
+  const e = base();
+  e.pessoas.ialey.idas = 9; e.pessoas.michelly.idas = 8; e.pessoas.natalia.idas = 20;
+  e.pessoas.natalia.presente = false;      // de folga: não pode virar alarme falso
+  const d = R.desequilibrio(e.pessoas, 'idas');
+  eq('quem está ausente fica fora da conta', d.diferenca, 1);
+}
+{
+  const e = base();
+  Object.keys(e.pessoas).forEach(k => { if(k!=='ialey') e.pessoas[k].presente = false; });
+  eq('com uma pessoa só não existe desequilíbrio', R.desequilibrio(e.pessoas,'idas').diferenca, 0);
+}
+{
+  const e = base('vendas');
+  e.pessoas.ialey.idas = 2; e.pessoas.ialey.vendas = 6;
+  e.pessoas.michelly.idas = 9; e.pessoas.michelly.vendas = 1;
+  e.pessoas.natalia.idas = 5; e.pessoas.natalia.vendas = 3;
+  eq('respeita o critério escolhido (por vendas)', R.desequilibrio(e.pessoas,'vendas').atras, 'michelly');
+  eq('e por idas daria outra pessoa',              R.desequilibrio(e.pessoas,'idas').atras, 'ialey');
+}
+
+console.log('\n== resumo por dia ==');
+{
+  const d1 = new Date(2026,7,30,10,0).getTime(), d2 = new Date(2026,7,29,10,0).getTime();
+  const h = [
+    {nome:'Ialey',   desfecho:'venda',     quando:d1},
+    {nome:'Ialey',   desfecho:'sem-venda', quando:d1+1000},
+    {nome:'Natália', desfecho:'venda',     quando:d1+2000},
+    {nome:'Natália', desfecho:'troca',     quando:d1+3000},
+    {nome:'Michelly',desfecho:'venda',     quando:d2},
+  ];
+  const r = R.resumoPorDia(h);
+  eq('agrupa em dois dias', r.length, 2);
+  eq('o mais recente vem primeiro', r[0].dia, '2026-08-30');
+  eq('conta 3 idas no dia (a troca não conta)', r[0].idas, 3);
+  eq('conta a troca à parte', r[0].trocas, 1);
+  eq('conta 2 vendas no dia', r[0].vendas, 2);
+  eq('e quebra por pessoa', [r[0].pessoas['Ialey'].idas, r[0].pessoas['Ialey'].vendas], [2,1]);
+}
+eq('histórico vazio devolve lista vazia', R.resumoPorDia([]), []);
+
 console.log(`\nresultado final: ${ok} ok, ${falhou} falha(s)`);
 process.exit(falhou ? 1 : 0);

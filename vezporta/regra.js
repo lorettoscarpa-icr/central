@@ -96,8 +96,45 @@
     return ordem;
   }
 
+  /* Taxa de conversão de uma pessoa: de cada 10 idas à porta, quantas viraram venda.
+     Sem ida nenhuma devolve null — 0% seria mentira sobre quem ainda não atendeu.   */
+  function conversao(p) {
+    var idas = p.idas || 0;
+    return idas ? Math.round(((p.vendas || 0) / idas) * 100) : null;
+  }
+
+  /* Quem está para trás e por quanto. Só olha quem participa e está presente: uma
+     pessoa de folga aparecendo como "12 atrás" seria alarme falso todo dia.         */
+  function desequilibrio(pessoas, criterio) {
+    var aptas = elegiveis(pessoas);
+    if (aptas.length < 2) return { diferenca: 0, atras: null, naFrente: null };
+    var chave = (criterio === 'vendas') ? 'vendas' : 'idas';
+    var conta = function (e) { return pessoas[e][chave] || 0; };
+    var ordenadas = aptas.slice().sort(function (a, b) { return conta(a) - conta(b); });
+    var atras = ordenadas[0], naFrente = ordenadas[ordenadas.length - 1];
+    return { diferenca: conta(naFrente) - conta(atras), atras: atras, naFrente: naFrente };
+  }
+
+  /* Agrupa o histórico por dia, do mais recente para o mais antigo. Cada dia traz o
+     total e a quebra por pessoa, que é o que responde "a Michelly ficou pra trás?"  */
+  function resumoPorDia(historico) {
+    var dias = {};
+    (historico || []).forEach(function (h) {
+      var d = new Date(h.quando);
+      var dia = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      if (!dias[dia]) dias[dia] = { dia: dia, idas: 0, vendas: 0, trocas: 0, pessoas: {} };
+      var reg = dias[dia];
+      if (!reg.pessoas[h.nome]) reg.pessoas[h.nome] = { idas: 0, vendas: 0 };
+      if (h.desfecho === 'troca') { reg.trocas++; return; }      /* troca não é ida à porta */
+      reg.idas++; reg.pessoas[h.nome].idas++;
+      if (h.desfecho === 'venda') { reg.vendas++; reg.pessoas[h.nome].vendas++; }
+    });
+    return Object.keys(dias).sort().reverse().map(function (d) { return dias[d]; });
+  }
+
   var api = { proximaDaVez: proximaDaVez, registrar: registrar, revalidar: revalidar,
-              elegiveis: elegiveis, ordemDaFila: ordemDaFila };
+              elegiveis: elegiveis, ordemDaFila: ordemDaFila,
+              conversao: conversao, desequilibrio: desequilibrio, resumoPorDia: resumoPorDia };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.VezRegra = api;
 })(typeof window !== 'undefined' ? window : this);
