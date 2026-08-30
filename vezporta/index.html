@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="app-ver" content="v1">
+<title>Vez na Porta · Loretto Scarpa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --verde-noite:#1f2711;--verde-escuro:#2c3719;--verde-fundo:#3b4a22;--verde:#4a5c2a;--verde-claro:#5c7035;
+    --gold:#c9a950;--gold-claro:#e6d18a;--creme:#f1ede1;--creme-suave:#bdb9a6;
+    --linha:rgba(201,169,80,.22);--ok:#7fae6b;--alerta:#d08a45;
+    --r:14px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Barlow',sans-serif;color:var(--creme);min-height:100vh;
+    background:radial-gradient(120% 80% at 50% 0%,var(--verde) 0%,var(--verde-fundo) 45%,var(--verde-escuro) 100%);
+    padding:18px 16px calc(28px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased}
+  .wrap{max-width:640px;margin:0 auto}
+  h1{font-family:'Playfair Display',serif;font-size:23px;font-weight:700;color:var(--gold-claro)}
+  .sub{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-top:2px;font-weight:600}
+  .topo{margin-bottom:18px}
+
+  /* ===== de quem é a vez: é a única coisa que importa à distância, então domina a tela ===== */
+  .vez{background:linear-gradient(160deg,rgba(201,169,80,.16),rgba(0,0,0,.22));
+    border:1.5px solid var(--gold);border-radius:var(--r);padding:22px 18px;text-align:center;margin-bottom:14px}
+  .vez .rot{font-size:11.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);font-weight:600}
+  .vez .nome{font-family:'Playfair Display',serif;font-size:38px;line-height:1.1;margin:6px 0 2px;color:var(--creme)}
+  .vez .eu{display:inline-block;margin-top:7px;font-size:12px;font-weight:600;color:var(--verde-noite);
+    background:var(--gold-claro);border-radius:99px;padding:3px 12px}
+  .vez.ninguem .nome{font-size:24px;color:var(--creme-suave)}
+
+  .acoes{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:8px}
+  .btn{border:1px solid var(--linha);background:rgba(0,0,0,.18);color:var(--creme);
+    border-radius:11px;padding:15px 10px;font-family:'Barlow',sans-serif;font-size:15px;font-weight:600;
+    cursor:pointer;transition:.15s;min-height:52px}
+  .btn:active{transform:scale(.98)}
+  .btn:disabled{opacity:.35;cursor:default}
+  .btn-venda{grid-column:1/-1;background:var(--gold);color:var(--verde-noite);border-color:var(--gold);font-size:17px}
+  .btn-venda:hover:not(:disabled){background:var(--gold-claro)}
+  .btn:hover:not(:disabled){border-color:var(--gold)}
+  .dica{font-size:12px;color:var(--creme-suave);text-align:center;margin:4px 0 20px;line-height:1.5}
+
+  /* ===== contagem ===== */
+  .sec{font-size:11.5px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:600;margin:22px 0 9px}
+  .pessoa{display:flex;align-items:center;gap:12px;background:rgba(0,0,0,.16);border:1px solid var(--linha);
+    border-radius:11px;padding:11px 13px;margin-bottom:7px}
+  .pessoa.fora{opacity:.45}
+  .pessoa.davez{border-color:var(--gold);background:rgba(201,169,80,.1)}
+  .av{width:38px;height:38px;border-radius:50%;flex:none;border:1.5px solid var(--gold);
+    display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;
+    font-size:16px;color:var(--gold);background:rgba(0,0,0,.25)}
+  .pn{flex:1;min-width:0}
+  .pn b{font-size:15px;font-weight:600;display:block}
+  .pn small{font-size:11.5px;color:var(--creme-suave)}
+  .nums{display:flex;gap:14px;text-align:center;flex:none}
+  .num b{display:block;font-family:'Playfair Display',serif;font-size:20px;line-height:1}
+  .num small{font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--creme-suave)}
+  .num.governa b{color:var(--gold-claro)}
+  .tog{border:1px solid var(--linha);background:transparent;color:var(--creme-suave);border-radius:9px;
+    padding:7px 9px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;flex:none}
+  .tog.on{border-color:var(--ok);color:var(--ok)}
+
+  .aviso{border:1px dashed var(--linha);border-radius:11px;padding:11px 13px;font-size:12.5px;
+    color:var(--creme-suave);line-height:1.55;margin-top:8px}
+  .hist{font-size:12.5px;color:var(--creme-suave);line-height:1.7}
+  .hist div{padding:5px 0;border-bottom:1px solid rgba(241,237,225,.07)}
+  .hist b{color:var(--creme);font-weight:600}
+  .tag{font-size:10px;letter-spacing:.5px;text-transform:uppercase;border-radius:99px;padding:1px 7px;margin-left:5px}
+  .t-venda{background:rgba(127,174,107,.22);color:var(--ok)}
+  .t-sem{background:rgba(208,138,69,.2);color:var(--alerta)}
+  .t-troca{background:rgba(241,237,225,.12);color:var(--creme-suave)}
+  .rodape{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .rodape .tog{flex:1;min-width:140px;text-align:center}
+  .msg{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:var(--verde-noite);
+    border:1px solid var(--gold);color:var(--creme);padding:11px 18px;border-radius:99px;font-size:13.5px;
+    opacity:0;pointer-events:none;transition:.2s;z-index:9}
+  .msg.on{opacity:1}
+  @media(max-width:420px){ .vez .nome{font-size:31px} .nums{gap:10px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topo"><h1>Vez na Porta</h1><div class="sub">Loretto Scarpa</div></div>
+
+  <div class="vez ninguem" id="cartaoVez">
+    <div class="rot">é a vez de</div>
+    <div class="nome" id="nomeVez">carregando…</div>
+    <div id="euBadge"></div>
+  </div>
+
+  <div class="acoes">
+    <!-- nascem desabilitados: sem conexão o pintar() não roda, e botão que aceita
+         toque sem registrar nada é pior do que botão apagado -->
+    <button class="btn btn-venda" id="bVenda" disabled onclick="registrar('venda')">Vendeu — passa a vez</button>
+    <button class="btn" id="bSem" disabled onclick="registrar('sem-venda')">Não vendeu</button>
+    <button class="btn" id="bTroca" disabled onclick="registrar('troca')">Era troca</button>
+  </div>
+  <div class="dica">A vez só passa quando vende. Sem venda, ela continua com quem está.<br>Troca não conta como ida à porta.</div>
+
+  <div class="sec">Contagem</div>
+  <div id="lista"></div>
+  <div class="aviso" id="explica"></div>
+
+  <div class="rodape">
+    <button class="tog" id="bCriterio" onclick="trocarCriterio()">—</button>
+    <button class="tog" onclick="desfazer()">↩ Desfazer último</button>
+  </div>
+
+  <div class="sec">Últimos registros</div>
+  <div class="hist" id="hist">—</div>
+</div>
+<div class="msg" id="msg"></div>
+
+<script src="./regra.js"></script>
+<script>
+/* ===== Vez na Porta =====
+   Revezamento do atendimento na porta. A regra de quem é a próxima mora em regra.js,
+   isolada e testada (teste/regra.teste.js) — aqui só tem tela e sincronia.
+
+   Todas veem a mesma tela ao vivo: o estado é um documento só no Firestore, e cada
+   celular escuta as mudanças. Quem registra fica gravado no histórico, porque na
+   correria uma marca pela outra e depois ninguém lembra quem foi.                    */
+
+const firebaseConfig={apiKey:"AIzaSyCogQoTSULCdC1JhTb0IUilWAIA1itBJ8U",authDomain:"loretto-scarpa-l-icr.firebaseapp.com",projectId:"loretto-scarpa-l-icr",storageBucket:"loretto-scarpa-l-icr.firebasestorage.app",messagingSenderId:"428188657366",appId:"1:428188657366:web:258f42f2c0a3813d83cb77"};
+
+/* Quem entra no revezamento. Jhennifer fica na lista mas com participa:false — ela
+   supervisiona e só entra na vez em ocasião pontual, ligando o botão dela. */
+const EQUIPE = [
+  {email:'ialeylorettoscarpa@gmail.com',    nome:'Ialey',     participa:true },
+  {email:'michellylorettoscarpa@gmail.com', nome:'Michelly',  participa:true },
+  {email:'natalialorettoscarpa@gmail.com',  nome:'Natália',   participa:true },
+  {email:'jhenniferlorettoscarpa@gmail.com',nome:'Jhennifer', participa:false},
+];
+
+const $ = id => document.getElementById(id);
+let db=null, auth=null, meuEmail='', estado=null, historico=[];
+
+function toast(t){ const m=$('msg'); m.textContent=t; m.classList.add('on'); clearTimeout(m._t); m._t=setTimeout(()=>m.classList.remove('on'),2200); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+const chave = e => e.replace(/[^a-z]/g,'');            /* e-mail vira chave curta e estável */
+
+function estadoInicial(){
+  const pessoas = {};
+  EQUIPE.forEach(p => pessoas[chave(p.email)] = {
+    nome:p.nome, email:p.email, idas:0, vendas:0, participa:p.participa, presente:true, ultimaEm:0 });
+  return { pessoas, daVez:null, criterio:'idas', atualizadoEm:Date.now() };
+}
+
+/* ---------- desenho ---------- */
+function pintar(){
+  if(!estado) return;
+  const dv = estado.daVez ? estado.pessoas[estado.daVez] : null;
+  const cartao = $('cartaoVez');
+  $('nomeVez').textContent = dv ? dv.nome : 'ninguém disponível';
+  cartao.classList.toggle('ninguem', !dv);
+  const souEu = dv && dv.email === meuEmail;
+  $('euBadge').innerHTML = souEu ? '<span class="eu">é a sua vez</span>' : '';
+  ['bVenda','bSem','bTroca'].forEach(b => $(b).disabled = !dv);
+
+  const crit = estado.criterio;
+  $('bCriterio').textContent = 'Fila por: ' + (crit==='vendas' ? 'vendas' : 'idas à porta');
+  $('explica').innerHTML = crit==='vendas'
+    ? 'A fila está governada pelas <b>vendas</b>: a próxima é quem <b>vendeu</b> menos vezes. Uma sequência de clientes que não compraram não empurra ninguém para o fim da fila.'
+    : 'A fila está governada pelas <b>idas à porta</b>: a próxima é quem <b>foi</b> menos vezes, tenha vendido ou não. Quem volta do almoço atrás na contagem pega várias seguidas até emparelhar.';
+
+  const chaves = Object.keys(estado.pessoas).sort((a,b)=>
+    estado.pessoas[a].nome.localeCompare(estado.pessoas[b].nome));
+  $('lista').innerHTML = chaves.map(k=>{
+    const p = estado.pessoas[k];
+    const fora = !p.participa || !p.presente;
+    const motivo = !p.participa ? 'fora do revezamento' : (!p.presente ? 'ausente agora' : '&nbsp;');
+    return `<div class="pessoa ${fora?'fora':''} ${estado.daVez===k?'davez':''}">
+      <span class="av">${esc(p.nome[0])}</span>
+      <span class="pn"><b>${esc(p.nome)}</b><small>${motivo}</small></span>
+      <span class="nums">
+        <span class="num ${crit==='idas'?'governa':''}"><b>${p.idas||0}</b><small>idas</small></span>
+        <span class="num ${crit==='vendas'?'governa':''}"><b>${p.vendas||0}</b><small>vendas</small></span>
+      </span>
+      <button class="tog ${p.presente?'on':''}" onclick="alternar('${k}','presente')">${p.presente?'na loja':'ausente'}</button>
+      <button class="tog ${p.participa?'on':''}" onclick="alternar('${k}','participa')">${p.participa?'na vez':'fora'}</button>
+    </div>`;
+  }).join('');
+
+  $('hist').innerHTML = historico.length ? historico.slice(0,12).map(h=>{
+    const t = h.desfecho==='venda' ? '<span class="tag t-venda">vendeu</span>'
+            : h.desfecho==='troca' ? '<span class="tag t-troca">troca</span>'
+            : '<span class="tag t-sem">não vendeu</span>';
+    const hora = new Date(h.quando).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const porOutra = h.registradoPor && h.registradoPor !== h.email
+      ? ` <small>· marcado por ${esc(nomeDe(h.registradoPor))}</small>` : '';
+    return `<div><b>${esc(h.nome)}</b>${t} <small>${hora}</small>${porOutra}</div>`;
+  }).join('') : '<div>Nada registrado ainda.</div>';
+}
+function nomeDe(email){
+  const p = EQUIPE.find(x=>x.email===email); if(p) return p.nome;
+  return (email||'').split('@')[0];
+}
+
+/* ---------- gravação ---------- */
+function salvar(novo, msg){
+  estado = novo;
+  pintar();                                   /* pinta antes de confirmar: o toque responde na hora */
+  if(!db) return;
+  db.collection('ls_vez').doc('estado').set(novo)
+    .then(()=>{ if(msg) toast(msg); })
+    .catch(e=>toast('Não salvou: '+(e.code||e.message)));
+}
+
+window.registrar = function(desfecho){
+  if(!estado || !estado.daVez) return;
+  const k = estado.daVez, p = estado.pessoas[k], agora = Date.now();
+  const novo = VezRegra.registrar(estado, k, desfecho, agora);
+  if(db){
+    db.collection('ls_vez_hist').add({
+      email:p.email, nome:p.nome, desfecho, quando:agora,
+      registradoPor:meuEmail || null
+    }).catch(()=>{});
+  }
+  const prox = novo.daVez ? novo.pessoas[novo.daVez].nome : 'ninguém';
+  salvar(novo, desfecho==='venda' ? ('Venda registrada — agora é a vez de '+prox)
+            : desfecho==='troca' ? 'Troca registrada — a vez continua'
+            : 'Registrado — a vez continua com '+p.nome);
+};
+
+window.alternar = function(k, campo){
+  const novo = JSON.parse(JSON.stringify(estado));
+  novo.pessoas[k][campo] = !novo.pessoas[k][campo];
+  salvar(VezRegra.revalidar(novo));
+};
+
+window.trocarCriterio = function(){
+  const novo = JSON.parse(JSON.stringify(estado));
+  novo.criterio = novo.criterio==='vendas' ? 'idas' : 'vendas';
+  salvar(VezRegra.revalidar(novo), 'Fila agora por '+(novo.criterio==='vendas'?'vendas':'idas à porta'));
+};
+
+/* Desfazer devolve o contador e a vez ao que eram. Marcar errado na correria é o
+   erro mais provável desta tela, então tem que ser um toque para consertar. */
+window.desfazer = function(){
+  const ult = historico[0];
+  if(!ult){ toast('Não há nada para desfazer'); return; }
+  const k = chave(ult.email), novo = JSON.parse(JSON.stringify(estado)), p = novo.pessoas[k];
+  if(!p){ toast('Pessoa não está mais na lista'); return; }
+  if(ult.desfecho !== 'troca'){
+    p.idas = Math.max(0,(p.idas||0)-1);
+    if(ult.desfecho==='venda') p.vendas = Math.max(0,(p.vendas||0)-1);
+  }
+  novo.daVez = k;                            /* a vez volta para quem estava com ela */
+  if(db && ult.id) db.collection('ls_vez_hist').doc(ult.id).delete().catch(()=>{});
+  historico = historico.slice(1);
+  salvar(novo, 'Desfeito — a vez voltou para '+p.nome);
+};
+
+/* ---------- sincronia ---------- */
+function ligar(){
+  db.collection('ls_vez').doc('estado').onSnapshot(d=>{
+    if(!d.exists){ salvar(VezRegra.revalidar(estadoInicial())); return; }
+    const v = d.data();
+    /* quem entrou na equipe depois entra sem apagar contagem de ninguém */
+    EQUIPE.forEach(pp=>{ const k=chave(pp.email);
+      if(!v.pessoas[k]) v.pessoas[k]={nome:pp.nome,email:pp.email,idas:0,vendas:0,participa:pp.participa,presente:true,ultimaEm:0}; });
+    estado = v; pintar();
+  }, e=>toast('Sem conexão com o servidor'));
+
+  db.collection('ls_vez_hist').orderBy('quando','desc').limit(30).onSnapshot(s=>{
+    historico = []; s.forEach(d=>historico.push(Object.assign({id:d.id}, d.data())));
+    pintar();
+  }, ()=>{});
+}
+
+try{
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore(); auth = firebase.auth();
+  auth.onAuthStateChanged(u=>{
+    meuEmail = (u && u.email) || '';
+    if(!u){ $('nomeVez').textContent='entre pela Central'; return; }
+    ligar();
+  });
+}catch(e){
+  $('nomeVez').textContent = 'sem conexão';
+  console.warn('Firebase falhou', e);
+}
+</script>
+</body>
+</html>

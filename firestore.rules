@@ -141,6 +141,12 @@ service cloud.firestore {
     }
     // ▲▲ fim da alteração 2 ▲▲
 
+    /* Vez na Porta — de quem é a vez e quantas vezes cada uma foi. Não guarda dado de
+       cliente: é registro de trabalho da equipe. Escrita para conta de e-mail, porque
+       qualquer uma pode marcar pela outra na correria — o histórico grava quem marcou. */
+    match /ls_vez/{document=**}      { allow read, write: if logado(); }
+    match /ls_vez_hist/{document=**} { allow read, write: if logado(); }
+
     // ===== Comunicados e Tarefas (Central) — regra específica no servidor =====
     // Ler: qualquer logado. Criar/editar/apagar: só diretoria + Jhennifer.
     // Marcar "visto" (vistos) segue liberado pra todos, senão a confirmação de leitura quebra.
