@@ -1,0 +1,5 @@
+# Auditoria de segurança: descreve falhas exploráveis deste sistema, com arquivo
+# e linha. Este repositório é PÚBLICO — versionar isso publica um roteiro de
+# invasão, e fork/cache sobrevivem a qualquer remoção posterior.
+# Ver docs/security-audit/LEIA-ME.md para as condições de liberar.
+docs/security-audit/
