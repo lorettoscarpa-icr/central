@@ -1,19 +1,30 @@
 // Loretto Scarpa · Service Worker
 // Estratégia: cache-first para o shell do hub, network-first para tudo o resto.
 
-const CACHE = 'loretto-central-v11';
+const CACHE = 'loretto-central-v12';
 const SHELL = [
   './',
   './index.html',
-  './ASSINATURA_HORIZONTAL_10.png',
-  './SI_MBOLO_10.png'
+  './manifest.webmanifest',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 // Install: pré-cacheia o shell
+//
+// Duas coisas estavam erradas aqui. A lista pedia ASSINATURA_HORIZONTAL_10.png e
+// SI_MBOLO_10.png, que não existem no repositório — e addAll é tudo-ou-nada: um 404
+// derruba a gravação inteira. Com o .catch(() => {}) em volta, isso falhava calado, e
+// o shell offline nunca chegou a ser cacheado uma vez sequer.
+//
+// Agora cada arquivo é gravado por conta própria: o que faltar não leva os outros
+// junto, e o que faltou aparece no console em vez de sumir.
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE)
-      .then(cache => cache.addAll(SHELL).catch(() => {}))
+      .then(cache => Promise.all(SHELL.map(url =>
+        cache.add(url).catch(err => console.warn('[sw] não cacheou', url, err))
+      )))
       .then(() => self.skipWaiting())
   );
 });
