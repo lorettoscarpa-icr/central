@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v16">
+<meta name="app-ver" content="v17">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -29,8 +29,9 @@
   /* ===== de quem é a vez: é a única coisa que importa à distância, então domina a tela ===== */
   .vez{background:linear-gradient(160deg,rgba(201,169,80,.16),rgba(0,0,0,.22));
     border:1.5px solid var(--gold);border-radius:var(--r);padding:22px 18px;text-align:center;margin-bottom:14px}
-  .vez .rot{font-size:11.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);font-weight:600}
-  .vez .nome{font-family:'Playfair Display',serif;font-size:38px;line-height:1.1;margin:6px 0 2px;color:var(--creme)}
+  .vez .rot{font-size:11.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);font-weight:600;
+    display:block;margin-bottom:14px}
+  .vez .nome{font-family:'Playfair Display',serif;font-size:38px;line-height:1.1;margin:2px 0 2px;color:var(--creme)}
   .vez .eu{display:inline-block;margin-top:7px;font-size:12px;font-weight:600;color:var(--verde-noite);
     background:var(--gold-claro);border-radius:99px;padding:3px 12px}
   .vez.ninguem .nome{font-size:24px;color:var(--creme-suave)}
@@ -54,9 +55,12 @@
     display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;
     font-size:15px;color:var(--gold);background:rgba(0,0,0,.3)}
   .avf img,.av img{width:100%;height:100%;object-fit:cover;display:block}
-  .vez .foto{width:84px;height:84px;border-radius:50%;margin:0 auto 8px;border:2px solid var(--gold);
+  /* Quadrado com canto arredondado, e não círculo: a foto da equipe é de corpo, e o
+     círculo comia os ombros e as pontas. Assim ela aparece inteira, do jeito que foi
+     tirada. Os avatares pequenos seguem redondos — ali o corte não tira nada. */
+  .vez .foto{width:118px;height:118px;border-radius:18px;margin:0 auto 12px;border:1.5px solid var(--gold);
     overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);
-    font-family:'Playfair Display',serif;font-size:34px;color:var(--gold)}
+    font-family:'Playfair Display',serif;font-size:44px;color:var(--gold)}
   /* a img aqui não tinha regra de tamanho: com foto de 128px ninguém percebia, mas a
      foto da Central tem 640px e entrava inteira, deixando o pescoço no lugar do rosto */
   .vez .foto img{width:100%;height:100%;object-fit:cover;display:block}
