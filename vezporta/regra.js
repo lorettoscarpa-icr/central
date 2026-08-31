@@ -20,6 +20,8 @@
      Os três se comportam igual na fila; o tipo existe para a tela dizer o motivo e
      para o histórico registrar por que a pessoa saiu.                              */
   var AFASTAMENTOS = { ferias: 'férias', folga: 'folga', atestado: 'atestado' };
+  /* o que é atendimento de verdade no histórico; o resto é anotação */
+  var ATENDIMENTOS = ['venda', 'sem-venda', 'troca'];
   /* A escala da equipe também manda 'ausente' (falta sem motivo declarado). Ele não
      entra em AFASTAMENTOS porque aquele mapa é a lista de botões da folha — o que a
      gestão marca na mão continua sendo férias, folga ou atestado. */
@@ -375,9 +377,13 @@
      total e a quebra por pessoa, que é o que responde "a Michelly ficou pra trás?"  */
   function resumoPorDia(historico) {
     var dias = {};
-    /* registro desfeito continua no banco, para ninguém apagar prova de nada — mas sai
-       da conta, senão a ida que não aconteceu contaria duas vezes contra a pessoa. */
-    (historico || []).filter(function (h) { return !h.desfeito; }).forEach(function (h) {
+    /* Duas coisas ficam de fora da conta:
+       - registro desfeito, que continua no banco para ninguém apagar prova de nada;
+       - evento (entrou de férias, saiu da loja), que é anotação de quem mexeu no quê e
+         não é atendimento — sem este filtro cada anotação viraria uma ida à porta. */
+    (historico || []).filter(function (h) {
+      return !h.desfeito && ATENDIMENTOS.indexOf(h.desfecho) >= 0;
+    }).forEach(function (h) {
       var d = new Date(h.quando);
       var dia = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
       if (!dias[dia]) dias[dia] = { dia: dia, idas: 0, vendas: 0, trocas: 0, pessoas: {} };
@@ -396,6 +402,7 @@
               conta: conta, voltou: voltou, liberar: liberar,
               filaZerada: filaZerada, faltaParaZerar: faltaParaZerar, nivelDaFila: nivelDaFila,
               afastada: afastada, AFASTAMENTOS: AFASTAMENTOS, ROTULOS: ROTULOS,
+              ATENDIMENTOS: ATENDIMENTOS,
               sincronizarAusencias: sincronizarAusencias, avisoAtivo: avisoAtivo,
               avisoValendo: avisoValendo, ausenciaLonga: ausenciaLonga };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

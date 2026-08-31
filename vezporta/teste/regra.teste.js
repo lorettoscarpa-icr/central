@@ -530,8 +530,10 @@ console.log('\n== registro desfeito sai da conta, mas não do banco ==');
     {nome:'Ialey',   desfecho:'sem-venda', quando: Date.now(), desfeito:true, desfeitoPor:'ialeylorettoscarpa@gmail.com'},
     {nome:'Natália', desfecho:'venda',     quando: Date.now()},
   ];
+  h.push({nome:'Natália', desfecho:undefined, tipo:'evento', evento:'saiu da loja', quando: Date.now()});
   const r = R.resumoPorDia(h)[0];
   eq('a ida desfeita não conta', r.idas, 2);
+  eq('e anotação de quem mexeu no quê não vira atendimento', r.pessoas['Natália'].idas, 1);
   eq('nem para a pessoa', r.pessoas['Ialey'].idas, 1);
   eq('e as vendas seguem certas', r.vendas, 2);
 }
