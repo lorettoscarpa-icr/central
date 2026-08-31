@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v22">
+<meta name="app-ver" content="v23">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -248,9 +248,11 @@
     <button class="btn" id="bSem" disabled onclick="pedirMotivo()">Não vendeu</button>
     <button class="btn" id="bTroca" disabled onclick="registrar('troca')">Era troca</button>
   </div>
-  <!-- Saiu para o almoço e não marcou nada: quem atendeu no lugar dela assume aqui, em
-       vez de ficar sem poder registrar o próprio atendimento. -->
+  <!-- Saiu um minuto e não marcou nada: quem atendeu no lugar dela registra aqui, em vez
+       de ficar sem poder registrar o próprio atendimento. -->
   <button class="btn assumir" id="bAssumir" hidden onclick="pedirAssumir()"></button>
+  <!-- Passar a vez: quem está com ela pode entregar o cliente a outra, e fica escrito -->
+  <button class="btn assumir" id="bPassar" hidden onclick="pedirPassar()">Passar a vez para outra</button>
   <div class="dica" id="dicaVez">A vez só passa quando vende. Sem venda, ela continua com quem está.<br>Troca não conta como ida à porta.</div>
 
   <div class="desnivel" id="desnivel"></div>
@@ -285,6 +287,15 @@
     <h3 id="assumirTitulo">Ela não está na loja?</h3>
     <p id="assumirTexto"></p>
     <div id="listaAssumir"></div>
+  </div>
+</div>
+
+<!-- passar a vez para outra vendedora -->
+<div class="folha" id="folhaPassar" onclick="if(event.target===this)fecharPassar()">
+  <div class="folha-cx">
+    <h3 id="passarTitulo">Passar a vez</h3>
+    <p id="passarTexto"></p>
+    <div id="listaPassar"></div>
   </div>
 </div>
 
@@ -420,7 +431,11 @@ function pintar(){
   const podeAssumir = !!dv && !ehMinha(estado.daVez)
     && VezRegra.elegiveis(estado.pessoas).indexOf(minhaChave()) >= 0;
   $('bAssumir').hidden = !podeAssumir;
-  if(podeAssumir) $('bAssumir').textContent = dv.nome + ' não está na loja — quem atendeu fui eu';
+  /* passar a vez é de quem está com ela — e da gestão, que resolve o que a tela não
+     previu. Sem ninguém para receber, o botão não aparece. */
+  const outras = dv ? VezRegra.elegiveis(estado.pessoas).filter(k => k !== estado.daVez) : [];
+  $('bPassar').hidden = !dv || !outras.length || !(ehMinha(estado.daVez) || souGestor);
+  if(podeAssumir) $('bAssumir').textContent = 'Atendi no lugar da ' + dv.nome;
 
   $('dicaVez').innerHTML = !dv ? 'A vez só passa quando vende. Sem venda, ela continua com quem está.<br>Troca não conta como ida à porta.'
     : posso ? (souGestor && !souEu
@@ -678,12 +693,12 @@ window.pedirAssumir = function(){
   if(!estado || !estado.daVez) return;
   const dv = estado.pessoas[estado.daVez];
   if(!dv || ehMinha(estado.daVez)) return;
-  $('assumirTitulo').textContent = 'A ' + dv.nome + ' não está na loja?';
+  $('assumirTitulo').textContent = 'Atender no lugar da ' + dv.nome + '?';
   $('assumirTexto').textContent =
-    dv.nome + ' sai da vez por enquanto, e o atendimento passa a ser seu. A contagem dela não anda: '
-    + 'quando ela voltar e marcar "na loja", a vez em aberto continua sendo dela.';
+    'Só este cliente passa a ser seu. A ' + dv.nome + ' continua na fila e não perde nada: '
+    + 'a contagem dela não anda, e a vez volta para ela na sequência.';
   $('listaAssumir').innerHTML =
-    `<button class="mot" onclick="assumirVez()"><b>Sim, ${esc(dv.nome)} não está e eu atendi</b></button>`
+    `<button class="mot" onclick="assumirVez()"><b>Sim, eu atendi no lugar da ${esc(dv.nome)}</b></button>`
     + `<button class="mot pular" onclick="fecharAssumir()">Cancelar</button>`;
   $('folhaAssumir').classList.add('on');
 };
@@ -694,12 +709,49 @@ window.assumirVez = function(){
   const eu = minhaChave(), k = estado && estado.daVez;
   if(!k || !estado.pessoas[eu] || k === eu) return;
   const novo = JSON.parse(JSON.stringify(estado));
-  const dela = novo.pessoas[k];
-  dela.presente = false;                 /* sai da fila como se tivesse marcado o almoço */
-  marcaDaMao(dela, k);                   /* a escala não desfaz isso no minuto seguinte */
-  novo.daVez = eu;                       /* quem atendeu de verdade assume */
-  anotar(k, 'não estava na loja — ' + nomeDe(meuEmail) + ' assumiu o atendimento');
-  salvar(VezRegra.revalidar(novo), 'Agora é a sua vez — registre o atendimento');
+  /* Só o cliente muda de mão. A colega NÃO sai da fila: ela pode estar voltando do
+     almoço agora e só não apertou nada, e tirar da vez quem está a caminho é justamente
+     o que a loja não quer. Como a contagem dela não anda, a vez volta para ela logo em
+     seguida — e vai acumulando enquanto ela não atender. */
+  novo.daVez = eu;
+  anotar(k, 'não pôde atender — ' + nomeDe(meuEmail) + ' pegou o cliente');
+  salvar(VezRegra.revalidar(novo), 'Este cliente é seu — a vez continua sendo da ' + estado.pessoas[k].nome);
+};
+
+/* Passar a vez para outra.
+
+   Acontece o tempo todo na loja: a cliente é conhecida de alguém, a pessoa está no meio
+   de uma troca, ou simplesmente prefere ceder. Antes isso era resolvido no grito e a
+   tela ficava mentindo sobre quem estava atendendo.
+
+   Contagem nenhuma se mexe: quem passou não foi à porta, então continua devendo a vez a
+   si mesma e é chamada de novo logo adiante. Fica escrito quem passou, para quem, e
+   quem apertou o botão.                                                                */
+window.pedirPassar = function(){
+  if(!estado || !estado.daVez) return;
+  const dv = estado.pessoas[estado.daVez];
+  const outras = VezRegra.elegiveis(estado.pessoas).filter(k => k !== estado.daVez);
+  if(!dv || !outras.length) return;
+  $('passarTitulo').textContent = 'Passar a vez da ' + dv.nome;
+  $('passarTexto').textContent =
+    'A contagem não muda: quem passa a vez continua devendo o atendimento a si mesma e é '
+    + 'chamada de novo logo em seguida. Fica registrado quem passou e para quem.';
+  $('listaPassar').innerHTML =
+    outras.map(k => `<button class="mot" onclick="passarVez('${k}')">${esc(estado.pessoas[k].nome)}</button>`).join('')
+    + `<button class="mot pular" onclick="fecharPassar()">Cancelar</button>`;
+  $('folhaPassar').classList.add('on');
+};
+window.fecharPassar = function(){ $('folhaPassar').classList.remove('on'); };
+
+window.passarVez = function(destino){
+  fecharPassar();
+  const k = estado && estado.daVez;
+  if(!k || !destino || destino === k || !estado.pessoas[destino]) return;
+  if(!(ehMinha(k) || souGestor)){ toast('Só quem está com a vez pode passar'); return; }
+  const novo = JSON.parse(JSON.stringify(estado));
+  novo.daVez = destino;
+  anotar(k, 'passou a vez para ' + novo.pessoas[destino].nome);
+  salvar(VezRegra.revalidar(novo), 'A vez agora é da ' + novo.pessoas[destino].nome);
 };
 
 window.alternar = function(k, campo){

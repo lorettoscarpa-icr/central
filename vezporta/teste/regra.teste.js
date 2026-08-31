@@ -527,6 +527,23 @@ const AV = (o)=>Object.assign({id:'a1', chave:'natalia', tipo:'ferias', inicio:H
   eq('a vez passa para quem está na loja', r.estado.daVez !== 'natalia', true);
 }
 
+console.log('\n== passar a vez para outra ==');
+{
+  /* Passar a vez não é atendimento: nada de contagem se mexe, e quem passou continua
+     devendo o atendimento a si mesma. */
+  let e = base('idas');
+  ['ialey','michelly','natalia'].forEach(k => e.pessoas[k].idas = 8);
+  e.daVez = 'ialey';
+  const antes = JSON.stringify(e.pessoas);
+  e.daVez = 'natalia';                       /* é o que a tela faz ao passar a vez */
+  e = R.revalidar(e);
+  eq('a vez vai para quem recebeu', e.daVez, 'natalia');
+  eq('e nenhuma contagem se mexeu', JSON.stringify(e.pessoas), antes);
+  e = R.registrar(e, 'natalia', 'venda', 7000);
+  eq('quem recebeu paga a ida', R.conta(e.pessoas.natalia, 'idas'), 9);
+  eq('e a vez volta para quem passou', e.daVez, 'ialey');
+}
+
 console.log('\n== a fila zerou: recomeça sempre na ordem da casa ==');
 {
   /* Ordem da casa = antiguidade: Ialey, Michelly, Natália. Toda vez que a fila zera,
@@ -572,28 +589,25 @@ console.log('\n== a colega saiu para o almoço sem marcar ==');
   e = R.revalidar(e);
   eq('a vez é da Michelly', e.daVez, 'michelly');
 
-  /* a Natália assume: a Michelly sai da fila e a vez passa para quem atendeu */
-  e.pessoas.michelly.presente = false;
+  /* a Natália atende no lugar dela: SÓ a vez muda de mão. A Michelly continua na fila —
+     pode estar voltando do almoço agora e só não ter apertado nada. */
   e.daVez = 'natalia';
   e = R.revalidar(e);
   eq('a vez ficou com quem atendeu', e.daVez, 'natalia');
+  eq('e a colega segue na loja, sem ser tirada de nada', e.pessoas.michelly.presente, true);
   e = R.registrar(e, 'natalia', 'venda', 5000);
   eq('a ida foi para a Natália', R.conta(e.pessoas.natalia, 'idas'), 12);   /* ela já estava em 11 */
   eq('e a contagem da Michelly não andou', R.conta(e.pessoas.michelly, 'idas'), 10);
 
-  /* a Michelly volta e marca "na loja".
-     A vez não é arrancada de quem está com o cliente na mão — a Ialey, que assumiu a
-     porta depois da venda da Natália, termina. A Michelly é a PRÓXIMA, que é o que "vez
-     em aberto" quer dizer na prática. */
-  e.pessoas.michelly.presente = true;
-  e = R.revalidar(e);
-  eq('quem está com o cliente não perde a vez', e.daVez, 'ialey');
-  eq('e a Michelly é a próxima da fila',
-     R.ordemDistinta(e.pessoas, 'idas', e.daVez)[1].email, 'michelly');
-  e = R.registrar(e, 'ialey', 'venda', 5500);
-  eq('terminado esse atendimento, a vez é dela', e.daVez, 'michelly');
-  eq('sem dever nada a ninguém: entra com a contagem que tinha',
-     R.conta(e.pessoas.michelly, 'idas'), 10);
+  /* como a contagem dela não andou, a vez volta para ela na sequência — e vai
+     acumulando enquanto ela não atender */
+  eq('a vez volta para a Michelly', e.daVez, 'michelly');
+  eq('com a contagem que ela tinha', R.conta(e.pessoas.michelly, 'idas'), 10);
+  /* a Natália atende de novo no lugar dela, e de novo a vez volta */
+  e.daVez = 'natalia';
+  e = R.registrar(R.revalidar(e), 'natalia', 'venda', 5200);
+  eq('duas seguidas no lugar dela: a vez continua voltando', e.daVez, 'michelly');
+  eq('e a Michelly segue devendo as duas', R.conta(e.pessoas.michelly, 'idas'), 10);
 }
 {
   /* Assumir não dá vantagem a quem assume: a ida entra na conta dela. */
