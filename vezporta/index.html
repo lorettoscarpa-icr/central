@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v20">
+<meta name="app-ver" content="v21">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -302,8 +302,8 @@
 <div class="folha" id="folhaMotivo" onclick="if(event.target===this)fecharMotivo()">
   <div class="folha-cx">
     <h3>Por que não comprou?</h3>
-    <p>Vai para o painel <b>Vendas Perdidas</b> junto com o nome de quem atendeu. Assim ninguém
-       precisa digitar de novo lá.</p>
+    <p>Escolhendo o motivo, o painel <b>Vendas Perdidas</b> abre com a data, o seu nome e o motivo
+       já preenchidos — você completa o modelo, a numeração e os dados da cliente por lá.</p>
     <div id="listaMotivos"></div>
     <button class="mot pular" onclick="confirmarSemVenda(null)">Não sei / não registrar agora</button>
   </div>
@@ -335,7 +335,6 @@ const EQUIPE = [
 /* Mesma lista do painel Vendas Perdidas (const MOTIVOS lá). Se mudar lá, mude aqui:
    duas listas divergentes fariam o relatório dele misturar rótulos diferentes. */
 const MOTIVOS = ['Sem a numeração','Sem a cor','Modelo esgotado','Não trabalhamos o modelo','Não quis esperar encomenda','Outro'];
-const COL_PERDIDAS = 'ls_vendas_perdidas';
 
 /* Métrica de desempenho é assunto de gestão: o chão de loja fica com a vez e a
    contagem, e só. Mesma régua do podeCriar() da Central — diretoria e supervisora.
@@ -765,26 +764,35 @@ window.pedirMotivo = function(){
 };
 window.fecharMotivo = function(){ $('folhaMotivo').classList.remove('on'); };
 
+/* Não vendeu: registra a vez e leva a pessoa para o cadastro de Vendas Perdidas.
+
+   Antes, escolher o motivo gravava sozinho um registro lá — com data, nome e motivo, e
+   nada mais. Só que o que vale naquele painel é justamente o que faltava: modelo,
+   numeração, cor e o contato da cliente (é com ele que se avisa quando a peça chega).
+   O registro nascia pela metade, e quando a vendedora cadastrava direito depois, virava
+   duplicata na conta da gestão.
+
+   Agora nada é gravado por aqui. O painel abre no formulário, já com a data, o canal e o
+   motivo preenchidos, e ela completa o resto como sempre fez — sem digitar duas vezes o
+   que o sistema já sabe.                                                              */
 window.confirmarSemVenda = function(motivo){
   fecharMotivo();
-  const k = estado.daVez, p = estado.pessoas[k];
   registrar('sem-venda', motivo);
-  if(motivo && db){
-    const agora = new Date(), dia = diaDe(agora.getTime());
-    /* Mesmo formato que o painel Vendas Perdidas grava (função salvar() lá), para o
-       registro aparecer nas listas dele sem tratamento especial. */
-    db.collection(COL_PERDIDAS).add({
-      mes: dia.slice(0,7), dataAtendimento: dia,
-      vendedora: p.nome, canal: 'Loja física',
-      clienteNome: '', clienteZap: '', avisar: false,
-      motivo: motivo, categoria: null, numeracao: null, cor: null, modelo: '', valor: null,
-      obs: 'Registrado na Escala de Atendimento',
-      status: 'pendente', atendimentoId: 'vez-'+Date.now(),
-      origem: 'vezporta',
-      criadoEm: agora.toISOString()
-    }).then(()=>toast('Motivo registrado em Vendas Perdidas'))
-      .catch(()=>toast('Vez registrada, mas o motivo não subiu'));
+  if(!motivo) return;
+  const dia = diaDe(Date.now());
+  try{
+    /* os painéis dividem o mesmo domínio, então o recado vai pelo localStorage; o
+       carimbo de hora existe para um pedido velho não preencher formulário de amanhã */
+    localStorage.setItem('ls_vp_prefill', JSON.stringify({
+      de:'vez', quando:Date.now(), data:dia, canal:'Loja física', motivo:motivo
+    }));
+  }catch(_){}
+  const pedido = {tipo:'central-abrir', painel:'vendasperdidas', foco:'novo'};
+  if(window.parent && window.parent !== window){
+    try{ window.parent.postMessage(pedido, location.origin); return; }catch(_){}
   }
+  /* painel aberto fora da Central: vai direto, o formulário lê o mesmo recado */
+  location.href = '../../vendasperdidas/?foco=novo';
 };
 
 /* ---------- 4. resumo do dia, dos 7 e dos 30 dias ---------- */
