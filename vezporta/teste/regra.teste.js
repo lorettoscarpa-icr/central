@@ -523,5 +523,96 @@ const AV = (o)=>Object.assign({id:'a1', chave:'natalia', tipo:'ferias', inicio:H
   eq('a vez passa para quem está na loja', r.estado.daVez !== 'natalia', true);
 }
 
+console.log('\n== o caso da Michelly de férias em setembro ==');
+{
+  /* A regra, dita pela loja: ausência de um dia ou mais é como não participar daquele
+     período. Enquanto ela está fora, a vez corre só entre as outras duas — e, o ponto
+     que importa, NÃO acumula vez para ela ir quando voltar.
+
+     Este bloco roda o mês inteiro para provar as duas coisas.                        */
+  const ago31 = '2026-08-31', set30 = '2026-09-30';
+  const em = (dia, h) => { const p = dia.split('-'); return new Date(+p[0], +p[1]-1, +p[2], h||10).getTime(); };
+  const feriasDela = [{ id:'f1', chave:'michelly', tipo:'ferias', inicio:ago31, fim:set30, horaIni:'', horaFim:'' }];
+
+  let e = base('idas');
+  ['ialey','michelly','natalia'].forEach(k => { e.pessoas[k].idas = 10; e.pessoas[k].vendas = 4; });
+  e.pessoas.michelly.ultimaEm = 500;
+  e.daVez = 'ialey';
+
+  /* 30 de agosto: ainda não começou, as três na fila */
+  eq('antes do dia 31, ela ainda está na vez',
+     R.sincronizarAusencias(e, feriasDela, em('2026-08-30')).mudou, false);
+
+  /* 31 de agosto: entra de férias sozinha */
+  e = R.sincronizarAusencias(e, feriasDela, em(ago31)).estado;
+  eq('no dia 31 ela sai da vez sozinha', R.afastada(e.pessoas.michelly), 'ferias');
+  eq('e a fila fica só entre a Ialey e a Natália', R.elegiveis(e.pessoas), ['ialey','natalia']);
+
+  /* o mês inteiro de trabalho, com o painel sincronizando todo dia */
+  const chamadas = {};
+  for (let dia = 1; dia <= 30; dia++) {
+    const hoje = '2026-09-' + String(dia).padStart(2,'0');
+    e = R.sincronizarAusencias(e, feriasDela, em(hoje)).estado;
+    for (let i = 0; i < 6; i++) {
+      e = R.revalidar(e);
+      chamadas[e.daVez] = (chamadas[e.daVez] || 0) + 1;
+      e = R.registrar(e, e.daVez, i % 3 === 0 ? 'sem-venda' : 'venda', em(hoje, 9) + i * 60000);
+    }
+  }
+  eq('durante o mês, a Michelly não foi chamada nenhuma vez', chamadas.michelly, undefined);
+  eq('a vez correu entre as outras duas', [chamadas.ialey > 80, chamadas.natalia > 80], [true, true]);
+  eq('e a contagem dela ficou exatamente onde parou',
+     [e.pessoas.michelly.idas, e.pessoas.michelly.vendas], [10, 4]);
+
+  /* 1º de outubro: as férias acabaram */
+  e = R.sincronizarAusencias(e, feriasDela, em('2026-10-01')).estado;
+  eq('acabaram as férias, ela volta', R.afastada(e.pessoas.michelly), null);
+
+  /* a fila pode não estar zerada no instante da volta: ela espera */
+  let voltas = 0;
+  while (e.pessoas.michelly.esperando && voltas < 20) {
+    e = R.revalidar(e); e = R.registrar(e, e.daVez, 'venda', em('2026-10-01', 9) + voltas * 60000); voltas++;
+  }
+  eq('entrou assim que a fila zerou, sem depender de ninguém marcar nada', e.pessoas.michelly.esperando, false);
+  eq('e não sobrou vez acumulada para ela: entra emparelhada',
+     ['ialey','michelly','natalia'].map(k => R.conta(e.pessoas[k],'idas'))
+       .reduce((a,b)=>Math.max(a,b)) - ['ialey','michelly','natalia'].map(k => R.conta(e.pessoas[k],'idas'))
+       .reduce((a,b)=>Math.min(a,b)), 0);
+
+  /* o teste que responde à pergunta: ela monopoliza a porta na volta? */
+  const outubro = {};
+  for (let i = 0; i < 30; i++) {
+    e = R.revalidar(e);
+    outubro[e.daVez] = (outubro[e.daVez] || 0) + 1;
+    e = R.registrar(e, e.daVez, 'venda', em('2026-10-02', 9) + i * 60000);
+  }
+  eq('nos 30 clientes seguintes, as três dividem igual',
+     [outubro.ialey, outubro.michelly, outubro.natalia], [10, 10, 10]);
+  eq('as 180 idas do mês em que ela ficou fora não viraram dívida',
+     e.pessoas.michelly.idas - 10 <= 11, true);
+}
+{
+  /* O contraste: ausência de horas ela repõe no mesmo dia, e isso é o certo. */
+  let e = base('idas');
+  ['ialey','michelly','natalia'].forEach(k => { e.pessoas[k].idas = 10; });
+  const consulta = [{ id:'c1', chave:'michelly', tipo:'atestado',
+                      inicio:'2026-09-10', fim:'2026-09-10', horaIni:'14:00', horaFim:'17:00' }];
+  const em = (h,m) => new Date(2026, 8, 10, h, m||0).getTime();
+
+  let r = R.sincronizarAusencias(e, consulta, em(14, 30));
+  eq('às 14h30 ela está fora da loja', r.estado.pessoas.michelly.presente, false);
+  eq('mas não é ausência de fila: não fica afastada', R.afastada(r.estado.pessoas.michelly), null);
+  e = r.estado;
+  for (let i = 0; i < 6; i++) { e = R.revalidar(e); e = R.registrar(e, e.daVez, 'venda', em(15) + i * 60000); }
+
+  e = R.sincronizarAusencias(e, consulta, em(17, 5)).estado;
+  eq('às 17h ela volta para a vez', e.pessoas.michelly.presente, true);
+  eq('sem esperar rodada nenhuma', !!e.pessoas.michelly.esperando, false);
+  const tarde = {};
+  for (let i = 0; i < 6; i++) { e = R.revalidar(e); tarde[e.daVez] = (tarde[e.daVez]||0)+1;
+    e = R.registrar(e, e.daVez, 'venda', em(17, 10) + i * 60000); }
+  eq('e repõe as que perdeu, que é o combinado para ausência de horas', tarde.michelly >= 3, true);
+}
+
 console.log(`\nresultado final: ${ok} ok, ${falhou} falha(s)`);
 process.exit(falhou ? 1 : 0);
