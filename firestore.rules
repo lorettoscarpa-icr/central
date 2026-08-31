@@ -145,7 +145,17 @@ service cloud.firestore {
        cliente: é registro de trabalho da equipe. Escrita para conta de e-mail, porque
        qualquer uma pode marcar pela outra na correria — o histórico grava quem marcou. */
     match /ls_vez/{document=**}      { allow read, write: if logado(); }
-    match /ls_vez_hist/{document=**} { allow read, write: if logado(); }
+    /* O histórico é a prova de quem marcou o quê. Duas garantias que valem no servidor:
+       ninguém assina um registro com o nome de outra pessoa, e ninguém APAGA registro —
+       desfazer marca 'desfeito' e o registro continua lá. Apagar é da gestão. */
+    match /ls_vez_hist/{id} {
+      allow read:   if logado();
+      allow create: if logado() && request.resource.data.registradoPor == request.auth.token.email;
+      allow update: if logado()
+                    && soMudou(['desfeito','desfeitoPor','desfeitoEm'])
+                    && request.resource.data.desfeitoPor == request.auth.token.email;
+      allow delete: if gestorOuSup();
+    }
 
     /* Ausências avisadas pela própria equipe (dentro de Comunicados e Tarefas).
        Todo mundo LÊ: a loja precisa saber quem sai às 14h. Cada uma escreve a SUA —
@@ -261,7 +271,7 @@ service cloud.firestore {
     // (mesmo motivo de 'ls_ausencias' estar aqui: sem isto qualquer logado
     // apagaria o aviso de ausência de qualquer outra pessoa)
     match /{coll}/{document=**} {
-      allow read, write: if !(coll in ['hub_config','ls_acessos','lancamentos','bancoHoras','documentosRH','ls_comunicados','ls_tarefas','catalogos_arquivos','ls_ausencias'])
+      allow read, write: if !(coll in ['hub_config','ls_acessos','lancamentos','bancoHoras','documentosRH','ls_comunicados','ls_tarefas','catalogos_arquivos','ls_ausencias','ls_vez_hist'])
         && request.auth != null
         && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }

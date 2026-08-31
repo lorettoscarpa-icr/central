@@ -375,7 +375,9 @@
      total e a quebra por pessoa, que é o que responde "a Michelly ficou pra trás?"  */
   function resumoPorDia(historico) {
     var dias = {};
-    (historico || []).forEach(function (h) {
+    /* registro desfeito continua no banco, para ninguém apagar prova de nada — mas sai
+       da conta, senão a ida que não aconteceu contaria duas vezes contra a pessoa. */
+    (historico || []).filter(function (h) { return !h.desfeito; }).forEach(function (h) {
       var d = new Date(h.quando);
       var dia = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
       if (!dias[dia]) dias[dia] = { dia: dia, idas: 0, vendas: 0, trocas: 0, pessoas: {} };

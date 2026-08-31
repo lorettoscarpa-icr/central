@@ -523,6 +523,19 @@ const AV = (o)=>Object.assign({id:'a1', chave:'natalia', tipo:'ferias', inicio:H
   eq('a vez passa para quem está na loja', r.estado.daVez !== 'natalia', true);
 }
 
+console.log('\n== registro desfeito sai da conta, mas não do banco ==');
+{
+  const h = [
+    {nome:'Ialey',   desfecho:'venda',     quando: Date.now()},
+    {nome:'Ialey',   desfecho:'sem-venda', quando: Date.now(), desfeito:true, desfeitoPor:'ialeylorettoscarpa@gmail.com'},
+    {nome:'Natália', desfecho:'venda',     quando: Date.now()},
+  ];
+  const r = R.resumoPorDia(h)[0];
+  eq('a ida desfeita não conta', r.idas, 2);
+  eq('nem para a pessoa', r.pessoas['Ialey'].idas, 1);
+  eq('e as vendas seguem certas', r.vendas, 2);
+}
+
 console.log('\n== o caso da Michelly de férias em setembro ==');
 {
   /* A regra, dita pela loja: ausência de um dia ou mais é como não participar daquele

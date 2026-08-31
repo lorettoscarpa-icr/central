@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v15">
+<meta name="app-ver" content="v16">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -95,6 +95,9 @@
     display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;
     font-size:16px;color:var(--gold);background:rgba(0,0,0,.25);position:relative;cursor:pointer;padding:0}
   .av:hover{border-color:var(--gold-claro)}
+  .av.travada{cursor:default}
+  .av.travada .cam{display:none}      /* sem a marca de câmera no rosto que não é seu */
+  .tog:disabled{opacity:.4;cursor:default}
   /* a própria foto é o botão de trocar: numa tela de 390px não sobra espaço para mais
      um botão na linha, e tocar no rosto para trocar o rosto é o gesto óbvio */
   .av .cam{position:absolute;right:-1px;bottom:-1px;width:15px;height:15px;border-radius:50%;
@@ -117,6 +120,9 @@
   .hist{font-size:12.5px;color:var(--creme-suave);line-height:1.7}
   .hist div{padding:5px 0;border-bottom:1px solid rgba(241,237,225,.07)}
   .hist b{color:var(--creme);font-weight:600}
+  .hist .por{display:block;font-size:11px;color:var(--alerta);opacity:.85}
+  .hist .por.desf{color:var(--creme-suave)}
+  .hist .foi-desfeito b,.hist .foi-desfeito .tag{text-decoration:line-through;opacity:.55}
   .tag{font-size:10px;letter-spacing:.5px;text-transform:uppercase;border-radius:99px;padding:1px 7px;margin-left:5px}
   .t-venda{background:rgba(127,174,107,.22);color:var(--ok)}
   .t-sem{background:rgba(208,138,69,.2);color:var(--alerta)}
@@ -231,7 +237,7 @@
     <button class="btn" id="bSem" disabled onclick="pedirMotivo()">Não vendeu</button>
     <button class="btn" id="bTroca" disabled onclick="registrar('troca')">Era troca</button>
   </div>
-  <div class="dica">A vez só passa quando vende. Sem venda, ela continua com quem está.<br>Troca não conta como ida à porta.</div>
+  <div class="dica" id="dicaVez">A vez só passa quando vende. Sem venda, ela continua com quem está.<br>Troca não conta como ida à porta.</div>
 
   <div class="desnivel" id="desnivel"></div>
 
@@ -355,6 +361,17 @@ function aplicarPapel(){
   document.body.classList.toggle('gestor', souGestor);
 }
 
+/* Cada uma marca só o seu.
+
+   Antes qualquer pessoa registrava o atendimento de quem estivesse com a vez, e isso
+   abria um caminho feio: marcar "não vendeu" pela colega derruba a conversão dela e
+   ela nem anda na fila. A supervisora e a diretoria continuam podendo marcar por
+   todas — precisam, quando alguém está com as mãos ocupadas — e cada registro guarda
+   quem apertou o botão e a hora, que aparecem na lista de baixo.                     */
+const minhaChave = () => chave((meuEmail||'').toLowerCase());
+const ehMinha    = k => !!meuEmail && k === minhaChave();
+const podeMarcar = k => souGestor || ehMinha(k);
+
 function pintar(){
   if(!estado) return;
   aplicarPapel();
@@ -367,7 +384,15 @@ function pintar(){
   cartao.classList.toggle('ninguem', !dv);
   const souEu = dv && dv.email === meuEmail;
   $('euBadge').innerHTML = souEu ? '<span class="eu">é a sua vez</span>' : '';
-  ['bVenda','bSem','bTroca'].forEach(b => $(b).disabled = !dv);
+  /* botão que aceita toque e não registra nada é pior do que botão apagado: quem não
+     pode marcar aquele atendimento vê os três desligados, e a linha embaixo diz por quê */
+  const posso = !!dv && podeMarcar(estado.daVez);
+  ['bVenda','bSem','bTroca'].forEach(b => $(b).disabled = !posso);
+  $('dicaVez').innerHTML = !dv ? 'A vez só passa quando vende. Sem venda, ela continua com quem está.<br>Troca não conta como ida à porta.'
+    : posso ? (souGestor && !souEu
+        ? 'Você está marcando por <b>' + esc(dv.nome) + '</b> — fica registrado o seu nome e a hora.'
+        : 'A vez só passa quando vende. Sem venda, ela continua com quem está.<br>Troca não conta como ida à porta.')
+    : 'A vez é de <b>' + esc(dv.nome) + '</b>: só ela, a supervisora ou a diretoria registram este atendimento.';
 
   const crit = estado.criterio;
   $('bCriterio').textContent = (souGestor ? 'Fila por: ' : 'A fila segue as ') + (crit==='vendas' ? 'vendas' : 'idas à porta');
@@ -415,14 +440,14 @@ function pintar(){
                    p.esperando ? ('esperando a fila zerar' + (falta ? ' · faltam '+falta : '')) :
                    (!p.participa ? 'fora do revezamento' : (!p.presente ? 'ausente agora'+daEscala : '&nbsp;'));
     return `<div class="pessoa ${fora?'fora':''} ${af||p.esperando?'afastada':''} ${estado.daVez===k?'davez':''}">
-      <button class="av" title="Trocar a foto de ${esc(p.nome)}" onclick="escolherFoto('${k}')">${fotoOuInicial(p)}<span class="cam"><svg viewBox="0 0 24 24"><path d="M3 8h4l2-2h6l2 2h4v12H3z"/><circle cx="12" cy="13" r="3.2"/></svg></span></button>
+      <button class="av ${podeMarcar(k)?'':'travada'}" title="${podeMarcar(k)?'Trocar a foto de '+esc(p.nome):'A foto é de quem está nela'}" onclick="escolherFoto('${k}')">${fotoOuInicial(p)}<span class="cam"><svg viewBox="0 0 24 24"><path d="M3 8h4l2-2h6l2 2h4v12H3z"/><circle cx="12" cy="13" r="3.2"/></svg></span></button>
       <span class="pn"><b>${esc(p.nome)}</b><small>${motivo}</small></span>
       <span class="nums">
         <span class="num ${crit==='idas'?'governa':''}"><b>${p.idas||0}</b><small>idas</small></span>
         <span class="num ${crit==='vendas'?'governa':''}"><b>${p.vendas||0}</b><small>vendas</small></span>
         <span class="num"><b class="conv">${VezRegra.conversao(p)===null?'—':VezRegra.conversao(p)+'%'}</b><small>conv.</small></span>
       </span>
-      <button class="tog ${p.presente?'on':''}" onclick="alternar('${k}','presente')">${p.presente?'na loja':'ausente'}</button>
+      <button class="tog ${p.presente?'on':''}" ${podeMarcar(k)?'':'disabled'} onclick="alternar('${k}','presente')">${p.presente?'na loja':'ausente'}</button>
       ${souGestor ? `<button class="tog ${af||p.esperando?'afast':''}" onclick="pedirAfastamento('${k}')">${af?rotuloAfast(p):(p.esperando?'esperando':'ausência')}</button>` : ''}
       ${souGestor ? `<button class="tog ${p.participa?'on':''}" onclick="alternar('${k}','participa')">${p.participa?'na vez':'fora'}</button>` : ''}
     </div>`;
@@ -441,14 +466,18 @@ function pintar(){
   /* o resumo é só para gestão — e nem calcula quando não vai aparecer */
   if(souGestor) desenharResumo();
 
+  const hhmm = ts => new Date(ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   $('hist').innerHTML = historico.length ? historico.slice(0,12).map(h=>{
     const t = h.desfecho==='venda' ? '<span class="tag t-venda">vendeu</span>'
             : h.desfecho==='troca' ? '<span class="tag t-troca">troca</span>'
             : '<span class="tag t-sem">não vendeu</span>';
-    const hora = new Date(h.quando).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    /* quem marcou pela outra fica dito na linha, com a hora: é o que faz o "marcar
+       pela colega" ser confiança e não porta dos fundos */
     const porOutra = h.registradoPor && h.registradoPor !== h.email
-      ? ` <small>· marcado por ${esc(nomeDe(h.registradoPor))}</small>` : '';
-    return `<div><b>${esc(h.nome)}</b>${t} <small>${hora}</small>${porOutra}</div>`;
+      ? `<span class="por">marcado por ${esc(nomeDe(h.registradoPor))} às ${hhmm(h.quando)}</span>` : '';
+    const desfeito = h.desfeito
+      ? `<span class="por desf">desfeito${h.desfeitoPor?' por '+esc(nomeDe(h.desfeitoPor)):''}${h.desfeitoEm?' às '+hhmm(h.desfeitoEm):''}</span>` : '';
+    return `<div class="${h.desfeito?'foi-desfeito':''}"><b>${esc(h.nome)}</b>${t} <small>${hhmm(h.quando)}</small>${porOutra}${desfeito}</div>`;
   }).join('') : '<div>Nada registrado ainda.</div>';
 }
 /* A escala manda 'ausente' além de férias/folga/atestado, e o aviso da equipe pode
@@ -474,6 +503,7 @@ function salvar(novo, msg){
 window.registrar = function(desfecho, motivo){
   if(!estado || !estado.daVez) return;
   const k = estado.daVez, p = estado.pessoas[k], agora = Date.now();
+  if(!podeMarcar(k)){ toast('Só a ' + p.nome + ', a supervisora ou a diretoria marcam esta vez'); return; }
   const novo = VezRegra.registrar(estado, k, desfecho, agora);
   if(db){
     db.collection('ls_vez_hist').add({
@@ -559,6 +589,9 @@ window.afastar = function(tipo){
 };
 
 window.alternar = function(k, campo){
+  if(campo === 'presente' && !podeMarcar(k)){
+    toast('Só a ' + estado.pessoas[k].nome + ' ou a gestão marcam isso'); return;
+  }
   const novo = JSON.parse(JSON.stringify(estado));
   novo.pessoas[k][campo] = !novo.pessoas[k][campo];
   if(campo === 'presente') marcaDaMao(novo.pessoas[k], k);
@@ -583,17 +616,22 @@ window.trocarCriterio = function(){
 /* Desfazer devolve o contador e a vez ao que eram. Marcar errado na correria é o
    erro mais provável desta tela, então tem que ser um toque para consertar. */
 window.desfazer = function(){
-  const ult = historico[0];
+  const ult = historico.filter(h => !h.desfeito)[0];
   if(!ult){ toast('Não há nada para desfazer'); return; }
   const k = chave(ult.email), novo = JSON.parse(JSON.stringify(estado)), p = novo.pessoas[k];
   if(!p){ toast('Pessoa não está mais na lista'); return; }
+  if(!podeMarcar(k)){ toast('Este registro é da ' + ult.nome + ' — só ela ou a gestão desfazem'); return; }
   if(ult.desfecho !== 'troca'){
     p.idas = Math.max(0,(p.idas||0)-1);
     if(ult.desfecho==='venda') p.vendas = Math.max(0,(p.vendas||0)-1);
   }
   novo.daVez = k;                            /* a vez volta para quem estava com ela */
-  if(db && ult.id) db.collection('ls_vez_hist').doc(ult.id).delete().catch(()=>{});
-  historico = historico.slice(1);
+  /* Não apaga: marca. Apagar o registro tirava da contagem E sumia com a prova, que é
+     exatamente o que alguém faria para desfazer a venda da colega sem deixar rastro.
+     Marcado, ele fica riscado na lista, com o nome de quem desfez e a hora.          */
+  const marca = { desfeito:true, desfeitoPor:meuEmail||null, desfeitoEm:Date.now() };
+  if(db && ult.id) db.collection('ls_vez_hist').doc(ult.id).update(marca).catch(()=>{});
+  historico = historico.map(h => h === ult ? Object.assign({}, h, marca) : h);
   salvar(novo, 'Desfeito — a vez voltou para '+p.nome);
 };
 
@@ -741,7 +779,10 @@ function avatarPorNome(nome){
    Redimensiona no próprio celular antes de subir: a câmera manda 3 MB e o documento
    de estado tem 1 MB no total. 128px de lado dá avatar nítido com poucos KB.        */
 let _fotoAlvo = null;
-window.escolherFoto = function(k){ _fotoAlvo = k; $('arqFoto').value=''; $('arqFoto').click(); };
+window.escolherFoto = function(k){
+  if(!podeMarcar(k)){ toast('A foto é de quem está nela'); return; }
+  _fotoAlvo = k; $('arqFoto').value=''; $('arqFoto').click();
+};
 
 $('arqFoto').addEventListener('change', function(){
   const arq = this.files && this.files[0]; if(!arq || !_fotoAlvo) return;
