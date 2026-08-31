@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v17">
+<meta name="app-ver" content="v18">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -55,10 +55,10 @@
     display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;
     font-size:15px;color:var(--gold);background:rgba(0,0,0,.3)}
   .avf img,.av img{width:100%;height:100%;object-fit:cover;display:block}
-  /* Quadrado com canto arredondado, e não círculo: a foto da equipe é de corpo, e o
-     círculo comia os ombros e as pontas. Assim ela aparece inteira, do jeito que foi
-     tirada. Os avatares pequenos seguem redondos — ali o corte não tira nada. */
-  .vez .foto{width:118px;height:118px;border-radius:18px;margin:0 auto 12px;border:1.5px solid var(--gold);
+  /* Redonda, no estilo da foto de perfil do WhatsApp — é o formato que elas já
+     conhecem, e combina com os avatares da fila e da contagem, que são redondos.
+     Grande o bastante (118px) para a pessoa aparecer, e não só o rosto. */
+  .vez .foto{width:118px;height:118px;border-radius:50%;margin:0 auto 12px;border:1.5px solid var(--gold);
     overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);
     font-family:'Playfair Display',serif;font-size:44px;color:var(--gold)}
   /* a img aqui não tinha regra de tamanho: com foto de 128px ninguém percebia, mas a
