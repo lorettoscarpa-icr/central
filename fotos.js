@@ -1,7 +1,7 @@
 /* Fotos da equipe, em base64.
 
    Moravam dentro do index.html da Central — 270 KB no meio do arquivo, e nenhum outro
-   painel conseguia usar. Agora vivem aqui: a Central carrega, e a Vez na Porta carrega
+   painel conseguia usar. Agora vivem aqui: a Central carrega, e a Escala de Atendimento carrega
    também, para as vendedoras aparecerem lá com a mesma foto que já têm aqui, sem
    ninguém subir nada de novo.
 

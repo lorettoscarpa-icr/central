@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v12">
-<title>Vez na Porta · Loretto Scarpa</title>
+<meta name="app-ver" content="v13">
+<title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -185,7 +185,7 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="topo"><h1>Vez na Porta</h1><div class="sub">Loretto Scarpa</div></div>
+  <div class="topo"><h1>Escala de Atendimento</h1><div class="sub">Loretto Scarpa</div></div>
 
   <div class="vez ninguem" id="cartaoVez">
     <div class="rot">é a vez de</div>
@@ -266,7 +266,7 @@
 <script src="../fotos.js"></script>
 <script src="./regra.js"></script>
 <script>
-/* ===== Vez na Porta =====
+/* ===== Escala de Atendimento =====
    Revezamento do atendimento na porta. A regra de quem é a próxima mora em regra.js,
    isolada e testada (teste/regra.teste.js) — aqui só tem tela e sincronia.
 
@@ -625,7 +625,7 @@ window.confirmarSemVenda = function(motivo){
       vendedora: p.nome, canal: 'Loja física',
       clienteNome: '', clienteZap: '', avisar: false,
       motivo: motivo, categoria: null, numeracao: null, cor: null, modelo: '', valor: null,
-      obs: 'Registrado na Vez na Porta',
+      obs: 'Registrado na Escala de Atendimento',
       status: 'pendente', atendimentoId: 'vez-'+Date.now(),
       origem: 'vezporta',
       criadoEm: agora.toISOString()

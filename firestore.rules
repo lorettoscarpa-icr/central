@@ -141,7 +141,7 @@ service cloud.firestore {
     }
     // ▲▲ fim da alteração 2 ▲▲
 
-    /* Vez na Porta — de quem é a vez e quantas vezes cada uma foi. Não guarda dado de
+    /* Escala de Atendimento (a vez na porta) — de quem é a vez e quantas vezes cada uma foi. Não guarda dado de
        cliente: é registro de trabalho da equipe. Escrita para conta de e-mail, porque
        qualquer uma pode marcar pela outra na correria — o histórico grava quem marcou. */
     match /ls_vez/{document=**}      { allow read, write: if logado(); }
