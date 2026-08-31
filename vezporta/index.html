@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v21">
+<meta name="app-ver" content="v22">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -323,8 +323,12 @@
 
 const firebaseConfig={apiKey:"AIzaSyCogQoTSULCdC1JhTb0IUilWAIA1itBJ8U",authDomain:"loretto-scarpa-l-icr.firebaseapp.com",projectId:"loretto-scarpa-l-icr",storageBucket:"loretto-scarpa-l-icr.firebasestorage.app",messagingSenderId:"428188657366",appId:"1:428188657366:web:258f42f2c0a3813d83cb77"};
 
-/* Quem entra no revezamento. Jhennifer fica na lista mas com participa:false — ela
-   supervisiona e só entra na vez em ocasião pontual, ligando o botão dela. */
+/* Quem entra no revezamento, NA ORDEM DA CASA: antiguidade na empresa. É essa ordem
+   que a fila segue toda vez que zera — Ialey, Michelly, Natália. Mudou de gente ou de
+   antiguidade? Mude a ordem desta lista, e só.
+
+   Jhennifer fica na lista mas com participa:false — ela supervisiona e só entra na vez
+   em ocasião pontual, ligando o botão dela. */
 const EQUIPE = [
   {email:'ialeylorettoscarpa@gmail.com',    nome:'Ialey',     participa:true },
   {email:'michellylorettoscarpa@gmail.com', nome:'Michelly',  participa:true },
@@ -355,9 +359,9 @@ const chave = e => e.replace(/[^a-z]/g,'');            /* e-mail vira chave curt
 
 function estadoInicial(){
   const pessoas = {};
-  EQUIPE.forEach(p => pessoas[chave(p.email)] = {
+  EQUIPE.forEach((p,i) => pessoas[chave(p.email)] = {
     nome:p.nome, email:p.email, idas:0, vendas:0, participa:p.participa, presente:true,
-    afast:null, esperando:false, base:null, ultimaEm:0 });
+    afast:null, esperando:false, base:null, ultimaEm:0, ordem:i });
   return { pessoas, daVez:null, criterio:'idas', atualizadoEm:Date.now() };
 }
 
@@ -992,8 +996,11 @@ function ligar(){
     if(!d.exists){ salvar(VezRegra.revalidar(estadoInicial())); return; }
     const v = d.data();
     /* quem entrou na equipe depois entra sem apagar contagem de ninguém */
-    EQUIPE.forEach(pp=>{ const k=chave(pp.email);
-      if(!v.pessoas[k]) v.pessoas[k]={nome:pp.nome,email:pp.email,idas:0,vendas:0,participa:pp.participa,presente:true,afast:null,esperando:false,base:null,ultimaEm:0}; });
+    EQUIPE.forEach((pp,i)=>{ const k=chave(pp.email);
+      if(!v.pessoas[k]) v.pessoas[k]={nome:pp.nome,email:pp.email,idas:0,vendas:0,participa:pp.participa,presente:true,afast:null,esperando:false,base:null,ultimaEm:0};
+      /* a antiguidade é cadastro, não estado: vem sempre da EQUIPE, mesmo em documento
+         gravado antes de ela existir */
+      v.pessoas[k].ordem = i; });
     estado = v; pintar(); sincronizarAusencias();
   }, e=>toast('Sem conexão com o servidor'));
 

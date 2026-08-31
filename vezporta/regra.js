@@ -4,7 +4,8 @@
 
    As regras, como a loja opera:
    - a vez é de quem foi MENOS vezes, entre as que estão presentes e participando;
-   - empate: vai quem está há mais tempo sem ir; persistindo, ordem alfabética;
+   - empate: vale a ORDEM DA CASA, por antiguidade — Ialey, Michelly, Natália. É assim
+     que a fila recomeça toda vez que zera, e foi a loja que definiu;
    - a vez SÓ passa quando vende;
    - cliente que não comprou conta como ida à porta, mas a vez continua com ela;
    - troca não é cliente novo: não conta ida nem passa a vez;
@@ -139,14 +140,23 @@
   /* Todas as aptas, da primeira à última a ser chamada se ninguém mais fosse à porta.
      Vive separado de proximaDaVez porque a ordem inteira também é usada como desempate
      de quem sobrou, lá em ordemDistinta. */
+  /* A ordem da casa: antiguidade na empresa. Vem do painel (a lista EQUIPE), não do
+     banco — é cadastro, não estado. Sem número, vai para o fim. */
+  function antiguidade(p) {
+    return (typeof p.ordem === 'number') ? p.ordem : 99;
+  }
+
   function ordenarAptas(pessoas, criterio) {
     var chave = (criterio === 'vendas') ? 'vendas' : 'idas';
     return elegiveis(pessoas).sort(function (a, b) {
       var pa = pessoas[a], pb = pessoas[b];
       /* menos vezes primeiro: é o que faz quem voltou do almoço emparelhar sozinha */
       if (conta(pa, chave) !== conta(pb, chave)) return conta(pa, chave) - conta(pb, chave);
-      /* empate: quem está há mais tempo sem ir. Nunca foi (0) vem antes de todas. */
-      if ((pa.ultimaEm || 0) !== (pb.ultimaEm || 0)) return (pa.ultimaEm || 0) - (pb.ultimaEm || 0);
+      /* Empate é a fila recomeçando, e aí vale a ordem da casa: Ialey, Michelly,
+         Natália. Antes eu desempatava por "quem está há mais tempo sem ir" — dava o
+         mesmo resultado no dia normal, mas depois de férias jogava quem voltou para a
+         frente de todas, e não é assim que a loja faz. */
+      if (antiguidade(pa) !== antiguidade(pb)) return antiguidade(pa) - antiguidade(pb);
       return (pa.nome || '').localeCompare(pb.nome || '');
     });
   }
@@ -399,7 +409,7 @@
   var api = { proximaDaVez: proximaDaVez, registrar: registrar, revalidar: revalidar,
               elegiveis: elegiveis, ordemDaFila: ordemDaFila, ordemDistinta: ordemDistinta,
               conversao: conversao, desequilibrio: desequilibrio, resumoPorDia: resumoPorDia,
-              conta: conta, voltou: voltou, liberar: liberar,
+              conta: conta, voltou: voltou, liberar: liberar, antiguidade: antiguidade,
               filaZerada: filaZerada, faltaParaZerar: faltaParaZerar, nivelDaFila: nivelDaFila,
               afastada: afastada, AFASTAMENTOS: AFASTAMENTOS, ROTULOS: ROTULOS,
               ATENDIMENTOS: ATENDIMENTOS,

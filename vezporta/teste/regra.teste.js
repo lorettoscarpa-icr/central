@@ -9,10 +9,12 @@ function eq(nome, real, esperado) {
 }
 const P = (nome, idas, vendas, extra = {}) =>
   Object.assign({ nome, idas, vendas, participa: true, presente: true, ultimaEm: 0 }, extra);
+/* ordem = antiguidade na empresa, como no painel: Ialey, Michelly, Natália */
 const base = (criterio = 'idas') => ({
   criterio,
   daVez: 'ialey',
-  pessoas: { ialey: P('Ialey', 0, 0), michelly: P('Michelly', 0, 0), natalia: P('Natália', 0, 0) },
+  pessoas: { ialey: P('Ialey', 0, 0, {ordem:0}), michelly: P('Michelly', 0, 0, {ordem:1}),
+             natalia: P('Natália', 0, 0, {ordem:2}) },
 });
 
 console.log('\n== quem é a próxima ==');
@@ -22,11 +24,14 @@ console.log('\n== quem é a próxima ==');
   eq('vai quem foi menos vezes', R.proximaDaVez(e.pessoas, 'idas'), 'michelly');
 }
 {
+  /* empate é a fila recomeçando: vale a ordem da casa, não quem foi por último */
   const e = base();
   e.pessoas.ialey.idas = 2; e.pessoas.ialey.ultimaEm = 500;
   e.pessoas.michelly.idas = 2; e.pessoas.michelly.ultimaEm = 100;
   e.pessoas.natalia.idas = 5;
-  eq('empate: vai quem está há mais tempo sem ir', R.proximaDaVez(e.pessoas, 'idas'), 'michelly');
+  eq('empate: vale a ordem da casa', R.proximaDaVez(e.pessoas, 'idas'), 'ialey');
+  e.pessoas.ialey.presente = false;
+  eq('e com a primeira fora, é a próxima da ordem', R.proximaDaVez(e.pessoas, 'idas'), 'michelly');
 }
 {
   const e = base();
@@ -229,10 +234,9 @@ console.log('\n== a ordem das três, uma linha por pessoa ==');
 {
   const e = base('vendas');
   e.pessoas.ialey.vendas = 3; e.pessoas.michelly.vendas = 1; e.pessoas.natalia.vendas = 1;
-  e.pessoas.michelly.ultimaEm = 200; e.pessoas.natalia.ultimaEm = 100;
-  eq('por vendas, a ordem segue as vendas',
+  eq('por vendas, a ordem segue as vendas e depois a ordem da casa',
      R.ordemDistinta(e.pessoas, 'vendas', 'ialey').map(x => x.email),
-     ['ialey', 'natalia', 'michelly']);
+     ['ialey', 'michelly', 'natalia']);
 }
 
 console.log('\n== taxa de conversão ==');
@@ -362,8 +366,8 @@ console.log('\n== afastamento: férias, folga e atestado ==');
      [R.conta(e.pessoas.natalia, 'idas'), R.conta(e.pessoas.ialey, 'idas')], [44, 44]);
   eq('sem que a vida dela fosse reescrita', e.pessoas.natalia.idas, 2);
   eq('a conversão dela continua a verdadeira', R.conversao(e.pessoas.natalia), 50);
-  eq('e a rodada nova começa por ela, que está há mais tempo sem ir',
-     R.proximaDaVez(e.pessoas, 'idas'), 'natalia');
+  eq('e a rodada nova começa pela ordem da casa, não por quem voltou',
+     R.ordemDistinta(e.pessoas, 'idas', null).map(x => x.email), ['ialey', 'michelly', 'natalia']);
 }
 {
   /* O que a regra evita: sem esperar, ela pegaria a porta inteira por dias. */
@@ -417,7 +421,7 @@ console.log('\n== afastamento: férias, folga e atestado ==');
   eq('e ela espera', e.pessoas.natalia.esperando, true);
   e = R.registrar(e, 'ialey', 'venda', 9500);
   eq('essa venda fechou a rodada e ela entrou', e.pessoas.natalia.esperando, false);
-  eq('a vez já é dela na rodada nova', e.daVez, 'natalia');
+  eq('e a rodada nova começa pela ordem da casa', e.daVez, 'ialey');
 }
 {
   /* Enquanto espera, ela não pode ser chamada nem por engano. */
@@ -523,6 +527,39 @@ const AV = (o)=>Object.assign({id:'a1', chave:'natalia', tipo:'ferias', inicio:H
   eq('a vez passa para quem está na loja', r.estado.daVez !== 'natalia', true);
 }
 
+console.log('\n== a fila zerou: recomeça sempre na ordem da casa ==');
+{
+  /* Ordem da casa = antiguidade: Ialey, Michelly, Natália. Toda vez que a fila zera,
+     é por aí que ela recomeça — inclusive depois de alguém voltar de férias. */
+  let e = base('idas');
+  ['ialey','michelly','natalia'].forEach(k => e.pessoas[k].idas = 20);
+  e.daVez = null; e = R.revalidar(e);
+  const rodada = [];
+  for (let i = 0; i < 6; i++) { e = R.revalidar(e); rodada.push(e.daVez); e = R.registrar(e, e.daVez, 'venda', 1000 + i); }
+  eq('duas rodadas seguidas, sempre na mesma ordem',
+     rodada, ['ialey','michelly','natalia','ialey','michelly','natalia']);
+}
+{
+  /* Quem volta de férias entra na marca das outras — e a rodada nova sai na ordem da
+     casa, não na frente de todas por estar há mais tempo sem ir. */
+  let e = base('idas');
+  e.pessoas.ialey.idas = 30; e.pessoas.michelly.idas = 30; e.pessoas.natalia.idas = 12;
+  e.pessoas.natalia.afast = 'ferias';
+  e = R.voltou(e, 'natalia');
+  eq('a fila já estava zerada entre as duas: ela entrou', e.pessoas.natalia.esperando, false);
+  eq('e a ordem recomeça pela mais antiga',
+     R.ordemDistinta(e.pessoas, 'idas', null).map(x => x.email), ['ialey','michelly','natalia']);
+}
+{
+  /* Sem a ordem cadastrada (gente de fora da lista), o desempate cai no nome — nunca
+     em erro. */
+  let e = base('idas');
+  delete e.pessoas.ialey.ordem; delete e.pessoas.michelly.ordem; delete e.pessoas.natalia.ordem;
+  e.daVez = null;
+  eq('sem antiguidade, ordem alfabética', R.revalidar(e).daVez, 'ialey');
+  eq('e a antiguidade de quem não tem vai para o fim', R.antiguidade(e.pessoas.ialey), 99);
+}
+
 console.log('\n== a colega saiu para o almoço sem marcar ==');
 {
   /* O caso da loja: a vez é da Michelly, que saiu sem marcar. A Natália atende. O que
@@ -530,8 +567,7 @@ console.log('\n== a colega saiu para o almoço sem marcar ==');
      e quando ela voltar é ela a próxima. */
   let e = base('idas');
   ['ialey','michelly','natalia'].forEach(k => { e.pessoas[k].idas = 10; e.pessoas[k].vendas = 5; });
-  e.pessoas.michelly.ultimaEm = 100;      /* é a que está há mais tempo sem ir */
-  e.pessoas.ialey.ultimaEm = 900; e.pessoas.natalia.ultimaEm = 800;
+  e.pessoas.ialey.idas = 11; e.pessoas.natalia.idas = 11;   /* as duas já foram nesta rodada */
   e.daVez = null;
   e = R.revalidar(e);
   eq('a vez é da Michelly', e.daVez, 'michelly');
@@ -542,7 +578,7 @@ console.log('\n== a colega saiu para o almoço sem marcar ==');
   e = R.revalidar(e);
   eq('a vez ficou com quem atendeu', e.daVez, 'natalia');
   e = R.registrar(e, 'natalia', 'venda', 5000);
-  eq('a ida foi para a Natália', R.conta(e.pessoas.natalia, 'idas'), 11);
+  eq('a ida foi para a Natália', R.conta(e.pessoas.natalia, 'idas'), 12);   /* ela já estava em 11 */
   eq('e a contagem da Michelly não andou', R.conta(e.pessoas.michelly, 'idas'), 10);
 
   /* a Michelly volta e marca "na loja".
