@@ -523,6 +523,53 @@ const AV = (o)=>Object.assign({id:'a1', chave:'natalia', tipo:'ferias', inicio:H
   eq('a vez passa para quem está na loja', r.estado.daVez !== 'natalia', true);
 }
 
+console.log('\n== a colega saiu para o almoço sem marcar ==');
+{
+  /* O caso da loja: a vez é da Michelly, que saiu sem marcar. A Natália atende. O que
+     a regra promete é que a vez da Michelly fica EM ABERTO — a contagem dela não anda,
+     e quando ela voltar é ela a próxima. */
+  let e = base('idas');
+  ['ialey','michelly','natalia'].forEach(k => { e.pessoas[k].idas = 10; e.pessoas[k].vendas = 5; });
+  e.pessoas.michelly.ultimaEm = 100;      /* é a que está há mais tempo sem ir */
+  e.pessoas.ialey.ultimaEm = 900; e.pessoas.natalia.ultimaEm = 800;
+  e.daVez = null;
+  e = R.revalidar(e);
+  eq('a vez é da Michelly', e.daVez, 'michelly');
+
+  /* a Natália assume: a Michelly sai da fila e a vez passa para quem atendeu */
+  e.pessoas.michelly.presente = false;
+  e.daVez = 'natalia';
+  e = R.revalidar(e);
+  eq('a vez ficou com quem atendeu', e.daVez, 'natalia');
+  e = R.registrar(e, 'natalia', 'venda', 5000);
+  eq('a ida foi para a Natália', R.conta(e.pessoas.natalia, 'idas'), 11);
+  eq('e a contagem da Michelly não andou', R.conta(e.pessoas.michelly, 'idas'), 10);
+
+  /* a Michelly volta e marca "na loja".
+     A vez não é arrancada de quem está com o cliente na mão — a Ialey, que assumiu a
+     porta depois da venda da Natália, termina. A Michelly é a PRÓXIMA, que é o que "vez
+     em aberto" quer dizer na prática. */
+  e.pessoas.michelly.presente = true;
+  e = R.revalidar(e);
+  eq('quem está com o cliente não perde a vez', e.daVez, 'ialey');
+  eq('e a Michelly é a próxima da fila',
+     R.ordemDistinta(e.pessoas, 'idas', e.daVez)[1].email, 'michelly');
+  e = R.registrar(e, 'ialey', 'venda', 5500);
+  eq('terminado esse atendimento, a vez é dela', e.daVez, 'michelly');
+  eq('sem dever nada a ninguém: entra com a contagem que tinha',
+     R.conta(e.pessoas.michelly, 'idas'), 10);
+}
+{
+  /* Assumir não dá vantagem a quem assume: a ida entra na conta dela. */
+  let e = base('idas');
+  ['ialey','michelly','natalia'].forEach(k => e.pessoas[k].idas = 4);
+  e.pessoas.michelly.presente = false;
+  e.daVez = 'natalia';
+  e = R.registrar(R.revalidar(e), 'natalia', 'venda', 6000);
+  eq('quem assumiu paga a ida', R.conta(e.pessoas.natalia, 'idas'), 5);
+  eq('e vai para o fim da fila', R.proximaDaVez(e.pessoas, 'idas'), 'ialey');
+}
+
 console.log('\n== registro desfeito sai da conta, mas não do banco ==');
 {
   const h = [
