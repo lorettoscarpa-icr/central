@@ -23,7 +23,8 @@
   /* A escala da equipe também manda 'ausente' (falta sem motivo declarado). Ele não
      entra em AFASTAMENTOS porque aquele mapa é a lista de botões da folha — o que a
      gestão marca na mão continua sendo férias, folga ou atestado. */
-  var ROTULOS = { ferias: 'férias', folga: 'folga', atestado: 'atestado', ausente: 'ausência' };
+  var ROTULOS = { ferias: 'férias', folga: 'folga', atestado: 'atestado',
+                  consulta: 'consulta', ausente: 'ausência' };
 
   function afastada(p) {
     /* p.ferias é a forma antiga, booleana. Fica reconhecida para não perder estado

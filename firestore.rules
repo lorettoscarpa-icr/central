@@ -158,10 +158,17 @@ service cloud.firestore {
       allow read: if logado();
       allow create: if logado()
                     && request.resource.data.criadoPor == request.auth.token.email
-                    && (request.resource.data.email == request.auth.token.email || gestorOuSup());
+                    && (request.resource.data.email == request.auth.token.email || gestorOuSup())
+                    // férias é lançamento de gestão: some do formulário de quem não é,
+                    // e some aqui também — esconder campo na tela não é proteção
+                    // .get() porque campo ausente no documento derruba a avaliação
+                    // inteira com erro, em vez de simplesmente não casar
+                    && (request.resource.data.get('tipo', '') != 'ferias' || gestorOuSup());
       // resource é null quando o documento não existe — sem esta guarda, um create
       // feito com set() derruba a avaliação deste ramo com erro em vez de só negar
       allow update, delete: if logado() && resource != null
+                    // no delete o request.resource é null; só o update carrega tipo novo
+                    && (request.resource == null || request.resource.data.get('tipo', '') != 'ferias' || gestorOuSup())
                     && (resource.data.email == request.auth.token.email
                         || resource.data.criadoPor == request.auth.token.email
                         || gestorOuSup());

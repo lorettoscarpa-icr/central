@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v14">
+<meta name="app-ver" content="v15">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -61,17 +61,10 @@
      foto da Central tem 640px e entrava inteira, deixando o pescoço no lugar do rosto */
   .vez .foto img{width:100%;height:100%;object-fit:cover;display:block}
 
-  /* As fotos da Central são retratos de 640px em pé: no círculo inteiro o rosto fica
-     do tamanho de uma ervilha. Aqui elas entram a 180%, encostadas no topo — com esse
-     enquadramento (rosto centrado a ~28% da altura) a conta põe o rosto no meio do
-     círculo, em qualquer tamanho, porque tudo é proporcional.
-
-     Só vale para a foto oficial: a que a vendedora tira pelo celular já sai cortada
-     quadrada e centrada no rosto, e este zoom cortaria o queixo dela. */
+  /* A foto da Central entra inteira, de corpo, como foi tirada. Cheguei a dar zoom no
+     rosto para ele não ficar do tamanho de uma ervilha no círculo pequeno — a loja
+     preferiu a foto inteira, e é a foto delas. */
   .vez .foto,.av,.avf{position:relative}
-  .vez .foto img.oficial,.av img.oficial,.avf img.oficial,.av-r img.oficial{
-    position:absolute;top:0;left:50%;transform:translateX(-50%);
-    width:180%;height:180%;max-width:none;object-fit:cover}
 
   .acoes{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:8px}
   .btn{border:1px solid var(--linha);background:rgba(0,0,0,.18);color:var(--creme);
@@ -347,13 +340,11 @@ function estadoInicial(){
    Sem nenhuma das duas, a inicial do nome.                                          */
 function fotoDaPessoa(p){
   const propria = estado.fotos && estado.fotos[chave(p.email)];
-  if(propria) return { src:propria, oficial:false };
-  return { src:(window.FOTOS_DATA && window.FOTOS_DATA[p.nome]) || '', oficial:true };
+  return propria || (window.FOTOS_DATA && window.FOTOS_DATA[p.nome]) || '';
 }
-function imgFoto(f){ return `<img src="${f.src}" alt=""${f.oficial?' class="oficial"':''}>`; }
 function fotoOuInicial(p){
   const f = fotoDaPessoa(p);
-  return f.src ? imgFoto(f) : esc(p.nome[0]);
+  return f ? `<img src="${f}" alt="">` : esc(p.nome[0]);
 }
 function avatar(p, classe){ return `<span class="${classe}">${fotoOuInicial(p)}</span>`; }
 
@@ -369,8 +360,8 @@ function pintar(){
   aplicarPapel();
   const dv = estado.daVez ? estado.pessoas[estado.daVez] : null;
   const cartao = $('cartaoVez');
-  const fv = dv ? fotoDaPessoa(dv) : null;
-  $('fotoVez').innerHTML = dv ? (fv.src ? imgFoto(fv) : esc(dv.nome[0])) : '';
+  const fv = dv ? fotoDaPessoa(dv) : '';
+  $('fotoVez').innerHTML = dv ? (fv ? `<img src="${fv}" alt="">` : esc(dv.nome[0])) : '';
   $('fotoVez').style.display = dv ? 'flex' : 'none';
   $('nomeVez').textContent = dv ? dv.nome : 'ninguém disponível';
   cartao.classList.toggle('ninguem', !dv);
@@ -742,8 +733,8 @@ function cartaoResumo(d, rotulo, sub, dias){
    nome, e não pela chave do e-mail como no resto da tela */
 function avatarPorNome(nome){
   const p = EQUIPE.find(x => x.nome === nome);
-  const f = p ? fotoDaPessoa(p) : { src:(window.FOTOS_DATA && window.FOTOS_DATA[nome]) || '', oficial:true };
-  return `<span class="av-r">${f.src ? imgFoto(f) : esc((nome||'?')[0])}</span>`;
+  const f = p ? fotoDaPessoa(p) : (window.FOTOS_DATA && window.FOTOS_DATA[nome]) || '';
+  return `<span class="av-r">${f ? `<img src="${f}" alt="">` : esc((nome||'?')[0])}</span>`;
 }
 
 /* ---------- foto ----------
