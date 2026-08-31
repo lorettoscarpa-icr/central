@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v23">
+<meta name="app-ver" content="v24">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -734,8 +734,8 @@ window.pedirPassar = function(){
   if(!dv || !outras.length) return;
   $('passarTitulo').textContent = 'Passar a vez da ' + dv.nome;
   $('passarTexto').textContent =
-    'A contagem não muda: quem passa a vez continua devendo o atendimento a si mesma e é '
-    + 'chamada de novo logo em seguida. Fica registrado quem passou e para quem.';
+    'Para a fila, é como se você já tivesse ido: a sua vez foi usada ao passar. As suas '
+    + 'idas, vendas e conversão não mudam. Fica registrado quem passou e para quem.';
   $('listaPassar').innerHTML =
     outras.map(k => `<button class="mot" onclick="passarVez('${k}')">${esc(estado.pessoas[k].nome)}</button>`).join('')
     + `<button class="mot pular" onclick="fecharPassar()">Cancelar</button>`;
@@ -748,8 +748,7 @@ window.passarVez = function(destino){
   const k = estado && estado.daVez;
   if(!k || !destino || destino === k || !estado.pessoas[destino]) return;
   if(!(ehMinha(k) || souGestor)){ toast('Só quem está com a vez pode passar'); return; }
-  const novo = JSON.parse(JSON.stringify(estado));
-  novo.daVez = destino;
+  const novo = VezRegra.passarVez(estado, k, destino);
   anotar(k, 'passou a vez para ' + novo.pessoas[destino].nome);
   salvar(VezRegra.revalidar(novo), 'A vez agora é da ' + novo.pessoas[destino].nome);
 };

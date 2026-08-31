@@ -161,6 +161,29 @@
     });
   }
 
+  /* Passar a vez para outra pessoa.
+
+     Quem passa CONSOME a vez: para a fila é como se ela já tivesse ido. Sem isso,
+     passar sairia de graça — ela cederia o cliente e continuaria na frente, enquanto a
+     colega que atendeu vai para o fim. A loja contou o caso que provou isso: a Ialey
+     passou a vez para a Natália, a Natália saiu para o almoço, a Ialey atendeu no lugar
+     dela — e a Natália tinha de ficar com DUAS vezes a receber antes de a Ialey voltar
+     a ser chamada. Só fecha se a passada tiver custado a vez da Ialey.
+
+     As métricas não são tocadas: passar não é atendimento e não pode derrubar a
+     conversão de ninguém. Quem anda é só a contagem da fila, pela 'base'.            */
+  function passarVez(estado, de, para) {
+    var novo = JSON.parse(JSON.stringify(estado));
+    var p = novo.pessoas[de];
+    if (!p || !novo.pessoas[para] || de === para) return novo;
+    var chave = (novo.criterio === 'vendas') ? 'vendas' : 'idas';
+    p.base = p.base || { idas: 0, vendas: 0 };
+    p.base[chave] = (p.base[chave] || 0) - 1;      /* anda uma casa na fila */
+    novo.daVez = para;
+    novo.atualizadoEm = Date.now();
+    return novo;
+  }
+
   /* Aplica um desfecho e devolve o estado NOVO, sem alterar o que entrou.
      desfecho: 'venda' | 'sem-venda' | 'troca'                                       */
   function registrar(estado, email, desfecho, agora) {
@@ -407,6 +430,7 @@
   }
 
   var api = { proximaDaVez: proximaDaVez, registrar: registrar, revalidar: revalidar,
+              passarVez: passarVez,
               elegiveis: elegiveis, ordemDaFila: ordemDaFila, ordemDistinta: ordemDistinta,
               conversao: conversao, desequilibrio: desequilibrio, resumoPorDia: resumoPorDia,
               conta: conta, voltou: voltou, liberar: liberar, antiguidade: antiguidade,
