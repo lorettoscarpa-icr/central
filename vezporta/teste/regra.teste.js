@@ -443,5 +443,85 @@ console.log('\n== afastamento: férias, folga e atestado ==');
      [R.conta(e.pessoas.natalia,'vendas'), R.conta(e.pessoas.natalia,'idas')], [4, 9]);
 }
 
+console.log('\n== ausência puxada da escala da equipe ==');
+const HJ = (d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'))(new Date());
+const AS = (h,m)=>{ const d=new Date(); d.setHours(h,m||0,0,0); return d.getTime(); };
+const AV = (o)=>Object.assign({id:'a1', chave:'natalia', tipo:'ferias', inicio:HJ, fim:HJ, horaIni:'', horaFim:''}, o);
+{
+  eq('aviso do dia todo está valendo', R.avisoValendo(AV({}), AS(10)), true);
+  eq('aviso de outro dia não', R.avisoValendo(AV({inicio:'2020-01-01',fim:'2020-01-01'}), AS(10)), false);
+  eq('antes da hora de sair, ela ainda está na loja', R.avisoValendo(AV({horaIni:'14:00'}), AS(13,30)), false);
+  eq('depois da hora de sair, não está', R.avisoValendo(AV({horaIni:'14:00'}), AS(14,10)), true);
+  eq('"até as 15h": às 14h ela está fora', R.avisoValendo(AV({horaFim:'15:00'}), AS(14)), true);
+  eq('e às 15h em ponto ela já voltou', R.avisoValendo(AV({horaFim:'15:00'}), AS(15)), false);
+  eq('dia inteiro é ausência longa', R.ausenciaLonga(AV({})), true);
+  eq('vários dias também', R.ausenciaLonga(AV({fim:'2099-01-01'})), true);
+  eq('umas horas do dia, não', R.ausenciaLonga(AV({horaIni:'14:00',horaFim:'16:00'})), false);
+}
+{
+  /* férias na escala: sai da fila sozinha */
+  let e = base('idas');
+  /* a Ialey está 2 atrás: a fila NÃO está zerada, então a volta vai ter de esperar */
+  e.pessoas.ialey.idas = 6; e.pessoas.michelly.idas = 8; e.pessoas.natalia.idas = 8;
+  const r = R.sincronizarAusencias(e, [AV({tipo:'ferias', rotulo:'férias'})], AS(9));
+  eq('o painel mexeu no estado', r.mudou, true);
+  eq('ela entra como afastada', R.afastada(r.estado.pessoas.natalia), 'ferias');
+  eq('e sai da fila', R.elegiveis(r.estado.pessoas), ['ialey','michelly']);
+  eq('marcado como automático, para poder devolver depois',
+     [r.estado.pessoas.natalia.auto.id, r.estado.pessoas.natalia.auto.campo], ['a1','afast']);
+  eq('rodar de novo não muda nada', R.sincronizarAusencias(r.estado, [AV({})], AS(10)).mudou, false);
+
+  /* acabaram as férias: some o aviso */
+  const v = R.sincronizarAusencias(r.estado, [], AS(9));
+  eq('sem aviso, ela volta', R.afastada(v.estado.pessoas.natalia), null);
+  eq('mas esperando a fila zerar, como manda a regra', v.estado.pessoas.natalia.esperando, true);
+  eq('e a marca de automático sai', v.estado.pessoas.natalia.auto, null);
+}
+{
+  /* aviso de algumas horas: é como o almoço, não tira da fila de vez */
+  let e = base('idas');
+  const a = AV({id:'a2', horaIni:'14:00', horaFim:'16:00', tipo:'atestado'});
+  const r = R.sincronizarAusencias(e, [a], AS(14,30));
+  eq('às 14h30 ela não está na loja', r.estado.pessoas.natalia.presente, false);
+  eq('e não foi marcada como afastada', R.afastada(r.estado.pessoas.natalia), null);
+  eq('o painel guarda que foi ele quem tirou', r.estado.pessoas.natalia.auto.campo, 'presente');
+  const v = R.sincronizarAusencias(r.estado, [a], AS(16,5));
+  eq('às 16h ela volta sozinha', v.estado.pessoas.natalia.presente, true);
+  eq('sem esperar fila nenhuma — foram duas horas', v.estado.pessoas.natalia.esperando, undefined);
+}
+{
+  /* a mão manda: desfazer na tela não é desfeito pelo automático no minuto seguinte */
+  let e = base('idas');
+  const a = AV({id:'a3'});
+  let r = R.sincronizarAusencias(e, [a], AS(9)).estado;
+  r.pessoas.natalia.afast = null;                       /* a gestora desfez na tela */
+  r.pessoas.natalia.auto = { id:'a3', campo:null };     /* e a tela anotou */
+  const dep = R.sincronizarAusencias(r, [a], AS(10));
+  eq('o automático não marca de novo', R.afastada(dep.estado.pessoas.natalia), null);
+  eq('e nem se diz que mudou algo', dep.mudou, false);
+}
+{
+  /* dois avisos ao mesmo tempo: férias ganha de "saio às 14h" */
+  let e = base('idas');
+  const curto = AV({id:'c', horaIni:'14:00', horaFim:'16:00', tipo:'atestado'});
+  const longo = AV({id:'l', tipo:'ferias'});
+  eq('o de dia inteiro vale', R.avisoAtivo([curto,longo],'natalia',AS(14,30)).id, 'l');
+  const r = R.sincronizarAusencias(e, [curto,longo], AS(14,30));
+  eq('e é ele que sai na tela', R.afastada(r.estado.pessoas.natalia), 'ferias');
+}
+{
+  /* aviso de quem não é da equipe da porta não faz nada */
+  let e = base('idas');
+  const r = R.sincronizarAusencias(e, [AV({chave:'yuri'})], AS(9));
+  eq('ninguém da vez foi tocado', r.mudou, false);
+}
+{
+  /* a vez sai de quem a escala tirou */
+  let e = base('idas');
+  e.daVez = 'natalia';
+  const r = R.sincronizarAusencias(e, [AV({})], AS(9));
+  eq('a vez passa para quem está na loja', r.estado.daVez !== 'natalia', true);
+}
+
 console.log(`\nresultado final: ${ok} ok, ${falhou} falha(s)`);
 process.exit(falhou ? 1 : 0);

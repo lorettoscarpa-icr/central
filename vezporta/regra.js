@@ -20,6 +20,10 @@
      Os três se comportam igual na fila; o tipo existe para a tela dizer o motivo e
      para o histórico registrar por que a pessoa saiu.                              */
   var AFASTAMENTOS = { ferias: 'férias', folga: 'folga', atestado: 'atestado' };
+  /* A escala da equipe também manda 'ausente' (falta sem motivo declarado). Ele não
+     entra em AFASTAMENTOS porque aquele mapa é a lista de botões da folha — o que a
+     gestão marca na mão continua sendo férias, folga ou atestado. */
+  var ROTULOS = { ferias: 'férias', folga: 'folga', atestado: 'atestado', ausente: 'ausência' };
 
   function afastada(p) {
     /* p.ferias é a forma antiga, booleana. Fica reconhecida para não perder estado
@@ -245,6 +249,108 @@
     return ordem;
   }
 
+  /* ===== Ausência vinda da escala da equipe =====================================
+
+     A loja já avisa a ausência em dois lugares: a supervisora publica a escala do mês
+     e a própria vendedora lança "saio às 14h" em Comunicados e Tarefas. Marcar de novo
+     aqui era trabalho dobrado — e, na correria, ninguém marca: a fila continuava
+     chamando quem não está na loja.
+
+     Estas funções são puras. Quem lê o banco é o painel; aqui entra só a lista de
+     avisos já resolvida para as pessoas da equipe:
+        { id, chave, tipo, inicio:'AAAA-MM-DD', fim, horaIni:'14:00', horaFim } */
+
+  function diaDe(ts) {
+    var d = new Date(ts);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function horaDe(ts) {
+    var d = new Date(ts);
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+
+  /* O aviso está valendo NESTE instante? A hora só conta na ponta a que ela pertence:
+     horaIni é quando ela sai, no primeiro dia; horaFim é quando ela volta, no último. */
+  function avisoValendo(a, agora) {
+    var hoje = diaDe(agora), hora = horaDe(agora);
+    if (!a || !a.inicio) return false;
+    var fim = a.fim || a.inicio;
+    if (hoje < a.inicio || hoje > fim) return false;
+    if (hoje === a.inicio && a.horaIni && hora < a.horaIni) return false;
+    if (hoje === fim && a.horaFim && hora >= a.horaFim) return false;
+    return true;
+  }
+
+  /* Ausência de dia inteiro (ou mais) sai da fila de vez: na volta espera a fila zerar.
+     Ausência de umas horas é como o almoço — ela só não está na loja agora, e emparelha
+     quando voltar. Confundir as duas seria punir quem foi ao dentista à tarde. */
+  function ausenciaLonga(a) {
+    if ((a.fim || a.inicio) !== a.inicio) return true;      /* mais de um dia */
+    return !a.horaIni && !a.horaFim;                        /* o dia todo */
+  }
+
+  /* O aviso que está valendo para uma pessoa agora. Havendo mais de um, o de dia
+     inteiro ganha do de algumas horas — quem está de férias não está "só saindo". */
+  function avisoAtivo(avisos, chave, agora) {
+    var dela = (avisos || []).filter(function (a) { return a.chave === chave && avisoValendo(a, agora); });
+    if (!dela.length) return null;
+    dela.sort(function (x, y) { return (ausenciaLonga(y) ? 1 : 0) - (ausenciaLonga(x) ? 1 : 0); });
+    return dela[0];
+  }
+
+  /* Aplica os avisos ao estado da vez e devolve { estado, mudou }.
+
+     p.auto guarda qual aviso já foi tratado nesta pessoa:
+       {id, campo:'afast'|'presente'}  -> foi este painel que tirou ela, e é ele que
+                                          devolve quando o aviso acabar;
+       {id, campo:null}               -> alguém desfez na mão. O aviso fica anotado
+                                          como tratado para não voltar a valer sozinho
+                                          no minuto seguinte.
+     Sem isso, o automático e a mão brigariam a cada repintura de tela.               */
+  function sincronizarAusencias(estado, avisos, agora) {
+    agora = agora || Date.now();
+    var novo = JSON.parse(JSON.stringify(estado));
+    var mudou = false;
+
+    Object.keys(novo.pessoas).forEach(function (k) {
+      var p = novo.pessoas[k];
+      var a = avisoAtivo(avisos, k, agora);
+
+      if (a) {
+        if (p.auto && p.auto.id === a.id) return;           /* já tratado */
+        if (ausenciaLonga(a)) {
+          /* o tipo é normalizado aqui: a escala manda 'ausente', e o que vier de fora
+             do mapa vira 'ausente' também, para a tela nunca escrever "de undefined" */
+          p.afast = ROTULOS[a.tipo] ? a.tipo : 'ausente';
+          p.esperando = false;                              /* fora da fila, não esperando */
+          delete p.ferias;
+          p.auto = { id: a.id, campo: 'afast' };
+        } else {
+          p.presente = false;
+          p.auto = { id: a.id, campo: 'presente' };
+        }
+        p.autoOrigem = a.origem || 'escala';
+        mudou = true;
+        return;
+      }
+
+      if (p.auto) {                                          /* o aviso acabou */
+        if (p.auto.campo === 'afast') {
+          novo = voltou(novo, k);                            /* volta esperando a fila zerar */
+          p = novo.pessoas[k];
+        } else if (p.auto.campo === 'presente') {
+          p.presente = true;
+        }
+        p.auto = null;
+        delete p.autoOrigem;
+        mudou = true;
+      }
+    });
+
+    if (mudou) novo = revalidar(novo);
+    return { estado: novo, mudou: mudou };
+  }
+
   /* Taxa de conversão de uma pessoa: de cada 10 idas à porta, quantas viraram venda.
      Sem ida nenhuma devolve null — 0% seria mentira sobre quem ainda não atendeu.   */
   function conversao(p) {
@@ -286,7 +392,9 @@
               conversao: conversao, desequilibrio: desequilibrio, resumoPorDia: resumoPorDia,
               conta: conta, voltou: voltou, liberar: liberar,
               filaZerada: filaZerada, faltaParaZerar: faltaParaZerar, nivelDaFila: nivelDaFila,
-              afastada: afastada, AFASTAMENTOS: AFASTAMENTOS };
+              afastada: afastada, AFASTAMENTOS: AFASTAMENTOS, ROTULOS: ROTULOS,
+              sincronizarAusencias: sincronizarAusencias, avisoAtivo: avisoAtivo,
+              avisoValendo: avisoValendo, ausenciaLonga: ausenciaLonga };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.VezRegra = api;
 })(typeof window !== 'undefined' ? window : this);
