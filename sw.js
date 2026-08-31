@@ -1,10 +1,11 @@
 // Loretto Scarpa · Service Worker
 // Estratégia: cache-first para o shell do hub, network-first para tudo o resto.
 
-const CACHE = 'loretto-central-v13';
+const CACHE = 'loretto-central-v14';
 const SHELL = [
   './',
   './index.html',
+  './fotos.js',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png'
