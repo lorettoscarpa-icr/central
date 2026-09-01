@@ -691,18 +691,23 @@
      saber a idade de ninguém para desejar feliz aniversário.
 
      Quem estiver com a data em branco simplesmente não aparece — e, com todas em
-     branco, o bloco inteiro some da tela. É só preencher aqui. */
+     branco, o bloco inteiro some da tela.
+
+     As datas vieram do cadastro do painel de RH, onde já estavam. Não são lidas de lá em
+     tempo real de propósito: as coleções do RH guardam CPF, salário e atestado, e a
+     regra do Firestore as fecha para a equipe — com razão. Dia e mês do aniversário não
+     são dado sensível, e é só o que a Central precisa para desejar parabéns.          */
   const NIVERS={
-    'lorettoscarpa@gmail.com'         :'',
-    'larissalorettoscarpa@gmail.com'  :'',
-    'jhenniferlorettoscarpa@gmail.com':'',
-    'ialeylorettoscarpa@gmail.com'    :'',
-    'michellylorettoscarpa@gmail.com' :'',
-    'natalialorettoscarpa@gmail.com'  :'',
-    'yurilorettoscarpa@gmail.com'     :'',
-    'edsonlorettoscarpa@gmail.com'    :'',
-    'gustavolorettoscarpa@gmail.com'  :'',
-    'lorraynelorettoscarpa@gmail.com' :''
+    'lorettoscarpa@gmail.com'         :'',        /* falta */
+    'larissalorettoscarpa@gmail.com'  :'',        /* falta */
+    'jhenniferlorettoscarpa@gmail.com':'09-20',
+    'ialeylorettoscarpa@gmail.com'    :'03-21',
+    'michellylorettoscarpa@gmail.com' :'04-27',
+    'natalialorettoscarpa@gmail.com'  :'11-11',
+    'yurilorettoscarpa@gmail.com'     :'10-25',
+    'edsonlorettoscarpa@gmail.com'    :'11-10',
+    'gustavolorettoscarpa@gmail.com'  :'10-01',
+    'lorraynelorettoscarpa@gmail.com' :'12-03'
   };
   /* ===== ÁREAS — cada área e seus painéis (edite à vontade) ===== */
   const AREAS={
