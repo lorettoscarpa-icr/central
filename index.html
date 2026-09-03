@@ -259,6 +259,11 @@
 .rt-selo.extra{color:#6fa8c9;border:1px solid #6fa8c9;}
 .rt-selo.movido{color:#8fb35c;border:1px solid #8fb35c;}
 .rt-vazio{color:var(--creme-suave);font-size:11px;font-style:italic;padding:6px 2px;text-align:center;opacity:.7;}
+.rt-av{margin-top:14px;background:var(--sidebar);border:1px solid var(--linha-fraca);border-radius:2px;padding:12px 14px;}
+.rt-av-t{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--creme-suave);margin-bottom:10px;}
+.rt-av-g{display:flex;gap:8px;flex-wrap:wrap;}
+.rt-av-c{background:rgba(0,0,0,.18);border:1px solid var(--linha-fraca);border-left:2px solid #6fa8c9;border-radius:2px;padding:8px 10px;max-width:340px;}
+.rt-av-f{font-family:'DM Mono',monospace;font-size:7.5px;letter-spacing:1px;text-transform:uppercase;color:#6fa8c9;margin-bottom:4px;}
 .rt-nota{margin-top:20px;border-top:1px solid var(--linha-fraca);padding-top:12px;font-size:12px;color:var(--creme-suave);line-height:1.65;}
 .rt-nota b{color:var(--creme);font-weight:500;}
 @media(max-width:900px){ .rt-semana{grid-template-columns:repeat(3,1fr);} }
@@ -575,6 +580,7 @@
             <div class="rt-pessoas" id="rtPessoas" style="display:none"></div>
             <div id="rtHoje"></div>
             <div class="rt-semana" id="rtGrade"></div>
+            <div id="rtAvulsas"></div>
             <div class="rt-nota" id="rtNota"></div>
           </div>
         </div>
@@ -1850,6 +1856,9 @@
   const ROT_DOW=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   const ROT_DIA_EXT=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
   const ROT_TURNO={dia:'Durante o dia',manha:'Manhã',tarde:'Tarde'};
+  /* atividade sem dia certo (mensal, semanal solta, conforme necessidade): não cabe
+     em coluna de dia — numa segunda apareceria TODA segunda, que é o oposto do que é */
+  const ROT_FREQ={mensal:'1x por mês',semanal:'1x por semana',necessidade:'Conforme necessidade'};
   const ROT_ORD={manha:0,dia:1,tarde:2};
 
   let _itens=[], _quem=null, _unsub=null, _erro='';
@@ -1931,7 +1940,8 @@
       if(lista.length>1){
         ps.style.display='';
         ps.innerHTML=lista.map(n=>{
-          const qtd=dias.reduce((t,x)=>t+x.itens.filter(i=>i.pessoa===n).length,0);
+          const qtd=dias.reduce((t,x)=>t+x.itens.filter(i=>i.pessoa===n).length,0)
+                   +_itens.filter(i=>i.tipo==='avulsa'&&i.pessoa===n).length;
           return `<button class="rt-p${n===_quem?' on':''}" onclick="rotQuem('${esc(n)}')">`
             +`<span class="rt-p-av">${fotoDe(n)}</span><span>${esc(n)}</span>`
             +`<span class="rt-p-q">${qtd}</span></button>`;
@@ -1981,6 +1991,17 @@
       }).join('');
     }
 
+    const av=document.getElementById('rtAvulsas');
+    if(av){
+      const soltas=_quem?_itens.filter(i=>i.tipo==='avulsa'&&i.pessoa===_quem):[];
+      av.innerHTML=soltas.length
+        ? '<div class="rt-av"><div class="rt-av-t">Sem dia certo</div><div class="rt-av-g">'
+          +soltas.map(i=>`<div class="rt-av-c"><div class="rt-av-f">${esc(ROT_FREQ[i.freq]||'Conforme necessidade')}</div>`
+            +`<div class="rt-txt">${esc(i.texto)}</div></div>`).join('')
+          +'</div></div>'
+        : '';
+    }
+
     const nota=document.getElementById('rtNota');
     /* quem MONTA a rotina não precisa ouvir "fale com a Jhennifer" — ela é a Jhennifer */
     const fim=vePelaEquipe()
@@ -1991,6 +2012,8 @@
       +'<b>“só hoje”</b> é atividade provisória: vale nessa data e some depois. '
       +'<b>“cobrindo Fulano”</b> é quando você pegou a atividade de alguém naquele dia — no dia seguinte volta pro dono.<br>'
       +'<b>📦</b> marca dia de chegada de sapato: o roteiro do dia muda inteiro.<br>'
+      +'<b>“Sem dia certo”</b>, embaixo da semana, é o que não tem dia marcado: '
+      +'1x por mês, 1x por semana ou conforme a necessidade.<br>'
       +fim;
   }
 
