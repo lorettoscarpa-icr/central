@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v25">
+<meta name="app-ver" content="v26">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -88,13 +88,18 @@
 
   /* ===== contagem ===== */
   .sec{font-size:11.5px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:600;margin:22px 0 9px}
-  /* Com idas, vendas E conversão a linha não cabe em 390px: os números subiam por cima
-     do nome. Duas linhas — quem é em cima, quanto embaixo. */
-  .pessoa{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(0,0,0,.16);
+  /* Os números moram na coluna do nome, logo abaixo dele. Já ocuparam uma faixa
+     própria, com divisória, embaixo do cartão — três números grandes numa faixa só
+     deles faziam cada pessoa ocupar meia tela, e a lista das quatro não cabia junta.
+     Aqui eles são uma linha de leitura ("4 idas · 4 vendas · 100%"), do tamanho do
+     dado que são, e o cartão inteiro voltou a caber em duas linhas. */
+  .pessoa{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;background:rgba(0,0,0,.16);
     border:1px solid var(--linha);border-radius:11px;padding:11px 13px;margin-bottom:7px}
-  .pessoa .av{order:1} .pessoa .pn{order:2} .pessoa .tog{order:3}
-  .pessoa .nums{order:4;width:100%;justify-content:flex-start;gap:22px;
-    padding-top:9px;margin-top:2px;border-top:1px solid rgba(241,237,225,.08)}
+  /* Os botões ficam na linha do nome quando cabem — é o caso da vendedora, que só tem
+     "na loja". Na tela da gestão são três, e aí não cabem ao lado dos números em 390px:
+     o próprio flex-wrap manda eles para a linha de baixo, inteiros, em vez de espremer
+     o nome até os números quebrarem em três linhas. */
+  .acoes{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
   .pessoa.fora{opacity:.45}
   .pessoa.afastada{opacity:.5;border-style:dashed}
   .tog.afast{border-color:var(--alerta);color:var(--alerta)}
@@ -112,13 +117,15 @@
   .av .cam{position:absolute;right:-1px;bottom:-1px;width:15px;height:15px;border-radius:50%;
     background:var(--verde-noite);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center}
   .av .cam svg{width:8px;height:8px;stroke:var(--gold);fill:none;stroke-width:2.2}
-  .pn{flex:1;min-width:64px}
+  .pn{flex:1 1 152px;min-width:152px}
   .pn b{font-size:15px;font-weight:600;display:block}
-  .pn small{font-size:11.5px;color:var(--creme-suave)}
-  .nums{display:flex;gap:14px;text-align:center;flex:none}
-  .num{min-width:44px}
-  .num b{display:block;font-family:'Playfair Display',serif;font-size:20px;line-height:1}
-  .num small{font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--creme-suave)}
+  .pn .motivo{font-size:11.5px;color:var(--creme-suave);display:block}
+  .nums{display:flex;flex-wrap:wrap;gap:2px 13px;margin-top:3px}
+  /* separador entre um número e o próximo, só entre eles */
+  .num+.num::before{content:'·';color:var(--creme-suave);opacity:.5;margin-right:9px}
+  .num{display:inline-flex;align-items:baseline;gap:4px;white-space:nowrap}
+  .num b{font-family:'Playfair Display',serif;font-size:16px;line-height:1;color:var(--creme)}
+  .num small{font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:var(--creme-suave)}
   .num.governa b{color:var(--gold-claro)}
   .tog{border:1px solid var(--linha);background:transparent;color:var(--creme-suave);border-radius:9px;
     padding:7px 9px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;flex:none}
@@ -128,6 +135,9 @@
     color:var(--creme-suave);line-height:1.55;margin-top:8px}
   .hist{font-size:12.5px;color:var(--creme-suave);line-height:1.7}
   .hist div{padding:5px 0;border-bottom:1px solid rgba(241,237,225,.07)}
+  .hist .dia-sep{border-bottom:none;padding:13px 0 3px;font-size:10px;letter-spacing:1.8px;
+    text-transform:uppercase;color:var(--gold);opacity:.8;font-weight:600}
+  .hist .dia-sep:first-child{padding-top:0}
   .hist b{color:var(--creme);font-weight:600}
   .hist .por{display:block;font-size:11px;color:var(--alerta);opacity:.85}
   .hist .por.desf{color:var(--creme-suave)}
@@ -224,7 +234,7 @@
     border:1px solid var(--gold);color:var(--creme);padding:11px 18px;border-radius:99px;font-size:13.5px;
     opacity:0;pointer-events:none;transition:.2s;z-index:9}
   .msg.on{opacity:1}
-  @media(max-width:420px){ .vez .nome{font-size:31px} .nums{gap:10px} }
+  @media(max-width:420px){ .vez .nome{font-size:31px} .nums{gap:2px 9px} .num+.num::before{margin-right:5px} }
 </style>
 </head>
 <body>
@@ -275,7 +285,7 @@
   <div id="resumo" class="soGestor"></div>
 
   <div class="sec">Últimos registros</div>
-  <div class="dica" style="text-align:left;margin:-4px 0 8px">Quem marcou, o que marcou, em que dia e a que horas — inclusive quando foi a supervisora ou a diretoria que mexeu.</div>
+  <div class="dica" style="text-align:left;margin:-4px 0 8px">Separado por dia: quem marcou, o que marcou e a que horas — inclusive quando foi a supervisora ou a diretoria que mexeu.</div>
   <div class="hist" id="hist">—</div>
 </div>
 <div class="msg" id="msg"></div>
@@ -487,18 +497,20 @@ function pintar(){
     const daEscala = p.autoOrigem ? ' · pela escala' : '';
     const motivo = af ? ('de ' + rotuloAfast(p) + daEscala) :
                    p.esperando ? ('esperando a fila zerar' + (falta ? ' · faltam '+falta : '')) :
-                   (!p.participa ? 'fora do revezamento' : (!p.presente ? 'ausente agora'+daEscala : '&nbsp;'));
+                   (!p.participa ? 'fora do revezamento' : (!p.presente ? 'ausente agora'+daEscala : ''));
     return `<div class="pessoa ${fora?'fora':''} ${af||p.esperando?'afastada':''} ${estado.daVez===k?'davez':''}">
       <button class="av ${podeMarcar(k)?'':'travada'}" title="${podeMarcar(k)?'Trocar a foto de '+esc(p.nome):'A foto é de quem está nela'}" onclick="escolherFoto('${k}')">${fotoOuInicial(p)}<span class="cam"><svg viewBox="0 0 24 24"><path d="M3 8h4l2-2h6l2 2h4v12H3z"/><circle cx="12" cy="13" r="3.2"/></svg></span></button>
-      <span class="pn"><b>${esc(p.nome)}</b><small>${motivo}</small></span>
-      <span class="nums">
-        <span class="num ${crit==='idas'?'governa':''}"><b>${p.idas||0}</b><small>idas</small></span>
-        <span class="num ${crit==='vendas'?'governa':''}"><b>${p.vendas||0}</b><small>vendas</small></span>
-        <span class="num"><b class="conv">${VezRegra.conversao(p)===null?'—':VezRegra.conversao(p)+'%'}</b><small>conv.</small></span>
+      <span class="pn"><b>${esc(p.nome)}</b>${motivo?`<small class="motivo">${motivo}</small>`:''}
+        <span class="nums">
+          <span class="num ${crit==='idas'?'governa':''}"><b>${p.idas||0}</b><small>idas</small></span>
+          <span class="num ${crit==='vendas'?'governa':''}"><b>${p.vendas||0}</b><small>vendas</small></span>
+          <span class="num"><b class="conv">${VezRegra.conversao(p)===null?'—':VezRegra.conversao(p)+'%'}</b><small>conv.</small></span>
+        </span></span>
+      <span class="acoes">
+        <button class="tog ${p.presente?'on':''}" ${podeMarcar(k)?'':'disabled'} onclick="alternar('${k}','presente')">${p.presente?'na loja':'ausente'}</button>
+        ${souGestor ? `<button class="tog ${af||p.esperando?'afast':''}" onclick="pedirAfastamento('${k}')">${af?rotuloAfast(p):(p.esperando?'esperando':'ausência')}</button>` : ''}
+        ${souGestor ? `<button class="tog ${p.participa?'on':''}" onclick="alternar('${k}','participa')">${p.participa?'na vez':'fora'}</button>` : ''}
       </span>
-      <button class="tog ${p.presente?'on':''}" ${podeMarcar(k)?'':'disabled'} onclick="alternar('${k}','presente')">${p.presente?'na loja':'ausente'}</button>
-      ${souGestor ? `<button class="tog ${af||p.esperando?'afast':''}" onclick="pedirAfastamento('${k}')">${af?rotuloAfast(p):(p.esperando?'esperando':'ausência')}</button>` : ''}
-      ${souGestor ? `<button class="tog ${p.participa?'on':''}" onclick="alternar('${k}','participa')">${p.participa?'na vez':'fora'}</button>` : ''}
     </div>`;
   }).join('');
 
@@ -515,12 +527,19 @@ function pintar(){
   /* o resumo é só para gestão — e nem calcula quando não vai aparecer */
   if(souGestor) desenharResumo();
 
-  $('hist').innerHTML = historico.length ? historico.slice(0,14).map(h=>{
+  let diaNaLista=null;
+  /* A faixa de dia só fecha certo com a lista em ordem: fora de ordem, o mesmo dia
+     abriria faixa duas vezes e a tela pareceria quebrada. O banco já entrega ordenado,
+     mas ordenar aqui não custa nada e tira a tela de depender disso. */
+  $('hist').innerHTML = historico.length ? historico.slice(0,14).sort((a,b)=>(b.quando||0)-(a.quando||0)).map(h=>{
+    /* abre faixa quando o dia vira — e nenhuma para dia que não tem registro */
+    let faixa='';
+    if(!diaNaLista || !mesmoDia(h.quando,diaNaLista)){ diaNaLista=h.quando; faixa=`<div class="dia-sep">${faixaDeDia(h.quando)}</div>`; }
     /* anotação de mudança de estado: não é atendimento, e não se parece com um */
     if(h.tipo === 'evento'){
       const porQuem = h.registradoPor && h.registradoPor !== h.email
         ? `<span class="por">por ${esc(nomeDe(h.registradoPor))} às ${hhmm(h.quando)}</span>` : '';
-      return `<div class="ev"><b>${esc(h.nome||'')}</b> <i>${esc(h.evento||'')}</i> <small>${dataHora(h.quando)}</small>${porQuem}</div>`;
+      return faixa+`<div class="ev"><b>${esc(h.nome||'')}</b> <i>${esc(h.evento||'')}</i> <small>${hhmm(h.quando)}</small>${porQuem}</div>`;
     }
     const t = h.desfecho==='venda' ? '<span class="tag t-venda">vendeu</span>'
             : h.desfecho==='troca' ? '<span class="tag t-troca">troca</span>'
@@ -533,7 +552,7 @@ function pintar(){
     const qdoDesf = h.desfeitoEm ? (mesmoDia(h.desfeitoEm,h.quando) ? ' às '+hhmm(h.desfeitoEm) : ' em '+dataHora(h.desfeitoEm)) : '';
     const desfeito = h.desfeito
       ? `<span class="por desf">desfeito${h.desfeitoPor?' por '+esc(nomeDe(h.desfeitoPor)):''}${qdoDesf}</span>` : '';
-    return `<div class="${h.desfeito?'foi-desfeito':''}"><b>${esc(h.nome)}</b>${t} <small>${dataHora(h.quando)}</small>${porOutra}${desfeito}</div>`;
+    return faixa+`<div class="${h.desfeito?'foi-desfeito':''}"><b>${esc(h.nome)}</b>${t} <small>${hhmm(h.quando)}</small>${porOutra}${desfeito}</div>`;
   }).join('') : '<div>Nada registrado ainda.</div>';
 }
 /* A escala manda 'ausente' além de férias/folga/atestado, e o aviso da equipe pode
@@ -550,10 +569,21 @@ const NOMES_FORA = {
 const hhmm = ts => new Date(ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 /* A lista guarda os últimos 14 registros, e num dia parado isso alcança a semana
    passada. Só a hora não dizia de que dia era a linha — "às 14:20" tanto podia ser
-   de hoje quanto de terça. */
+   de hoje quanto de terça. Quem responde isso agora é a faixa de dia; a linha volta
+   a ser só a hora, que é o que muda de uma para a outra dentro do mesmo dia. */
 const ddmm = ts => new Date(ts).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
 const dataHora = ts => ddmm(ts)+' às '+hhmm(ts);
 const mesmoDia = (a,b) => new Date(a).toDateString() === new Date(b).toDateString();
+/* "Hoje" e "Ontem" são como a pessoa pensa no dia; de anteontem pra trás o dia da
+   semana ajuda mais que o número solto — "sáb, 31/08" situa, "31/08" faz contar. */
+function faixaDeDia(ts){
+  const hoje=new Date(), d=new Date(ts);
+  if(mesmoDia(ts,hoje)) return 'Hoje';
+  const ontem=new Date(hoje); ontem.setDate(hoje.getDate()-1);
+  if(mesmoDia(ts,ontem)) return 'Ontem';
+  const sem=d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','');
+  return sem+', '+ddmm(ts);
+}
 function nomeDe(email){
   const e = (email||'').toLowerCase();
   const p = EQUIPE.find(x=>x.email===e); if(p) return p.nome;
