@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v26">
+<meta name="app-ver" content="v27">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -134,7 +134,16 @@
   .aviso{border:1px dashed var(--linha);border-radius:11px;padding:11px 13px;font-size:12.5px;
     color:var(--creme-suave);line-height:1.55;margin-top:8px}
   .hist{font-size:12.5px;color:var(--creme-suave);line-height:1.7}
-  .hist div{padding:5px 0;border-bottom:1px solid rgba(241,237,225,.07)}
+  /* foto na frente do nome: numa lista de quatro pessoas parecidas, o rosto acha a
+     linha antes de a leitura chegar no nome. Flex para o que vem depois (o "marcado
+     por", o "desfeito por") alinhar embaixo do nome, e não embaixo da foto. */
+  .hist div{padding:5px 0;border-bottom:1px solid rgba(241,237,225,.07);display:flex;gap:8px;align-items:flex-start}
+  .hist .h-txt{flex:1;min-width:0}
+  .h-av{width:26px;height:26px;border-radius:50%;flex:none;overflow:hidden;margin-top:1px;
+    border:1px solid var(--linha);background:rgba(0,0,0,.25);display:flex;align-items:center;
+    justify-content:center;font-family:'Playfair Display',serif;font-size:12px;color:var(--gold)}
+  .h-av img{width:100%;height:100%;object-fit:cover;display:block}
+  .foi-desfeito .h-av{opacity:.5}
   .hist .dia-sep{border-bottom:none;padding:13px 0 3px;font-size:10px;letter-spacing:1.8px;
     text-transform:uppercase;color:var(--gold);opacity:.8;font-weight:600}
   .hist .dia-sep:first-child{padding-top:0}
@@ -539,7 +548,7 @@ function pintar(){
     if(h.tipo === 'evento'){
       const porQuem = h.registradoPor && h.registradoPor !== h.email
         ? `<span class="por">por ${esc(nomeDe(h.registradoPor))} às ${hhmm(h.quando)}</span>` : '';
-      return faixa+`<div class="ev"><b>${esc(h.nome||'')}</b> <i>${esc(h.evento||'')}</i> <small>${hhmm(h.quando)}</small>${porQuem}</div>`;
+      return faixa+`<div class="ev">${avatarPorNome(h.nome,'h-av')}<span class="h-txt"><b>${esc(h.nome||'')}</b> <i>${esc(h.evento||'')}</i> <small>${hhmm(h.quando)}</small>${porQuem}</span></div>`;
     }
     const t = h.desfecho==='venda' ? '<span class="tag t-venda">vendeu</span>'
             : h.desfecho==='troca' ? '<span class="tag t-troca">troca</span>'
@@ -552,7 +561,7 @@ function pintar(){
     const qdoDesf = h.desfeitoEm ? (mesmoDia(h.desfeitoEm,h.quando) ? ' às '+hhmm(h.desfeitoEm) : ' em '+dataHora(h.desfeitoEm)) : '';
     const desfeito = h.desfeito
       ? `<span class="por desf">desfeito${h.desfeitoPor?' por '+esc(nomeDe(h.desfeitoPor)):''}${qdoDesf}</span>` : '';
-    return faixa+`<div class="${h.desfeito?'foi-desfeito':''}"><b>${esc(h.nome)}</b>${t} <small>${hhmm(h.quando)}</small>${porOutra}${desfeito}</div>`;
+    return faixa+`<div class="${h.desfeito?'foi-desfeito':''}">${avatarPorNome(h.nome,'h-av')}<span class="h-txt"><b>${esc(h.nome)}</b>${t} <small>${hhmm(h.quando)}</small>${porOutra}${desfeito}</span></div>`;
   }).join('') : '<div>Nada registrado ainda.</div>';
 }
 /* A escala manda 'ausente' além de férias/folga/atestado, e o aviso da equipe pode
@@ -984,10 +993,10 @@ function cartaoResumo(d, rotulo, sub, dias){
 
 /* o resumo vem do histórico, que guarda o NOME de quem atendeu — daí a foto sai por
    nome, e não pela chave do e-mail como no resto da tela */
-function avatarPorNome(nome){
+function avatarPorNome(nome, classe){
   const p = EQUIPE.find(x => x.nome === nome);
   const f = p ? fotoDaPessoa(p) : (window.FOTOS_DATA && window.FOTOS_DATA[nome]) || '';
-  return `<span class="av-r">${f ? `<img src="${f}" alt="">` : esc((nome||'?')[0])}</span>`;
+  return `<span class="${classe||'av-r'}">${f ? `<img src="${f}" alt="">` : esc((nome||'?')[0])}</span>`;
 }
 
 /* ---------- foto ----------
