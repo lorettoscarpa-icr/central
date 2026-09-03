@@ -184,6 +184,17 @@ service cloud.firestore {
                         || gestorOuSup());
     }
 
+    // ===== Rotina (ls_rotina) =====
+    // A rotina passou a ser lida por TODA a equipe na Central (aba Rotina), e não
+    // mais só pela supervisora. Ler tudo bem — é o que cada um tem pra fazer.
+    // Escrever, não: sem esta regra a coringa lá embaixo deixaria qualquer pessoa
+    // logada apagar ou reescrever a rotina de qualquer outra. Quem monta é quem
+    // manda: diretoria + Jhennifer.
+    match /ls_rotina/{document=**} {
+      allow read:  if logado();
+      allow write: if gestorOuSup();
+    }
+
     // ===== Comunicados e Tarefas (Central) — regra específica no servidor =====
     // Ler: qualquer logado. Criar/editar/apagar: só diretoria + Jhennifer.
     // Marcar "visto" (vistos) segue liberado pra todos, senão a confirmação de leitura quebra.
@@ -271,7 +282,7 @@ service cloud.firestore {
     // (mesmo motivo de 'ls_ausencias' estar aqui: sem isto qualquer logado
     // apagaria o aviso de ausência de qualquer outra pessoa)
     match /{coll}/{document=**} {
-      allow read, write: if !(coll in ['hub_config','ls_acessos','lancamentos','bancoHoras','documentosRH','ls_comunicados','ls_tarefas','catalogos_arquivos','ls_ausencias','ls_vez_hist'])
+      allow read, write: if !(coll in ['hub_config','ls_acessos','lancamentos','bancoHoras','documentosRH','ls_comunicados','ls_tarefas','catalogos_arquivos','ls_ausencias','ls_vez_hist','ls_rotina'])
         && request.auth != null
         && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
