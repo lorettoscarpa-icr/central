@@ -134,23 +134,25 @@
   /* A contagem é do DIA: a fila continua acumulando de um dia para o outro, mas o
      "quantas vezes eu fui hoje" tem de ser de hoje. As setas andam pelos dias como
      nas Metas e nas Entregas. */
-  .sec-dia{display:flex;align-items:center;justify-content:space-between;gap:10px}
-  .navdia{display:flex;align-items:center;gap:2px}
-  .setinha{background:transparent;border:1px solid var(--linha);color:var(--creme-suave);
-    border-radius:8px;width:28px;height:28px;font-size:16px;line-height:1;cursor:pointer;
-    font-family:'Barlow',sans-serif;padding:0}
-  .setinha:hover:not(:disabled){border-color:var(--gold);color:var(--creme)}
-  .setinha:disabled{opacity:.28;cursor:default}
-  .dia-atual{background:transparent;border:1px solid var(--linha);color:var(--creme);
-    border-radius:8px;padding:5px 11px;font-size:11.5px;font-weight:600;cursor:pointer;
-    font-family:'Barlow',sans-serif;letter-spacing:0;text-transform:none;min-width:96px}
-  .dia-atual:hover{border-color:var(--gold)}
-  .dia-atual.passado{border-color:var(--gold);color:var(--gold-claro)}
-  #dataDia{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
-  /* dia que já passou: a lista é só leitura, sem os botões de agora */
-  .voltar-hoje{display:block;width:100%;margin:0 0 8px;background:transparent;
-    border:1px dashed var(--gold);color:var(--gold-claro);border-radius:9px;padding:8px;
-    font-size:12px;cursor:pointer;font-family:'Barlow',sans-serif}
+  .navdia{display:flex;align-items:center;gap:8px;margin-bottom:10px;
+    background:rgba(0,0,0,.16);border:1px solid var(--linha);border-radius:11px;padding:7px 8px}
+  .navdia-bt{width:36px;height:36px;border-radius:9px;border:1px solid var(--linha);
+    background:transparent;color:var(--creme);font-size:20px;line-height:1;cursor:pointer;
+    font-family:'Barlow',sans-serif;padding:0;flex:none;transition:.15s}
+  .navdia-bt:hover:not(:disabled){border-color:var(--gold);color:var(--gold-claro)}
+  .navdia-bt:disabled{opacity:.28;cursor:default}
+  /* o input cobre o rótulo inteiro: o toque cai nele, e quem abre o calendário é o
+     próprio navegador — sem depender de showPicker(), que nem todo celular tem */
+  .navdia-meio{flex:1;position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer;min-height:36px}
+  .navdia-rot{font-family:'Playfair Display',serif;font-size:17px;font-weight:600;color:var(--creme);text-transform:capitalize}
+  .navdia-meio.passado .navdia-rot{color:var(--gold-claro)}
+  .navdia-meio #dataDia{position:absolute;inset:0;width:100%;height:100%;opacity:0;
+    cursor:pointer;border:none;padding:0;background:transparent;font-size:16px}
+  .navdia-hoje{height:36px;padding:0 13px;border-radius:9px;border:1px solid var(--linha);
+    background:transparent;color:var(--creme-suave);font-size:12px;font-weight:600;
+    cursor:pointer;font-family:'Barlow',sans-serif;flex:none;transition:.15s}
+  .navdia-hoje:hover{border-color:var(--gold);color:var(--creme)}
+  .navdia-hoje[hidden]{display:none}
   .num.acum b{color:var(--alerta)}
   .num.acum small{color:var(--alerta);opacity:.8}
   .aviso{border:1px dashed var(--linha);border-radius:11px;padding:11px 13px;font-size:12.5px;
@@ -298,14 +300,17 @@
 
   <div class="desnivel" id="desnivel"></div>
 
-  <div class="sec sec-dia">
-    <span>Contagem</span>
-    <span class="navdia">
-      <button class="setinha" onclick="mudarDia(-1)" title="Dia anterior">‹</button>
-      <button class="dia-atual" id="rotuloDia" onclick="$('dataDia').showPicker?$('dataDia').showPicker():$('dataDia').click()">hoje</button>
-      <input type="date" id="dataDia" onchange="irParaDia(this.value)">
-      <button class="setinha" id="setaFrente" onclick="mudarDia(1)" title="Dia seguinte">›</button>
-    </span>
+  <div class="sec">Contagem</div>
+  <!-- mesma barra de dia das Entregas: o campo de data fica transparente EM CIMA do
+       rótulo, então tocar no nome do dia abre o calendário do próprio celular -->
+  <div class="navdia">
+    <button class="navdia-bt" onclick="mudarDia(-1)" aria-label="Dia anterior">‹</button>
+    <div class="navdia-meio">
+      <span class="navdia-rot" id="rotuloDia">hoje</span>
+      <input type="date" id="dataDia" onchange="irParaDia(this.value)" aria-label="Escolher a data">
+    </div>
+    <button class="navdia-bt" id="setaFrente" onclick="mudarDia(1)" aria-label="Dia seguinte">›</button>
+    <button class="navdia-hoje" id="btHoje" onclick="voltarPraHoje()">Hoje</button>
   </div>
   <div id="lista"></div>
   <div class="aviso" id="explica"></div>
@@ -570,10 +575,11 @@ function pintar(){
   /* cabeçalho do dia */
   const noDia = contagemDoDia(), hojeMesmo = ehHoje();
   $('rotuloDia').textContent = rotuloDoDia();
-  $('rotuloDia').classList.toggle('passado', !hojeMesmo);
+  $('rotuloDia').parentNode.classList.toggle('passado', !hojeMesmo);
   $('dataDia').value = diaDaContagem();
-  $('dataDia').max = hojeISO();
+  $('dataDia').max = hojeISO();          /* o calendário nem oferece dia à frente */
   $('setaFrente').disabled = hojeMesmo;
+  $('btHoje').hidden = hojeMesmo;
 
   /* Quantas vezes a pessoa ainda vai ser chamada por causa do que ficou para trás.
      Saiu de dentro dos números do dia e virou um número próprio: misturado com as
@@ -581,9 +587,7 @@ function pintar(){
   const aptas = VezRegra.elegiveis(estado.pessoas);
   const teto = aptas.length ? Math.max.apply(null, aptas.map(e => VezRegra.conta(estado.pessoas[e], crit))) : 0;
 
-  $('lista').innerHTML = (hojeMesmo ? '' :
-      `<button class="voltar-hoje" onclick="voltarPraHoje()">Você está vendo ${rotuloDoDia()} — voltar para hoje</button>`)
-    + chaves.map(k=>{
+  $('lista').innerHTML = chaves.map(k=>{
     const p = estado.pessoas[k];
     const af = VezRegra.afastada(p);
     const fora = !p.participa || !p.presente || af || p.esperando;
