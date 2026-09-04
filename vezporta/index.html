@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v29">
+<meta name="app-ver" content="v30">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@300;400&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -20,7 +20,11 @@
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:'Barlow',sans-serif;color:var(--creme);min-height:100vh;
     background:radial-gradient(120% 80% at 50% 0%,var(--verde) 0%,var(--verde-fundo) 45%,var(--verde-escuro) 100%);
-    padding:18px 16px calc(28px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased}
+    padding:18px 16px calc(28px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased;
+    /* O Playfair vem com algarismo old-style de fábrica: o 0 fica baixinho, o 4 e o 7
+       descem abaixo da linha, e "4 idas · 100%" sai desalinhado. As Metas e as Entregas
+       já pedem o algarismo de altura única; aqui faltava, e era só isto. */
+    font-variant-numeric:lining-nums;font-feature-settings:"lnum" 1}
   .wrap{max-width:640px;margin:0 auto}
   h1{font-family:'Playfair Display',serif;font-size:23px;font-weight:700;color:var(--gold-claro)}
   .sub{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-top:2px;font-weight:600}
@@ -293,6 +297,20 @@
     opacity:0;pointer-events:none;transition:.2s;z-index:9}
   .msg.on{opacity:1}
   @media(max-width:420px){ .vez .nome{font-size:31px} .nums{gap:2px 9px} .num+.num::before{margin-right:5px} }
+
+  /* ── NÚMERO ──
+     O mesmo desenho das Metas: Cormorant Garamond leve, algarismo de altura única e
+     de largura fixa. O Playfair, que estava aqui, entrega old-style de fábrica — o 0
+     sai baixinho, o 4 desce abaixo da linha, e "4 idas · 100%" fica tropeçando.
+     Vem no fim da folha de propósito: assim vale sobre as regras de cada bloco, e o
+     número é o mesmo em toda a tela sem ter de repetir a fonte em cada uma delas. */
+  .num b, .num.acum b, .conv, .mes-n span i, .mes-conv, .dia-num b, .pes-conv{
+    font-family:'Cormorant Garamond',serif;font-weight:400;
+    font-variant-numeric:lining-nums tabular-nums}
+  .num b{font-size:19px}
+  .mes-n span i{font-size:16px}
+  .mes-conv,.pes-conv{font-size:16px}
+  .dia-num b{font-size:31px;font-weight:300}
 </style>
 </head>
 <body>
