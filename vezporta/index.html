@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v27">
+<meta name="app-ver" content="v28">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -131,6 +131,28 @@
     padding:7px 9px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;flex:none}
   .tog.on{border-color:var(--ok);color:var(--ok)}
 
+  /* A contagem é do DIA: a fila continua acumulando de um dia para o outro, mas o
+     "quantas vezes eu fui hoje" tem de ser de hoje. As setas andam pelos dias como
+     nas Metas e nas Entregas. */
+  .sec-dia{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .navdia{display:flex;align-items:center;gap:2px}
+  .setinha{background:transparent;border:1px solid var(--linha);color:var(--creme-suave);
+    border-radius:8px;width:28px;height:28px;font-size:16px;line-height:1;cursor:pointer;
+    font-family:'Barlow',sans-serif;padding:0}
+  .setinha:hover:not(:disabled){border-color:var(--gold);color:var(--creme)}
+  .setinha:disabled{opacity:.28;cursor:default}
+  .dia-atual{background:transparent;border:1px solid var(--linha);color:var(--creme);
+    border-radius:8px;padding:5px 11px;font-size:11.5px;font-weight:600;cursor:pointer;
+    font-family:'Barlow',sans-serif;letter-spacing:0;text-transform:none;min-width:96px}
+  .dia-atual:hover{border-color:var(--gold)}
+  .dia-atual.passado{border-color:var(--gold);color:var(--gold-claro)}
+  #dataDia{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+  /* dia que já passou: a lista é só leitura, sem os botões de agora */
+  .voltar-hoje{display:block;width:100%;margin:0 0 8px;background:transparent;
+    border:1px dashed var(--gold);color:var(--gold-claro);border-radius:9px;padding:8px;
+    font-size:12px;cursor:pointer;font-family:'Barlow',sans-serif}
+  .num.acum b{color:var(--alerta)}
+  .num.acum small{color:var(--alerta);opacity:.8}
   .aviso{border:1px dashed var(--linha);border-radius:11px;padding:11px 13px;font-size:12.5px;
     color:var(--creme-suave);line-height:1.55;margin-top:8px}
   .hist{font-size:12.5px;color:var(--creme-suave);line-height:1.7}
@@ -276,7 +298,15 @@
 
   <div class="desnivel" id="desnivel"></div>
 
-  <div class="sec">Contagem</div>
+  <div class="sec sec-dia">
+    <span>Contagem</span>
+    <span class="navdia">
+      <button class="setinha" onclick="mudarDia(-1)" title="Dia anterior">‹</button>
+      <button class="dia-atual" id="rotuloDia" onclick="$('dataDia').showPicker?$('dataDia').showPicker():$('dataDia').click()">hoje</button>
+      <input type="date" id="dataDia" onchange="irParaDia(this.value)">
+      <button class="setinha" id="setaFrente" onclick="mudarDia(1)" title="Dia seguinte">›</button>
+    </span>
+  </div>
   <div id="lista"></div>
   <div class="aviso" id="explica"></div>
 
@@ -395,6 +425,43 @@ function estadoInicial(){
   return { pessoas, daVez:null, criterio:'idas', atualizadoEm:Date.now() };
 }
 
+/* ---------- o dia da contagem ----------
+   A fila acumula de um dia para o outro — quem ficou duas vezes atrás ontem continua
+   duas atrás hoje, e é isso que decide de quem é a vez. Já a contagem embaixo responde
+   outra pergunta: "quantas vezes eu fui à porta HOJE, quantas vendi HOJE". Somar tudo
+   desde sempre nunca respondeu isso, e no fim do mês o número não dizia mais nada.
+
+   Então os dois convivem: a ordem da fila sai de estado.pessoas (acumulado), e os
+   números de cada cartão saem do histórico daquele dia. O que a pessoa tem acumulado
+   continua na tela, mas como o que é — vezes que ela ainda vai ser chamada —, e não
+   misturado com o que ela fez hoje.                                                  */
+let diaVisto = null;                       /* null = hoje, e vai virando sozinho */
+function isoDe(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function hojeISO(){ return isoDe(new Date()); }
+function diaDaContagem(){ return diaVisto || hojeISO(); }
+function ehHoje(){ return diaDaContagem() === hojeISO(); }
+function contagemDoDia(){
+  const d = VezRegra.resumoPorDia(historico).filter(x => x.dia === diaDaContagem())[0];
+  return d ? d.pessoas : {};
+}
+function rotuloDoDia(){
+  if(ehHoje()) return 'hoje';
+  const d = new Date(diaDaContagem()+'T12:00:00'), ontem = new Date(); ontem.setDate(ontem.getDate()-1);
+  if(isoDe(d) === isoDe(ontem)) return 'ontem';
+  return d.toLocaleDateString('pt-BR',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.','');
+}
+function irParaDia(iso){
+  if(!iso) return;
+  diaVisto = (iso >= hojeISO()) ? null : iso;   /* nunca à frente de hoje: não há o que contar */
+  pintar();
+}
+function mudarDia(passo){
+  const d = new Date(diaDaContagem()+'T12:00:00');
+  d.setDate(d.getDate()+passo);
+  irParaDia(isoDe(d));
+}
+function voltarPraHoje(){ diaVisto = null; pintar(); }
+
 /* ---------- desenho ---------- */
 /* A foto sai de dois lugares, nesta ordem:
    1. a que foi posta aqui pelo celular (estado.fotos, 128px, gravada no documento);
@@ -499,7 +566,24 @@ function pintar(){
     (estado.pessoas[a].participa?0:1) - (estado.pessoas[b].participa?0:1) ||
     estado.pessoas[a].nome.localeCompare(estado.pessoas[b].nome));
   const falta = VezRegra.faltaParaZerar(estado.pessoas, crit);
-  $('lista').innerHTML = chaves.map(k=>{
+
+  /* cabeçalho do dia */
+  const noDia = contagemDoDia(), hojeMesmo = ehHoje();
+  $('rotuloDia').textContent = rotuloDoDia();
+  $('rotuloDia').classList.toggle('passado', !hojeMesmo);
+  $('dataDia').value = diaDaContagem();
+  $('dataDia').max = hojeISO();
+  $('setaFrente').disabled = hojeMesmo;
+
+  /* Quantas vezes a pessoa ainda vai ser chamada por causa do que ficou para trás.
+     Saiu de dentro dos números do dia e virou um número próprio: misturado com as
+     idas de hoje, ele fazia a conta do dia parecer errada. */
+  const aptas = VezRegra.elegiveis(estado.pessoas);
+  const teto = aptas.length ? Math.max.apply(null, aptas.map(e => VezRegra.conta(estado.pessoas[e], crit))) : 0;
+
+  $('lista').innerHTML = (hojeMesmo ? '' :
+      `<button class="voltar-hoje" onclick="voltarPraHoje()">Você está vendo ${rotuloDoDia()} — voltar para hoje</button>`)
+    + chaves.map(k=>{
     const p = estado.pessoas[k];
     const af = VezRegra.afastada(p);
     const fora = !p.participa || !p.presente || af || p.esperando;
@@ -507,19 +591,27 @@ function pintar(){
     const motivo = af ? ('de ' + rotuloAfast(p) + daEscala) :
                    p.esperando ? ('esperando a fila zerar' + (falta ? ' · faltam '+falta : '')) :
                    (!p.participa ? 'fora do revezamento' : (!p.presente ? 'ausente agora'+daEscala : ''));
-    return `<div class="pessoa ${fora?'fora':''} ${af||p.esperando?'afastada':''} ${estado.daVez===k?'davez':''}">
-      <button class="av ${podeMarcar(k)?'':'travada'}" title="${podeMarcar(k)?'Trocar a foto de '+esc(p.nome):'A foto é de quem está nela'}" onclick="escolherFoto('${k}')">${fotoOuInicial(p)}<span class="cam"><svg viewBox="0 0 24 24"><path d="M3 8h4l2-2h6l2 2h4v12H3z"/><circle cx="12" cy="13" r="3.2"/></svg></span></button>
-      <span class="pn"><b>${esc(p.nome)}</b>${motivo?`<small class="motivo">${motivo}</small>`:''}
+    /* números do dia escolhido, e não o total desde sempre */
+    const dd = noDia[p.nome] || {idas:0, vendas:0};
+    const convDia = dd.idas ? Math.round(dd.vendas / dd.idas * 100) : null;
+    /* o que ela ainda tem para receber da fila — só faz sentido olhando para hoje */
+    const acum = (hojeMesmo && aptas.indexOf(k) >= 0) ? teto - VezRegra.conta(p, crit) : 0;
+    /* dia que já passou: presença, férias e "da vez" são estados de AGORA, e não
+       daquele dia — mostrá-los ali seria dizer que a pessoa estava assim naquele dia */
+    return `<div class="pessoa ${hojeMesmo&&fora?'fora':''} ${hojeMesmo&&(af||p.esperando)?'afastada':''} ${hojeMesmo&&estado.daVez===k?'davez':''}">
+      <button class="av ${podeMarcar(k)&&hojeMesmo?'':'travada'}" title="${podeMarcar(k)?'Trocar a foto de '+esc(p.nome):'A foto é de quem está nela'}" onclick="escolherFoto('${k}')">${fotoOuInicial(p)}<span class="cam"><svg viewBox="0 0 24 24"><path d="M3 8h4l2-2h6l2 2h4v12H3z"/><circle cx="12" cy="13" r="3.2"/></svg></span></button>
+      <span class="pn"><b>${esc(p.nome)}</b>${hojeMesmo&&motivo?`<small class="motivo">${motivo}</small>`:''}
         <span class="nums">
-          <span class="num ${crit==='idas'?'governa':''}"><b>${p.idas||0}</b><small>idas</small></span>
-          <span class="num ${crit==='vendas'?'governa':''}"><b>${p.vendas||0}</b><small>vendas</small></span>
-          <span class="num"><b class="conv">${VezRegra.conversao(p)===null?'—':VezRegra.conversao(p)+'%'}</b><small>conv.</small></span>
+          <span class="num ${crit==='idas'?'governa':''}"><b>${dd.idas}</b><small>idas</small></span>
+          <span class="num ${crit==='vendas'?'governa':''}"><b>${dd.vendas}</b><small>vendas</small></span>
+          <span class="num"><b class="conv">${convDia===null?'—':convDia+'%'}</b><small>conv.</small></span>
+          ${acum>0?`<span class="num acum" title="Vezes que ela ficou para trás e ainda vai ser chamada — vem de antes de hoje"><b>+${acum}</b><small>${acum===1?'acumulada':'acumuladas'}</small></span>`:''}
         </span></span>
-      <span class="acoes">
+      ${hojeMesmo?`<span class="acoes">
         <button class="tog ${p.presente?'on':''}" ${podeMarcar(k)?'':'disabled'} onclick="alternar('${k}','presente')">${p.presente?'na loja':'ausente'}</button>
         ${souGestor ? `<button class="tog ${af||p.esperando?'afast':''}" onclick="pedirAfastamento('${k}')">${af?rotuloAfast(p):(p.esperando?'esperando':'ausência')}</button>` : ''}
         ${souGestor ? `<button class="tog ${p.participa?'on':''}" onclick="alternar('${k}','participa')">${p.participa?'na vez':'fora'}</button>` : ''}
-      </span>
+      </span>`:''}
     </div>`;
   }).join('');
 
