@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v30">
+<meta name="app-ver" content="v31">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@300;400&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -157,7 +157,7 @@
   .navdia-rot{font-family:'Playfair Display',serif;font-size:20px;font-weight:600;color:var(--creme);
     text-transform:capitalize;line-height:1.15;text-align:center}
   /* diz que dá para tocar: sem isto ninguém descobre que o meio abre o calendário */
-  .navdia-dica{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1.2px;text-transform:uppercase;
+  .navdia-dica{font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;
     color:var(--creme-suave);opacity:.75;margin-top:2px}
   .navdia-meio.passado .navdia-rot{color:var(--gold-claro)}
   .navdia-meio #dataDia{position:absolute;inset:0;width:100%;height:100%;opacity:0;
@@ -173,8 +173,12 @@
   .mes-topo{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
     padding:7px 0 9px;border-bottom:1px solid rgba(241,237,225,.08);margin-bottom:4px}
   .mes-nome{font-family:'Playfair Display',serif;font-size:16px;color:var(--gold-claro)}
-  .mes-tot{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--creme-suave)}
+  .mes-tot{font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--creme-suave)}
   .mes-p{display:flex;align-items:center;gap:9px;padding:8px 0}
+  .mes-pos{font-size:11px;font-weight:600;color:var(--gold-claro);
+    min-width:19px;text-align:right;flex:none}
+  .mes-p:first-child .mes-pos{font-size:13px;font-weight:600}
+  .mes-pos.vazio{color:var(--creme-suave);opacity:.45}
   .mes-p+.mes-p{border-top:1px solid rgba(241,237,225,.06)}
   .mes-c{flex:1;min-width:0}
   .mes-c b{display:block;font-size:13.5px;font-weight:600;color:var(--creme)}
@@ -543,21 +547,39 @@ function desenharMes(){
   /* só a primeira letra: capitalize do CSS deixaria "Setembro De 2026" */
   const cru = new Date(diaDaContagem()+'T12:00:00').toLocaleDateString('pt-BR',{month:'long', year:'numeric'});
   const nomeMes = cru.charAt(0).toUpperCase() + cru.slice(1);
-  /* A ordem é a da própria equipe, para a lista não dançar de um dia para o outro
-     nem virar um ranking — quem está na frente muda a cada atendimento.
+  /* Ranking: de quem fez mais para quem fez menos. Ordena pelo MESMO critério que
+     governa a fila (idas ou vendas) — é o que a loja já elegeu como "fazer", e ter
+     duas definições diferentes na mesma tela seria pior que não ter ranking.
+     Desempate pelo outro número, depois pela conversão, depois pelo nome: sem isso
+     duas pessoas empatadas trocariam de lugar a cada desenho da tela.
+
      Entra quem está no revezamento, mais quem atendeu no mês mesmo estando fora dele
      (a supervisora, que às vezes pega um cliente): uma linha de zeros para quem nem
      participa é ruído no meio do que a vendedora veio ver. */
+  const porVendas = estado.criterio === 'vendas';
+  const primeiro = porVendas ? 'vendas' : 'idas';
+  const segundo  = porVendas ? 'idas'   : 'vendas';
+  const convDe = x => x.idas ? x.vendas / x.idas : -1;
   const nomes = Object.keys(estado.pessoas)
     .filter(k => estado.pessoas[k].participa || (por[estado.pessoas[k].nome] || {}).idas)
-    .map(k => estado.pessoas[k].nome);
+    .map(k => estado.pessoas[k].nome)
+    .sort((a, b) => {
+      const A = por[a] || {idas:0, vendas:0}, B = por[b] || {idas:0, vendas:0};
+      return (B[primeiro] - A[primeiro])
+          || (B[segundo]  - A[segundo])
+          || (convDe(B)   - convDe(A))
+          || a.localeCompare(b);
+    });
   const totIdas = Object.keys(por).reduce((t,n) => t + por[n].idas, 0);
   const totVendas = Object.keys(por).reduce((t,n) => t + por[n].vendas, 0);
-  const linhas = nomes.map(n => {
+  const linhas = nomes.map((n, i) => {
     const x = por[n] || {idas:0, vendas:0};
     const semVenda = x.idas - x.vendas;
     const conv = x.idas ? Math.round(x.vendas / x.idas * 100) : null;
-    return `<div class="mes-p">${avatarPorNome(n,'h-av')}
+    /* quem não fez nada no mês não recebe posição: ficar em "4º" sem ter ido à porta
+       nenhuma vez é um lugar que ela não disputou */
+    const pos = x.idas ? `<span class="mes-pos">${i+1}º</span>` : '<span class="mes-pos vazio">—</span>';
+    return `<div class="mes-p">${pos}${avatarPorNome(n,'h-av')}
       <span class="mes-c"><b>${esc(n)}</b>
         <span class="mes-n">
           <span><i>${x.idas}</i> ${x.idas===1?'ida':'idas'}</span>
