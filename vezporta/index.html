@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v36">
+<meta name="app-ver" content="v37">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@300;400&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -175,25 +175,6 @@
   .navdia-hoje[hidden]{display:none}
   .num.acum b{color:var(--alerta)}
   .num.acum small{color:var(--alerta);opacity:.8}
-  .mes{background:rgba(0,0,0,.16);border:1px solid var(--linha);border-radius:11px;padding:6px 13px 10px}
-  .mes-topo{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
-    padding:7px 0 9px;border-bottom:1px solid rgba(241,237,225,.08);margin-bottom:4px}
-  .mes-nome{font-family:'Playfair Display',serif;font-size:16px;color:var(--gold-claro)}
-  .mes-tot{font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--creme-suave)}
-  .mes-p{display:flex;align-items:center;gap:9px;padding:8px 0}
-  .mes-pos{font-size:11px;font-weight:600;color:var(--gold-claro);
-    min-width:19px;text-align:right;flex:none}
-  .mes-p:first-child .mes-pos{font-size:13px;font-weight:600}
-  .mes-pos.vazio{color:var(--creme-suave);opacity:.45}
-  .mes-p+.mes-p{border-top:1px solid rgba(241,237,225,.06)}
-  .mes-c{flex:1;min-width:0}
-  .mes-c b{display:block;font-size:13.5px;font-weight:600;color:var(--creme)}
-  .mes-n{display:flex;flex-wrap:wrap;gap:1px 11px;margin-top:2px}
-  .mes-n span{font-size:11px;color:var(--creme-suave);white-space:nowrap}
-  .mes-n span i{font-style:normal;font-family:'Playfair Display',serif;font-size:14px;color:var(--creme)}
-  .mes-conv{font-size:14px;font-weight:600;color:var(--gold-claro);min-width:40px;text-align:right;flex:none}
-  .mes-conv.zero{color:var(--creme-suave)}
-  .mes-vazio{color:var(--creme-suave);font-size:12px;font-style:italic;padding:10px 0;text-align:center}
   /* ── calendário, o mesmo desenho da aba de Metas ── */
   .cal-lanc{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);z-index:30;
     width:300px;max-width:calc(100vw - 44px);border:1px solid var(--linha);background:var(--verde-escuro);
@@ -227,6 +208,13 @@
   .navdia-abre{background:transparent;border:none;padding:0;width:100%;display:flex;
     flex-direction:column;align-items:center;justify-content:center;cursor:pointer;
     font-family:inherit;color:inherit;min-height:48px}
+  /* cabeçalho que abre e fecha: continua parecendo o rótulo de uma seção, com a seta
+     dizendo que dá para tocar */
+  .sec-abre{display:flex;align-items:center;gap:8px;width:100%;background:transparent;
+    border:none;cursor:pointer;font-family:inherit;text-align:left;padding:0}
+  .sec-abre::after{content:'▾';font-size:11px;opacity:.7;margin-left:auto;transition:transform .15s}
+  .sec-abre.aberto::after{transform:rotate(180deg)}
+  .sec-abre span{font-size:10px;font-weight:400;letter-spacing:1px;color:var(--creme-suave);opacity:.8}
   .fora-bt{display:block;width:100%;margin-top:2px;background:transparent;border:1px dashed var(--linha);
     color:var(--creme-suave);border-radius:11px;padding:9px 12px;font-size:12px;cursor:pointer;
     font-family:'Barlow',sans-serif;text-align:left;line-height:1.4}
@@ -317,7 +305,9 @@
     letter-spacing:1.2px;text-transform:uppercase;color:rgba(241,237,225,.35)}
 
   .dia-p{border-top:1px solid rgba(201,169,80,.16);padding:9px 15px 13px}
-  .pes{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;padding:7px 0}
+  .pes{display:grid;grid-template-columns:19px 30px 1fr auto;gap:10px;align-items:center;padding:7px 0}
+  .pes-pos{font-size:11px;font-weight:600;color:var(--gold-claro);text-align:right}
+  .pes:first-of-type .pes-pos{font-size:13px}
   .pes+.pes{border-top:1px solid rgba(241,237,225,.06)}
   .av-r{width:30px;height:30px;border-radius:50%;overflow:hidden;position:relative;flex:none;
     border:1px solid var(--linha);display:flex;align-items:center;justify-content:center;
@@ -356,12 +346,11 @@
      sai baixinho, o 4 desce abaixo da linha, e "4 idas · 100%" fica tropeçando.
      Vem no fim da folha de propósito: assim vale sobre as regras de cada bloco, e o
      número é o mesmo em toda a tela sem ter de repetir a fonte em cada uma delas. */
-  .num b, .num.acum b, .conv, .mes-n span i, .mes-conv, .dia-num b, .pes-conv{
+  .num b, .num.acum b, .conv, .dia-num b, .pes-conv{
     font-family:'Cormorant Garamond',serif;font-weight:400;
     font-variant-numeric:lining-nums tabular-nums}
   .num b{font-size:19px}
-  .mes-n span i{font-size:16px}
-  .mes-conv,.pes-conv{font-size:16px}
+  .pes-conv{font-size:16px}
   .dia-num b{font-size:31px;font-weight:300}
 </style>
 </head>
@@ -428,31 +417,32 @@
   <div id="listaFora" hidden></div>
   <div class="aviso" id="explica"></div>
 
-  <!-- O acumulado do mês é outra pergunta que a contagem do dia não responde:
-       "quanto eu fiz no mês". Fica separado de propósito, para ninguém confundir
-       com o do dia — e é para todas verem, não só para a gestão. -->
-  <div class="sec" id="secMes">No mês</div>
-  <div class="mes" id="mes"></div>
-
   <div class="rodape">
     <button class="tog" id="bCriterio" onclick="trocarCriterio()">—</button>
     <button class="tog" onclick="desfazer()">↩ Desfazer último</button>
   </div>
 
-  <div class="sec soGestor">Resumo</div>
-  <div class="abas soGestor">
-    <button class="aba on" id="abaDia"    onclick="verResumo('dia')">Hoje</button>
+  <div class="sec">Resumo</div>
+  <!-- "No mês" abre primeiro: é a pergunta que a equipe faz mais ("quanto eu fiz no
+       mês"), e a contagem lá em cima já responde a do dia. As outras janelas ficam a um
+       toque de quem quiser comparar. "No mês" não é o mesmo que "30 dias": no dia 3 o
+       mês tem 3 dias, e é o mês fechado que decide comissão. -->
+  <div class="abas">
+    <button class="aba on" id="abaMesAtual" onclick="verResumo('mesatual')">No mês</button>
+    <button class="aba"    id="abaDia"    onclick="verResumo('dia')">Hoje</button>
     <button class="aba"    id="abaSemana" onclick="verResumo('semana')">7 dias</button>
     <button class="aba"    id="abaMes"    onclick="verResumo('mes')">30 dias</button>
-    <!-- "Este mês" não é o mesmo que "30 dias": no dia 3 o mês tem 3 dias, e é o mês
-         que fecha a comissão -->
-    <button class="aba"    id="abaMesAtual" onclick="verResumo('mesatual')">Este mês</button>
   </div>
-  <div id="resumo" class="soGestor"></div>
+  <div id="resumo"></div>
 
-  <div class="sec">Últimos registros</div>
-  <div class="dica" style="text-align:left;margin:-4px 0 8px">Separado por dia: quem marcou, o que marcou e a que horas — inclusive quando foi a supervisora ou a diretoria que mexeu.</div>
-  <div class="hist" id="hist">—</div>
+  <!-- Recolhido: a lista é longa e serve para conferir alguma coisa, não para ser
+       lida toda hora. Fechada, ela deixa de empurrar o resumo para fora da tela. O
+       cabeçalho diz quantos registros tem, para não virar uma porta sem placa. -->
+  <button class="sec sec-abre" id="btHist" onclick="verHist()">Últimos registros<span id="btHistQtd"></span></button>
+  <div id="histCx" hidden>
+    <div class="dica" style="text-align:left;margin:-4px 0 8px">Separado por dia: quem marcou, o que marcou e a que horas — inclusive quando foi a supervisora ou a diretoria que mexeu.</div>
+    <div class="hist" id="hist">—</div>
+  </div>
 </div>
 <div class="msg" id="msg"></div>
 <input type="file" id="arqFoto" accept="image/*" style="display:none">
@@ -671,87 +661,18 @@ function desenharCalendario(){
 }
 function escolherDia(iso){ irParaDia(iso); fecharCalendario(); }
 
+/* abre e fecha a lista de registros */
+function verHist(){
+  const cx=$('histCx'), bt=$('btHist');
+  cx.hidden = !cx.hidden;
+  bt.classList.toggle('aberto', !cx.hidden);
+}
+
 /* abre e fecha a lista de quem ficou fora da contagem */
 function verFora(){
   const cx=$('listaFora'), bt=$('btFora');
   cx.hidden = !cx.hidden;
   bt.classList.toggle('aberto', !cx.hidden);
-}
-
-/* Acumulado do mês, para todas verem. A contagem de cima responde "quanto eu fiz
-   HOJE"; esta responde "quanto eu fiz no mês", que é a pergunta que some quando a
-   contagem passa a ser do dia. Segue o mês do dia que está sendo olhado: voltando
-   para 30/08, o bloco mostra agosto — senão a tela diria duas datas diferentes.
-
-   "Foi e não vendeu" é idas menos vendas, e não um terceiro contador: ida à porta ou
-   virou venda ou não virou, e inventar um contador novo criaria uma terceira verdade
-   para conferir.                                                                    */
-function somaDoMes(){
-  const mes = diaDaContagem().slice(0,7), por = {};
-  VezRegra.resumoPorDia(historico).filter(d => d.dia.slice(0,7) === mes).forEach(d => {
-    Object.keys(d.pessoas).forEach(n => {
-      por[n] = por[n] || {idas:0, vendas:0};
-      por[n].idas   += d.pessoas[n].idas;
-      por[n].vendas += d.pessoas[n].vendas;
-    });
-  });
-  return por;
-}
-function desenharMes(){
-  const por = somaDoMes();
-  /* só a primeira letra: capitalize do CSS deixaria "Setembro De 2026" */
-  const cru = new Date(diaDaContagem()+'T12:00:00').toLocaleDateString('pt-BR',{month:'long', year:'numeric'});
-  const nomeMes = cru.charAt(0).toUpperCase() + cru.slice(1);
-  /* Ranking: de quem fez mais para quem fez menos. Ordena pelo MESMO critério que
-     governa a fila (idas ou vendas) — é o que a loja já elegeu como "fazer", e ter
-     duas definições diferentes na mesma tela seria pior que não ter ranking.
-     Desempate pelo outro número, depois pela conversão, depois pelo nome: sem isso
-     duas pessoas empatadas trocariam de lugar a cada desenho da tela.
-
-     Entra quem está no revezamento, mais quem atendeu no mês mesmo estando fora dele
-     (a supervisora, que às vezes pega um cliente): uma linha de zeros para quem nem
-     participa é ruído no meio do que a vendedora veio ver. */
-  const porVendas = estado.criterio === 'vendas';
-  const primeiro = porVendas ? 'vendas' : 'idas';
-  const segundo  = porVendas ? 'idas'   : 'vendas';
-  const convDe = x => x.idas ? x.vendas / x.idas : -1;
-  const nomes = Object.keys(estado.pessoas)
-    .filter(k => estado.pessoas[k].participa || (por[estado.pessoas[k].nome] || {}).idas)
-    .map(k => estado.pessoas[k].nome)
-    .sort((a, b) => {
-      const A = por[a] || {idas:0, vendas:0}, B = por[b] || {idas:0, vendas:0};
-      return (B[primeiro] - A[primeiro])
-          || (B[segundo]  - A[segundo])
-          || (convDe(B)   - convDe(A))
-          || a.localeCompare(b);
-    });
-  const totIdas = Object.keys(por).reduce((t,n) => t + por[n].idas, 0);
-  const totVendas = Object.keys(por).reduce((t,n) => t + por[n].vendas, 0);
-  const linhas = nomes.map((n, i) => {
-    const x = por[n] || {idas:0, vendas:0};
-    const semVenda = x.idas - x.vendas;
-    const conv = x.idas ? Math.round(x.vendas / x.idas * 100) : null;
-    /* quem não fez nada no mês não recebe posição: ficar em "4º" sem ter ido à porta
-       nenhuma vez é um lugar que ela não disputou */
-    const pos = x.idas ? `<span class="mes-pos">${i+1}º</span>` : '<span class="mes-pos vazio">—</span>';
-    return `<div class="mes-p">${pos}${avatarPorNome(n,'h-av')}
-      <span class="mes-c"><b>${esc(n)}</b>
-        <span class="mes-n">
-          <span><i>${x.idas}</i> ${x.idas===1?'ida':'idas'}</span>
-          <span><i>${x.vendas}</i> ${x.vendas===1?'venda':'vendas'}</span>
-          <span><i>${semVenda}</i> sem venda</span>
-        </span></span>
-      <span class="mes-conv ${conv?'':'zero'}">${conv===null?'—':conv+'%'}</span>
-    </div>`;
-  }).join('');
-  $('mes').innerHTML =
-    `<div class="mes-topo"><span class="mes-nome">${esc(nomeMes)}</span>
-      <span class="mes-tot">${totIdas} ${totIdas===1?'ida':'idas'} · ${totVendas} ${totVendas===1?'venda':'vendas'}</span></div>`
-    + (totIdas ? linhas : '<div class="mes-vazio">Nada registrado neste mês ainda.</div>');
-}
-/* o histórico guarda o nome; a chave vem do e-mail — daí a volta */
-function chaveDoNome(nome){
-  return Object.keys(estado.pessoas).filter(k => estado.pessoas[k].nome === nome)[0];
 }
 
 /* ---------- desenho ---------- */
@@ -956,9 +877,14 @@ function pintar(){
     cxD.classList.add('on');
   } else cxD.classList.remove('on');
 
-  desenharMes();
-  /* o resumo é só para gestão — e nem calcula quando não vai aparecer */
-  if(souGestor) desenharResumo();
+  desenharResumo();
+
+  /* o cabeçalho fechado precisa dizer o que tem dentro */
+  {
+    const n = historico.filter(h => !h.desfeito).length;
+    const q = $('btHistQtd');
+    if(q) q.textContent = '· ' + (n ? (n>14 ? 'últimos 14' : (n===1?'1 registro':n+' registros')) : 'nada ainda');
+  }
 
   let diaNaLista=null;
   /* A faixa de dia só fecha certo com a lista em ordem: fora de ordem, o mesmo dia
@@ -1322,7 +1248,7 @@ window.confirmarSemVenda = function(motivo){
 };
 
 /* ---------- 4. resumo do dia, dos 7 e dos 30 dias ---------- */
-let periodoResumo = 'dia';
+let periodoResumo = 'mesatual';
 const ABAS_RESUMO = {dia:'abaDia', semana:'abaSemana', mes:'abaMes', mesatual:'abaMesAtual'};
 window.verResumo = function(p){
   periodoResumo = p;
@@ -1386,13 +1312,19 @@ function cartaoResumo(d, rotulo, sub, dias){
     .sort((a,b) => d.pessoas[b].idas - d.pessoas[a].idas || a.localeCompare(b,'pt-BR'));
   const maior = nomes.reduce((m,n) => Math.max(m, d.pessoas[n].idas), 0);
 
-  const linhas = nomes.map(n => {
+  const linhas = nomes.map((n, i) => {
     const x = d.pessoas[n];
     const c = x.idas ? Math.round(x.vendas / x.idas * 100) : null;
+    /* a lista já vinha da maior para a menor: escrever a posição é só dizer em voz
+       alta o que a ordem já dizia — e foi o ranking que a loja pediu.
+       "sem venda" é idas menos vendas, e não um contador novo: ida à porta ou virou
+       venda ou não virou, e um terceiro contador criaria uma terceira verdade.
+       Quando não sobra nenhuma, a frase some: "0 sem venda" é ruído. */
     return `<div class="pes">
+      <span class="pes-pos">${x.idas ? (i+1)+'º' : '—'}</span>
       ${avatarPorNome(n)}
       <span class="pes-c">
-        <span class="pes-t"><b>${esc(n)}</b><span>${plural(x.idas,'ida','idas')} · ${plural(x.vendas,'venda','vendas')}</span></span>
+        <span class="pes-t"><b>${esc(n)}</b><span>${plural(x.idas,'ida','idas')} · ${plural(x.vendas,'venda','vendas')}${x.idas-x.vendas ? ' · '+(x.idas-x.vendas)+' sem venda' : ''}</span></span>
         <span class="barra"><i style="width:${maior ? Math.round(x.idas/maior*100) : 0}%"><u style="width:${c===null?0:c}%"></u></i></span>
       </span>
       <span class="pes-conv ${c?'':'zero'}">${c===null?'—':c+'%'}</span>
@@ -1422,7 +1354,7 @@ function cartaoResumo(d, rotulo, sub, dias){
     </div>
     ${spark}
     <div class="dia-p">${linhas || '<div class="dia-vazio">Nenhum atendimento registrado' + (d.trocas ? ' — só ' + plural(d.trocas,'troca','trocas') : '') + '.</div>'}</div>
-  </div>` + (d.trocas && linhas ? `<div class="aviso soGestor">${plural(d.trocas,'troca','trocas')} no período. Troca não conta como ida à porta nem entra na conversão.</div>` : '');
+  </div>` + (d.trocas && linhas ? `<div class="aviso">${plural(d.trocas,'troca','trocas')} no período. Troca não conta como ida à porta nem entra na conversão.</div>` : '');
 }
 
 /* o resumo vem do histórico, que guarda o NOME de quem atendeu — daí a foto sai por
