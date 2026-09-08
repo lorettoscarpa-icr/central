@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v37">
+<meta name="app-ver" content="v38">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@300;400&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -415,7 +415,6 @@
        poder tirar alguém de férias ou ativar a supervisora sem procurar em outro lugar -->
   <button class="fora-bt" id="btFora" hidden onclick="verFora()"></button>
   <div id="listaFora" hidden></div>
-  <div class="aviso" id="explica"></div>
 
   <div class="rodape">
     <button class="tog" id="bCriterio" onclick="trocarCriterio()">—</button>
@@ -746,10 +745,6 @@ function pintar(){
   $('bCriterio').textContent = (souGestor ? 'Fila por: ' : 'A fila segue as ') + (crit==='vendas' ? 'vendas' : 'idas à porta');
   $('bCriterio').disabled = !souGestor;   /* trocar o critério muda quem é chamada */
   $('bCriterio').style.cursor = souGestor ? 'pointer' : 'default';
-  $('explica').innerHTML = crit==='vendas'
-    ? 'A fila está governada pelas <b>vendas</b>: a próxima é quem <b>vendeu</b> menos vezes na rodada. Uma sequência de clientes que não compraram não empurra ninguém para o fim da fila. Quem volta de uma ausência <b>espera a fila zerar</b> para entrar.'
-    : 'A fila está governada pelas <b>idas à porta</b>: a próxima é quem <b>foi</b> menos vezes na rodada, tenha vendido ou não. Quem volta do almoço emparelha pegando várias seguidas; quem volta de uma ausência <b>espera a fila zerar</b> para entrar.';
-
   /* A ordem em que serão chamadas, para ninguém precisar perguntar. Uma coluna por
      pessoa: quem está apta aparece, sempre — as três ficam à vista de uma vez.
 
