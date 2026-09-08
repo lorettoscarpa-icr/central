@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v34">
+<meta name="app-ver" content="v35">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@300;400&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -103,7 +103,7 @@
      "na loja". Na tela da gestão são três, e aí não cabem ao lado dos números em 390px:
      o próprio flex-wrap manda eles para a linha de baixo, inteiros, em vez de espremer
      o nome até os números quebrarem em três linhas. */
-  .acoes{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+  .pes-acoes{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
   .pessoa.fora{opacity:.45}
   .pessoa.afastada{opacity:.5;border-style:dashed}
   .tog.afast{border-color:var(--alerta);color:var(--alerta)}
@@ -908,7 +908,7 @@ function pintar(){
           <span class="num"><b class="conv">${convDia===null?'—':convDia+'%'}</b><small>conv.</small></span>
           ${acum>0?`<span class="num acum" title="Vezes que ela ficou para trás e ainda vai ser chamada — vem de antes de hoje"><b>+${acum}</b><small>${acum===1?'acumulada':'acumuladas'}</small></span>`:''}
         </span></span>
-      ${hojeMesmo?`<span class="acoes">
+      ${hojeMesmo?`<span class="pes-acoes">
         <button class="tog ${p.presente?'on':''}" ${podeMarcar(k)?'':'disabled'} onclick="alternar('${k}','presente')">${p.presente?'na loja':'ausente'}</button>
         ${souGestor ? `<button class="tog ${af||p.esperando?'afast':''}" onclick="pedirAfastamento('${k}')">${af?rotuloAfast(p):(p.esperando?'esperando':'ausência')}</button>` : ''}
         ${souGestor ? `<button class="tog ${p.participa?'on':''}" onclick="alternar('${k}','participa')">${p.participa?'na vez':'fora'}</button>` : ''}
