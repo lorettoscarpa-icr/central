@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v33">
+<meta name="app-ver" content="v34">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@300;400&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -150,9 +150,8 @@
   /* o meio é o que a pessoa lê para saber de que dia é a contagem: fica com o espaço
      todo que sobra, centralizado, e traz a data por extenso — "Hoje" sozinho não diz
      QUAL dia é hoje quando ela abre a tela de manhã e a de ontem ainda está na cabeça */
-  .navdia-meio{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;
-    justify-content:center;cursor:pointer;min-height:48px;border:1px solid transparent;
-    border-radius:9px;padding:2px 6px;transition:.15s}
+  .navdia-meio{flex:1;position:relative;border:1px solid transparent;border-radius:9px;
+    padding:2px 6px;transition:.15s}
   .navdia-meio:hover{border-color:var(--linha);background:rgba(0,0,0,.14)}
   .navdia-rot{font-family:'Playfair Display',serif;font-size:20px;font-weight:600;color:var(--creme);
     text-transform:capitalize;line-height:1.15;text-align:center}
@@ -160,7 +159,7 @@
   .navdia-dica{font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;
     color:var(--creme-suave);opacity:.75;margin-top:2px}
   .navdia-meio.passado .navdia-rot{color:var(--gold-claro)}
-  .navdia-meio{background:transparent;font-family:inherit;color:inherit}
+
   .navdia-hoje{height:36px;padding:0 13px;border-radius:9px;border:1px solid var(--linha);
     background:transparent;color:var(--creme-suave);font-size:12px;font-weight:600;
     cursor:pointer;font-family:'Barlow',sans-serif;flex:none;transition:.15s}
@@ -187,27 +186,39 @@
   .mes-conv{font-size:14px;font-weight:600;color:var(--gold-claro);min-width:40px;text-align:right;flex:none}
   .mes-conv.zero{color:var(--creme-suave)}
   .mes-vazio{color:var(--creme-suave);font-size:12px;font-style:italic;padding:10px 0;text-align:center}
-  .cal-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
-  .cal-topo h3{margin:0}
-  .cal-dows{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:5px}
-  .cal-dows span{text-align:center;font-size:9px;letter-spacing:1px;color:var(--creme-suave);opacity:.7}
-  .cal-grade{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-  .cal-d{aspect-ratio:1;border:1px solid transparent;border-radius:9px;background:rgba(0,0,0,.18);
-    color:var(--creme);font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:400;
-    font-variant-numeric:lining-nums tabular-nums;cursor:pointer;padding:0;
-    display:flex;align-items:center;justify-content:center;transition:.12s}
-  .cal-d:hover:not(:disabled){border-color:var(--gold)}
-  .cal-d:disabled{opacity:.2;cursor:default;background:transparent}
-  .cal-d.vazio{background:transparent;border:none;cursor:default}
-  /* o dia que está sendo olhado, e o dia de hoje, ditos de formas diferentes */
-  .cal-d.hoje{border-color:rgba(201,169,80,.5)}
-  .cal-d.escolhido{background:var(--gold);color:var(--verde-noite);border-color:var(--gold);font-weight:600}
-  /* dia com atendimento registrado: um ponto embaixo do número */
-  .cal-d.tem{position:relative}
-  .cal-d.tem::after{content:'';position:absolute;bottom:5px;width:3px;height:3px;border-radius:50%;
-    background:var(--gold-claro);opacity:.8}
-  .cal-d.escolhido.tem::after{background:var(--verde-noite);opacity:.6}
-  .cal-pe{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+  /* ── calendário, o mesmo desenho da aba de Metas ── */
+  .cal-lanc{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);z-index:30;
+    width:300px;max-width:calc(100vw - 44px);border:1px solid var(--linha);background:var(--verde-escuro);
+    box-shadow:0 12px 32px rgba(0,0,0,.45);border-radius:4px;padding:14px 16px 12px;cursor:default}
+  .cal-topo{display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding-bottom:10px;border-bottom:1px solid var(--linha-fraca);margin-bottom:10px}
+  .cal-mes{font-family:'Playfair Display',serif;font-size:15px;color:var(--gold-claro);letter-spacing:.4px;flex:1;text-align:center}
+  .cal-seta{width:26px;height:26px;flex:none;border:1px solid var(--linha);background:transparent;
+    color:var(--creme-suave);border-radius:6px;font-size:15px;line-height:1;padding:0;cursor:pointer}
+  .cal-seta:hover:not(:disabled){border-color:var(--gold);color:var(--gold-claro)}
+  .cal-seta:disabled{opacity:.25;cursor:default}
+  .cal-resumo{font-size:10.5px;letter-spacing:.3px;color:var(--creme-suave);text-align:center;margin-bottom:9px}
+  .cal-resumo b{color:var(--gold-claro);font-weight:600}
+  .cal-grade{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+  .cal-cab{font-size:8px;letter-spacing:1.4px;color:var(--creme-suave);text-align:center;padding-bottom:3px}
+  .cal-vazio{aspect-ratio:1}
+  .cal-dia{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:2px;
+    font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer;padding:0;transition:all .15s;
+    border:1px solid var(--linha-fraca);background:transparent;color:var(--creme-suave)}
+  .cal-dia.ok{background:rgba(78,158,78,.45);border-color:rgba(109,191,109,.6);color:#eaf6ea;font-weight:600}
+  .cal-dia.pend{background:rgba(255,255,255,.06);border-color:var(--linha-fraca);color:var(--creme)}
+  .cal-dia.fut{opacity:.28;cursor:default}
+  .cal-dia.sel{outline:2px solid var(--gold);outline-offset:1px}
+  .cal-dia:not(:disabled):hover{border-color:var(--gold);transform:translateY(-1px)}
+  .cal-leg{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;padding-top:10px;
+    border-top:1px solid var(--linha-fraca);font-size:10px;color:var(--creme-suave)}
+  .cal-leg span{display:flex;align-items:center;gap:6px}
+  .cal-leg i{width:10px;height:10px;border-radius:2px;border:1px solid var(--linha-fraca);flex-shrink:0}
+  .cal-leg i.ok{background:rgba(78,158,78,.45);border-color:rgba(109,191,109,.6)}
+  .cal-leg i.pend{background:rgba(255,255,255,.06)}
+  .navdia-abre{background:transparent;border:none;padding:0;width:100%;display:flex;
+    flex-direction:column;align-items:center;justify-content:center;cursor:pointer;
+    font-family:inherit;color:inherit;min-height:48px}
   .fora-bt{display:block;width:100%;margin-top:2px;background:transparent;border:1px dashed var(--linha);
     color:var(--creme-suave);border-radius:11px;padding:9px 12px;font-size:12px;cursor:pointer;
     font-family:'Barlow',sans-serif;text-align:left;line-height:1.4}
@@ -381,10 +392,19 @@
        rótulo, então tocar no nome do dia abre o calendário do próprio celular -->
   <div class="navdia">
     <button class="navdia-bt" onclick="mudarDia(-1)" aria-label="Dia anterior">‹</button>
-    <button class="navdia-meio" onclick="abrirCalendario()" aria-label="Escolher a data">
-      <span class="navdia-rot" id="rotuloDia">hoje</span>
-      <span class="navdia-dica">▾ tocar para escolher a data</span>
-    </button>
+    <div class="navdia-meio">
+      <button class="navdia-abre" onclick="abrirCalendario(event)" aria-label="Escolher a data">
+        <span class="navdia-rot" id="rotuloDia">hoje</span>
+        <span class="navdia-dica">▾ tocar para escolher a data</span>
+      </button>
+      <!-- Mesmo calendário da aba de Metas: painel que desce embaixo do campo, com os
+           dias quadrados coloridos por estado e a legenda no rodapé. Lá ele já é
+           desenhado pelo painel (e não o do aparelho), já funciona no celular delas, e
+           elas já sabem ler — não faz sentido inventar um segundo jeito de escolher
+           data no mesmo sistema. A diferença é o que cada cor quer dizer: lá é
+           "lançado / falta lançar", aqui é "teve atendimento / não teve". -->
+      <div class="cal-lanc" id="calLanc" style="display:none" role="dialog" aria-label="Calendário"></div>
+    </div>
     <button class="navdia-bt" id="setaFrente" onclick="mudarDia(1)" aria-label="Dia seguinte">›</button>
     <button class="navdia-hoje" id="btHoje" onclick="voltarPraHoje()">Hoje</button>
   </div>
@@ -423,26 +443,6 @@
 </div>
 <div class="msg" id="msg"></div>
 <input type="file" id="arqFoto" accept="image/*" style="display:none">
-
-<!-- Calendário próprio, e não o <input type="date"> do aparelho: o campo nativo,
-     transparente por cima do rótulo, não abria o seletor no iPhone dentro do iframe
-     da Central — nem por toque, nem por showPicker(). Desenhado aqui, o toque é um
-     toque num botão comum, que funciona em qualquer aparelho e dá para testar. -->
-<div class="folha" id="folhaCal" onclick="if(event.target===this)fecharCalendario()">
-  <div class="folha-cx">
-    <div class="cal-topo">
-      <button class="navdia-bt" onclick="calMes(-1)" aria-label="Mês anterior">‹</button>
-      <h3 id="calMesNome">—</h3>
-      <button class="navdia-bt" id="calFrente" onclick="calMes(1)" aria-label="Mês seguinte">›</button>
-    </div>
-    <div class="cal-dows"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span></div>
-    <div class="cal-grade" id="calGrade"></div>
-    <div class="cal-pe">
-      <button class="tog" onclick="irParaDia(hojeISO());fecharCalendario()">Hoje</button>
-      <button class="tog" onclick="fecharCalendario()">Fechar</button>
-    </div>
-  </div>
-</div>
 
 <!-- assumir o atendimento de quem não está na loja -->
 <div class="folha" id="folhaAssumir" onclick="if(event.target===this)fecharAssumir()">
@@ -577,53 +577,84 @@ function mudarDia(passo){
   irParaDia(isoDe(d));
 }
 function voltarPraHoje(){ diaVisto = null; pintar(); }
-/* ── calendário do painel ──
-   Desenhado aqui em vez do <input type="date"> do aparelho: o campo nativo,
-   transparente por cima do rótulo, não abria o seletor no iPhone dentro do iframe da
-   Central — nem por toque, nem por showPicker(). Um botão comum e uma grade de dias
-   funcionam em qualquer aparelho, e dão para testar aqui antes de subir.
+/* ── calendário, o mesmo da aba de Metas ──
+   Painel que desce embaixo do campo, com os dias quadrados coloridos por estado e a
+   legenda no rodapé. Lá ele já é desenhado pelo painel (e não o do aparelho), já
+   funciona no celular delas e elas já sabem ler — inventar um segundo jeito de
+   escolher data no mesmo sistema seria pedir para aprenderem duas coisas.
 
-   O ponto embaixo do número diz onde há atendimento registrado: assim ela enxerga de
-   longe os dias que valem a pena abrir, em vez de ir tateando dia a dia. */
+   O que muda é o significado da cor: nas Metas é "lançado / falta lançar"; aqui é
+   "teve atendimento / não teve", que é o que ajuda a achar o dia que vale abrir.
+
+   As setas de mês são acréscimo: nas Metas o mês é escolhido em outro lugar da tela,
+   e aqui não há esse outro lugar. */
 let calMesVisto = null;                    /* 'AAAA-MM' */
-function abrirCalendario(){
+function abrirCalendario(ev){
+  if(ev) ev.stopPropagation();
+  const c = $('calLanc');
+  if(c.style.display !== 'none'){ fecharCalendario(); return; }
   calMesVisto = diaDaContagem().slice(0,7);
+  c.style.display = '';
   desenharCalendario();
-  $('folhaCal').classList.add('on');
 }
-function fecharCalendario(){ $('folhaCal').classList.remove('on'); }
-function calMes(passo){
+function fecharCalendario(){ const c=$('calLanc'); if(c) c.style.display='none'; }
+/* tocar fora fecha: é como o das Metas se comporta, e sem isso o painel ficaria
+   aberto por cima da contagem depois de escolher */
+document.addEventListener('click', e => {
+  const c = $('calLanc');
+  if(c && c.style.display !== 'none' && !c.contains(e.target) && !e.target.closest('.navdia-abre')) fecharCalendario();
+});
+function calMes(passo, ev){
+  if(ev) ev.stopPropagation();
   const [a,m] = calMesVisto.split('-').map(Number);
   const d = new Date(a, m - 1 + passo, 1);
   calMesVisto = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
   desenharCalendario();
 }
+const MESES_NOMES = ['janeiro','fevereiro','março','abril','maio','junho',
+                     'julho','agosto','setembro','outubro','novembro','dezembro'];
 function desenharCalendario(){
+  const c = $('calLanc'); if(!c || c.style.display === 'none') return;
   const [ano,mes] = calMesVisto.split('-').map(Number);
   const hoje = hojeISO(), sel = diaDaContagem();
-  /* dias com atendimento, para o pontinho */
-  const comRegistro = {};
-  VezRegra.resumoPorDia(historico).forEach(d => { if(d.idas) comRegistro[d.dia] = 1; });
 
-  const nome = new Date(ano, mes-1, 1).toLocaleDateString('pt-BR',{month:'long', year:'numeric'});
-  $('calMesNome').textContent = nome.charAt(0).toUpperCase() + nome.slice(1);
-  /* não há o que contar no mês que ainda não começou */
-  $('calFrente').disabled = calMesVisto >= hoje.slice(0,7);
+  const idasNoDia = {};
+  VezRegra.resumoPorDia(historico).forEach(d => { if(d.idas) idasNoDia[d.dia] = d.idas; });
 
-  const primeiro = new Date(ano, mes-1, 1).getDay();          /* 0 = domingo */
-  const ultimo   = new Date(ano, mes, 0).getDate();
-  let html = '';
-  for(let i=0;i<primeiro;i++) html += '<button class="cal-d vazio" disabled></button>';
-  for(let d=1; d<=ultimo; d++){
+  const totalDias = new Date(ano, mes, 0).getDate();
+  const primeiroDiaSem = new Date(ano, mes-1, 1).getDay();
+  const mesCorrente = calMesVisto === hoje.slice(0,7);
+  const ultimoClicavel = mesCorrente ? Number(hoje.slice(-2)) : totalDias;
+
+  let cels = '', comAtendimento = 0, sem = 0, totalIdas = 0;
+  for(let i=0;i<primeiroDiaSem;i++) cels += '<div class="cal-vazio"></div>';
+  for(let d=1; d<=totalDias; d++){
     const iso = ano+'-'+String(mes).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    const futuro = iso > hoje;
-    const cls = ['cal-d'];
-    if(iso === sel) cls.push('escolhido');
-    if(iso === hoje) cls.push('hoje');
-    if(comRegistro[iso]) cls.push('tem');
-    html += `<button class="${cls.join(' ')}"${futuro?' disabled':''} onclick="escolherDia('${iso}')">${d}</button>`;
+    const futuro = d > ultimoClicavel, idas = idasNoDia[iso] || 0;
+    let cls, titulo;
+    if(futuro){ cls='fut'; titulo='ainda não chegou'; }
+    else if(idas){ cls='ok'; comAtendimento++; totalIdas += idas; titulo = idas===1 ? '1 ida à porta' : idas+' idas à porta'; }
+    else { cls='pend'; sem++; titulo='sem atendimento'; }
+    if(iso === sel) cls += ' sel';
+    cels += `<button class="cal-dia ${cls}"${futuro?' disabled':` onclick="escolherDia('${iso}')"`}
+      title="${String(d).padStart(2,'0')}/${String(mes).padStart(2,'0')} · ${titulo}">${d}</button>`;
   }
-  $('calGrade').innerHTML = html;
+
+  c.innerHTML = `
+    <div class="cal-topo">
+      <button class="cal-seta" onclick="calMes(-1,event)" aria-label="Mês anterior">‹</button>
+      <span class="cal-mes">${MESES_NOMES[mes-1]} de ${ano}</span>
+      <button class="cal-seta" onclick="calMes(1,event)"${mesCorrente?' disabled':''} aria-label="Mês seguinte">›</button>
+    </div>
+    <div class="cal-resumo">${totalIdas ? `<b>${totalIdas}</b> ${totalIdas===1?'ida à porta':'idas à porta'} em ${comAtendimento} ${comAtendimento===1?'dia':'dias'}` : 'Nada registrado neste mês'}</div>
+    <div class="cal-grade">
+      ${['D','S','T','Q','Q','S','S'].map(d=>`<div class="cal-cab">${d}</div>`).join('')}
+      ${cels}
+    </div>
+    <div class="cal-leg">
+      <span><i class="ok"></i>Com atendimento (${comAtendimento})</span>
+      <span><i class="pend"></i>Sem atendimento (${sem})</span>
+    </div>`;
 }
 function escolherDia(iso){ irParaDia(iso); fecharCalendario(); }
 
