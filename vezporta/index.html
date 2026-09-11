@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v39">
+<meta name="app-ver" content="v40">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@300;400&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -279,6 +279,13 @@
     font-family:'Barlow',sans-serif;cursor:pointer}
   .mot:hover{border-color:var(--gold)}
   .mot.pular{color:var(--creme-suave);font-size:13px;border-style:dashed}
+  /* o registro que vai cair, desenhado como ele aparece na lista: quem confirma tem de
+     reconhecer a linha, não ler uma frase sobre ela */
+  .desf-alvo{display:flex;gap:9px;align-items:center;border:1px solid var(--linha);
+    border-radius:11px;background:rgba(0,0,0,.2);padding:10px 12px;margin-bottom:12px}
+  .desf-alvo .h-av{width:34px;height:34px}
+  .desf-alvo b{color:var(--creme);font-weight:600;font-size:14.5px}
+  .desf-alvo small{display:block;font-size:11.5px;color:var(--creme-suave);margin-top:2px}
   /* 4. resumo do dia, dos 7 e dos 30 dias.
      Era um parágrafo de texto corrido: "Ialey 1 idas · 1 vendas · 100%", tudo do mesmo
      tamanho, e para comparar as três era preciso ler número por número. Agora o card
@@ -490,6 +497,19 @@
        já preenchidos — você completa o modelo, a numeração e os dados da cliente por lá.</p>
     <div id="listaMotivos"></div>
     <button class="mot pular" onclick="confirmarSemVenda(null)">Não sei / não registrar agora</button>
+  </div>
+</div>
+
+<!-- 2. confirmar o desfazer: é o botão que tira uma venda da contagem, e um toque
+     errado nele só aparece dias depois. A folha diz QUAL registro vai cair, com foto,
+     desfecho, hora e dia — desfazer o registro errado era o defeito, não o desfazer. -->
+<div class="folha" id="folhaDesfazer" onclick="if(event.target===this)fecharDesfazer()">
+  <div class="folha-cx">
+    <h3>Desfazer este registro?</h3>
+    <div class="desf-alvo" id="desfAlvo"></div>
+    <p id="desfTexto"></p>
+    <button class="mot" onclick="confirmarDesfazer()">Sim, desfazer</button>
+    <button class="mot pular" onclick="fecharDesfazer()">Cancelar</button>
   </div>
 </div>
 
@@ -1192,11 +1212,41 @@ window.trocarCriterio = function(){
   salvar(VezRegra.revalidar(novo), 'Fila agora por '+(novo.criterio==='vendas'?'vendas':'idas à porta'));
 };
 
-/* Desfazer devolve o contador e a vez ao que eram. Marcar errado na correria é o
-   erro mais provável desta tela, então tem que ser um toque para consertar. */
+/* Desfazer devolve o contador e a vez ao que eram. Marcar errado na correria é o erro
+   mais provável desta tela — mas "Desfazer último" sempre pega o ÚLTIMO registro, e
+   quem toca nele não vê qual é. Um toque a mais derrubava a venda da colega de ontem.
+   Por isso o botão agora só ABRE a folha: quem confirma vê a linha que vai cair. */
+let _paraDesfazer = null;
 window.desfazer = function(){
   const ult = historico.filter(h => !h.desfeito && VezRegra.ATENDIMENTOS.indexOf(h.desfecho) >= 0)[0];
   if(!ult){ toast('Não há nada para desfazer'); return; }
+  const k = chave(ult.email), p = estado.pessoas[k];
+  if(!p){ toast('Pessoa não está mais na lista'); return; }
+  if(!podeMarcar(k)){ toast('Este registro é da ' + ult.nome + ' — só ela ou a gestão desfazem'); return; }
+  _paraDesfazer = ult;
+  const tag = ult.desfecho==='venda' ? '<span class="tag t-venda">vendeu</span>'
+            : ult.desfecho==='troca' ? '<span class="tag t-troca">troca</span>'
+            : '<span class="tag t-sem">não vendeu</span>';
+  $('desfAlvo').innerHTML = avatarPorNome(ult.nome,'h-av')
+    + `<span><b>${esc(ult.nome)}</b>${tag}<small>${faixaDeDia(ult.quando).toLowerCase()} às ${hhmm(ult.quando)}</small></span>`;
+  const qual = ult.desfecho==='troca'
+    ? 'A troca não conta ida, então a contagem não muda — só a vez volta para ' + esc(ult.nome) + '.'
+    : 'Sai uma ida' + (ult.desfecho==='venda' ? ' e uma venda' : '') + ' da contagem de '
+      + esc(ult.nome) + (mesmoDia(ult.quando, Date.now()) ? ' e do dia de hoje' : ', e do dia ' + ddmm(ult.quando))
+      + '. A vez volta para ela.';
+  $('desfTexto').innerHTML = qual + ' O registro não some: fica riscado na lista, com o seu nome e a hora.';
+  $('folhaDesfazer').classList.add('on');
+};
+window.fecharDesfazer = function(){ $('folhaDesfazer').classList.remove('on'); _paraDesfazer = null; };
+
+window.confirmarDesfazer = function(){
+  const alvo = _paraDesfazer;
+  fecharDesfazer();
+  if(!alvo){ return; }
+  /* relê pelo id: entre abrir a folha e confirmar, o snapshot pode ter trocado a lista
+     inteira, e aí o objeto guardado é uma cópia velha que ainda diz "não desfeito" */
+  const ult = (alvo.id && historico.filter(h => h.id === alvo.id)[0]) || alvo;
+  if(ult.desfeito){ toast('Este registro já foi desfeito'); return; }
   const k = chave(ult.email), novo = JSON.parse(JSON.stringify(estado)), p = novo.pessoas[k];
   if(!p){ toast('Pessoa não está mais na lista'); return; }
   if(!podeMarcar(k)){ toast('Este registro é da ' + ult.nome + ' — só ela ou a gestão desfazem'); return; }
