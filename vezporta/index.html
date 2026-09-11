@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v43">
+<meta name="app-ver" content="v44">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@300;400&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -30,21 +30,12 @@
   .sub{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-top:2px;font-weight:600}
   .topo{margin-bottom:18px}
 
-  /* ===== de quem é a vez: é a única coisa que importa à distância, então domina a tela ===== */
-  .vez{background:linear-gradient(160deg,rgba(201,169,80,.16),rgba(0,0,0,.22));
-    border:1.5px solid var(--gold);border-radius:var(--r);padding:22px 18px;text-align:center;margin-bottom:14px}
-  .vez .rot{font-size:11.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);font-weight:600;
-    display:block;margin-bottom:14px}
-  .vez .nome{font-family:'Playfair Display',serif;font-size:38px;line-height:1.1;margin:2px 0 2px;color:var(--creme)}
-  .vez .eu{display:inline-block;margin-top:7px;font-size:12px;font-weight:600;color:var(--verde-noite);
-    background:var(--gold-claro);border-radius:99px;padding:3px 12px}
-  .vez.ninguem .nome{font-size:24px;color:var(--creme-suave)}
+  /* ===== a ordem: é a única coisa que importa à distância, então abre a tela =====
 
-  /* A ordem da fila: elas perguntam "sou eu depois de quem?" o dia inteiro.
-
-     Era uma tira horizontal com setas, e em tela de 360px ela cortava justamente na
-     terceira — a única que ninguém sabe de cabeça. Agora é uma coluna por pessoa:
-     as três (quatro, se a Jhennifer entrar) cabem inteiras, sem rolar pro lado. */
+     Elas perguntam "sou eu depois de quem?" o dia inteiro. Era uma tira horizontal com
+     setas, e em tela de 360px ela cortava justamente na terceira — a única que ninguém
+     sabe de cabeça. Agora é uma coluna por pessoa: as três (quatro, se a Jhennifer
+     entrar) cabem inteiras, sem rolar pro lado. */
   .fila{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:7px;margin-bottom:12px}
   .fila-rot{font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--creme-suave);
     text-align:center;margin-bottom:7px}
@@ -54,48 +45,18 @@
   .fila-item .pos{font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--gold);font-weight:700}
   .fila-item .nm{font-size:12.5px;font-weight:600;max-width:100%;white-space:nowrap;
     overflow:hidden;text-overflow:ellipsis}
-  .fila-item .rep{color:var(--gold-claro)}
+  /* o que ela ainda tem para receber. Vive aqui, e não só no cartão da contagem, porque
+     é a segunda pergunta que vem depois de "sou eu depois de quem?" */
+  .fila-item .rep{font-size:11px;font-weight:700;color:var(--verde-noite);background:var(--gold-claro);
+    border-radius:99px;padding:1px 8px;font-variant-numeric:lining-nums}
+  .fila-vazia{grid-column:1/-1;text-align:center;font-size:13px;color:var(--creme-suave);
+    border:1px dashed var(--linha);border-radius:13px;padding:14px}
   .avf{width:36px;height:36px;border-radius:50%;flex:none;border:1px solid var(--gold);overflow:hidden;
     display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;
     font-size:15px;color:var(--gold);background:rgba(0,0,0,.3)}
   .avf img,.av img{width:100%;height:100%;object-fit:cover;display:block}
-  /* Redonda, no estilo da foto de perfil do WhatsApp — é o formato que elas já
-     conhecem, e combina com os avatares da fila e da contagem, que são redondos.
-     Grande o bastante (118px) para a pessoa aparecer, e não só o rosto. */
-  .vez .foto{width:118px;height:118px;border-radius:50%;margin:0 auto 12px;border:1.5px solid var(--gold);
-    overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);
-    font-family:'Playfair Display',serif;font-size:44px;color:var(--gold)}
-  /* a img aqui não tinha regra de tamanho: com foto de 128px ninguém percebia, mas a
-     foto da Central tem 640px e entrava inteira, deixando o pescoço no lugar do rosto */
-  .vez .foto img{width:100%;height:100%;object-fit:cover;display:block}
+  .av,.avf{position:relative}
 
-  /* A foto da Central entra inteira, de corpo, como foi tirada. Cheguei a dar zoom no
-     rosto para ele não ficar do tamanho de uma ervilha no círculo pequeno — a loja
-     preferiu a foto inteira, e é a foto delas. */
-  .vez .foto,.av,.avf{position:relative}
-
-  /* uma coluna: "Vendeu" ocupa a faixa, e a linha de baixo se divide sozinha entre as
-     saídas que estiverem à mostra — duas ou três, conforme haja para quem passar */
-  .acoes{display:grid;grid-template-columns:1fr;gap:9px;margin-bottom:8px}
-  .acoes-linha{display:flex;gap:9px}
-  .acoes-linha .btn{flex:1;min-width:0;padding-left:6px;padding-right:6px}
-  /* .btn tem display próprio e ganharia do hidden do HTML */
-  .acoes-linha .btn[hidden]{display:none}
-  /* com três na linha, o texto precisa caber em um terço de uma tela de 390px */
-  @media(max-width:430px){ .acoes-linha .btn{font-size:13.5px} }
-  .btn{border:1px solid var(--linha);background:rgba(0,0,0,.18);color:var(--creme);
-    border-radius:11px;padding:15px 10px;font-family:'Barlow',sans-serif;font-size:15px;font-weight:600;
-    cursor:pointer;transition:.15s;min-height:52px}
-  .btn:active{transform:scale(.98)}
-  .btn:disabled{opacity:.35;cursor:default}
-  /* fora do grid das três ações: é o caminho de exceção, não pode competir com elas */
-  .btn.assumir{display:block;width:100%;border-style:dashed;font-size:13.5px;font-weight:600;
-    min-height:46px;padding:11px 12px;margin-bottom:8px;color:var(--creme-suave)}
-  .btn.assumir:hover{border-color:var(--gold);color:var(--creme)}
-  .btn.assumir[hidden]{display:none}
-  .btn-venda{grid-column:1/-1;background:var(--gold);color:var(--verde-noite);border-color:var(--gold);font-size:17px}
-  .btn-venda:hover:not(:disabled){background:var(--gold-claro)}
-  .btn:hover:not(:disabled){border-color:var(--gold)}
   .dica{font-size:12px;color:var(--creme-suave);text-align:center;margin:4px 0 20px;line-height:1.5}
 
   /* ===== contagem ===== */
@@ -173,8 +134,6 @@
     cursor:pointer;font-family:'Barlow',sans-serif;flex:none;transition:.15s}
   .navdia-hoje:hover{border-color:var(--gold);color:var(--creme)}
   .navdia-hoje[hidden]{display:none}
-  .num.acum b{color:var(--alerta)}
-  .num.acum small{color:var(--alerta);opacity:.8}
   /* ── calendário, o mesmo desenho da aba de Metas ── */
   .cal-lanc{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);z-index:30;
     width:300px;max-width:calc(100vw - 44px);border:1px solid var(--linha);background:var(--verde-escuro);
@@ -279,10 +238,13 @@
     font-family:'Barlow',sans-serif;cursor:pointer}
   .mot:hover{border-color:var(--gold)}
   .mot.pular{color:var(--creme-suave);font-size:13px;border-style:dashed}
-  .lanc-bt{display:block;width:100%;margin:2px 0 4px;background:none;border:1px dashed var(--linha);
-    border-radius:11px;color:var(--gold-claro);font-family:inherit;font-size:12.5px;
-    padding:10px 12px;cursor:pointer}
-  .lanc-bt:hover{border-color:var(--gold)}
+  /* virou o único jeito de registrar um atendimento, então tem o peso que os três
+     botões do topo tinham: é o que a mão procura sem ler a tela */
+  .lanc-bt{display:block;width:100%;margin:4px 0 6px;background:var(--gold);color:var(--verde-noite);
+    border:1px solid var(--gold);border-radius:11px;font-family:'Barlow',sans-serif;font-size:16px;
+    font-weight:600;padding:15px 12px;min-height:52px;cursor:pointer;transition:.15s}
+  .lanc-bt:hover{background:var(--gold-claro)}
+  .lanc-bt:active{transform:scale(.98)}
   /* o registro que vai cair, desenhado como ele aparece na lista: quem confirma tem de
      reconhecer a linha, não ler uma frase sobre ela */
   .desf-alvo{display:flex;gap:9px;align-items:center;border:1px solid var(--linha);
@@ -365,7 +327,7 @@
      sai baixinho, o 4 desce abaixo da linha, e "4 idas · 100%" fica tropeçando.
      Vem no fim da folha de propósito: assim vale sobre as regras de cada bloco, e o
      número é o mesmo em toda a tela sem ter de repetir a fonte em cada uma delas. */
-  .num b, .num.acum b, .conv, .dia-num b, .pes-conv{
+  .num b, .conv, .dia-num b, .pes-conv{
     font-family:'Cormorant Garamond',serif;font-weight:400;
     font-variant-numeric:lining-nums tabular-nums}
   .num b{font-size:19px}
@@ -377,34 +339,17 @@
 <div class="wrap">
   <div class="topo"><h1>Escala de Atendimento</h1><div class="sub">Loretto Scarpa</div></div>
 
-  <div class="vez ninguem" id="cartaoVez">
-    <div class="rot">é a vez de</div>
-    <div class="foto" id="fotoVez"></div>
-    <div class="nome" id="nomeVez">carregando…</div>
-    <div id="euBadge"></div>
-  </div>
+  <!-- A ordem, e só. Registrar deixou de morar aqui.
 
+       Antes esta área era "é a vez de Fulana" e quatro botões, e só quem estava com a
+       vez conseguia apertar. Na loja isso trava: é a vez da Ialey, a Ialey está no
+       almoço, quem vai à porta é a Michelly — e a Michelly não tinha onde marcar o
+       atendimento dela. Agora a vez é um guia (quem deve ir, e quem tem vezes
+       acumuladas), e o lançamento mora na Contagem: cada uma lança a sua quando for,
+       e a ordem se reacerta sozinha com o que foi lançado. -->
   <div class="fila-rot" id="filaRot" hidden>a ordem de hoje</div>
   <div class="fila" id="fila"></div>
-
-  <div class="acoes">
-    <!-- nascem desabilitados: sem conexão o pintar() não roda, e botão que aceita
-         toque sem registrar nada é pior do que botão apagado -->
-    <button class="btn btn-venda" id="bVenda" disabled onclick="registrar('venda')">Vendeu — passa a vez</button>
-    <!-- os três desfechos dividem a linha de baixo. "Passar a vez" entra junto e não
-         mais como faixa solta embaixo: é uma saída do atendimento como as outras, e
-         quem está com o cliente decide entre as quatro no mesmo lugar. Some quando
-         não há para quem passar, e aí sobram duas dividindo a linha. -->
-    <div class="acoes-linha">
-      <button class="btn" id="bSem" disabled onclick="pedirMotivo()">Não vendeu</button>
-      <button class="btn" id="bTroca" disabled onclick="registrar('troca')">Era troca</button>
-      <button class="btn" id="bPassar" hidden onclick="pedirPassar()">Passar a vez</button>
-    </div>
-  </div>
-  <!-- Saiu um minuto e não marcou nada: quem atendeu no lugar dela registra aqui, em vez
-       de ficar sem poder registrar o próprio atendimento. -->
-  <button class="btn assumir" id="bAssumir" hidden onclick="pedirAssumir()"></button>
-  <div class="dica" id="dicaVez">A vez só passa quando vende. Sem venda, ela continua com quem está.<br>Troca não conta como ida à porta.</div>
+  <div class="dica" id="dicaVez">Quem foi menos vezes vai primeiro.<br>Quem está atrás vai seguidas até emparelhar — é o <b>+N</b> ao lado do nome.</div>
 
   <div class="desnivel" id="desnivel"></div>
 
@@ -467,24 +412,6 @@
 </div>
 <div class="msg" id="msg"></div>
 <input type="file" id="arqFoto" accept="image/*" style="display:none">
-
-<!-- assumir o atendimento de quem não está na loja -->
-<div class="folha" id="folhaAssumir" onclick="if(event.target===this)fecharAssumir()">
-  <div class="folha-cx">
-    <h3 id="assumirTitulo">Ela não está na loja?</h3>
-    <p id="assumirTexto"></p>
-    <div id="listaAssumir"></div>
-  </div>
-</div>
-
-<!-- passar a vez para outra vendedora -->
-<div class="folha" id="folhaPassar" onclick="if(event.target===this)fecharPassar()">
-  <div class="folha-cx">
-    <h3 id="passarTitulo">Passar a vez</h3>
-    <p id="passarTexto"></p>
-    <div id="listaPassar"></div>
-  </div>
-</div>
 
 <!-- ausência: férias, folga ou atestado -->
 <div class="folha" id="folhaAfast" onclick="if(event.target===this)fecharAfastamento()">
@@ -759,36 +686,6 @@ const podeMarcar = k => souGestor || ehMinha(k);
 function pintar(){
   if(!estado) return;
   aplicarPapel();
-  const dv = estado.daVez ? estado.pessoas[estado.daVez] : null;
-  const cartao = $('cartaoVez');
-  const fv = dv ? fotoDaPessoa(dv) : '';
-  $('fotoVez').innerHTML = dv ? (fv ? `<img src="${fv}" alt="">` : esc(dv.nome[0])) : '';
-  $('fotoVez').style.display = dv ? 'flex' : 'none';
-  $('nomeVez').textContent = dv ? dv.nome : 'ninguém disponível';
-  cartao.classList.toggle('ninguem', !dv);
-  const souEu = dv && dv.email === meuEmail;
-  $('euBadge').innerHTML = souEu ? '<span class="eu">é a sua vez</span>' : '';
-  /* botão que aceita toque e não registra nada é pior do que botão apagado: quem não
-     pode marcar aquele atendimento vê os três desligados, e a linha embaixo diz por quê */
-  const posso = !!dv && podeMarcar(estado.daVez);
-  ['bVenda','bSem','bTroca'].forEach(b => $(b).disabled = !posso);
-  /* O botão de assumir só faz sentido para quem PODE atender agora e não está com a
-     vez: a colega saiu para o almoço sem marcar, e o cliente entrou. */
-  const podeAssumir = !!dv && !ehMinha(estado.daVez)
-    && VezRegra.elegiveis(estado.pessoas).indexOf(minhaChave()) >= 0;
-  $('bAssumir').hidden = !podeAssumir;
-  /* passar a vez é de quem está com ela — e da gestão, que resolve o que a tela não
-     previu. Sem ninguém para receber, o botão não aparece. */
-  const outras = dv ? VezRegra.elegiveis(estado.pessoas).filter(k => k !== estado.daVez) : [];
-  $('bPassar').hidden = !dv || !outras.length || !(ehMinha(estado.daVez) || souGestor);
-  if(podeAssumir) $('bAssumir').textContent = 'Atendi no lugar da ' + dv.nome;
-
-  $('dicaVez').innerHTML = !dv ? 'A vez só passa quando vende. Sem venda, ela continua com quem está.<br>Troca não conta como ida à porta.'
-    : posso ? (souGestor && !souEu
-        ? 'Você está marcando por <b>' + esc(dv.nome) + '</b> — fica registrado o seu nome e a hora.'
-        : 'A vez só passa quando vende. Sem venda, ela continua com quem está.<br>Troca não conta como ida à porta.')
-    : 'A vez é de <b>' + esc(dv.nome) + '</b>: só ela, a supervisora ou a diretoria registram este atendimento.';
-
   const crit = estado.criterio;
   $('bCriterio').textContent = (souGestor ? 'Fila por: ' : 'A fila segue as ') + (crit==='vendas' ? 'vendas' : 'idas à porta');
   $('bCriterio').disabled = !souGestor;   /* trocar o critério muda quem é chamada */
@@ -799,19 +696,25 @@ function pintar(){
      Quem está atrás na contagem é chamada várias vezes seguidas até emparelhar. Isso
      vira "×2" ao lado do nome em vez de ocupar duas colunas e empurrar a terceira
      pessoa para fora da tela, que era o defeito de antes. */
+  /* Quantas vezes a pessoa ainda vai ser chamada por causa do que ficou para trás.
+     Saiu de dentro dos números do dia e virou um número próprio: misturado com as
+     idas de hoje, ele fazia a conta do dia parecer errada. */
+  const aptas = VezRegra.elegiveis(estado.pessoas);
+  const teto = aptas.length ? Math.max.apply(null, aptas.map(e => VezRegra.conta(estado.pessoas[e], crit))) : 0;
+
   const ordem = VezRegra.ordemDistinta(estado.pessoas, crit, estado.daVez);
   $('filaRot').hidden = ordem.length < 2;
-  $('fila').innerHTML = ordem.map((g,i)=>{
+  /* 1ª, 2ª, 3ª — e o que cada uma ainda tem para receber. A posição sozinha não
+     respondia a pergunta que elas fazem ("quantas eu ainda vou?"), e esse número
+     morava só lá embaixo, no cartão da contagem. */
+  $('fila').innerHTML = ordem.length ? ordem.map((g,i)=>{
     const p = estado.pessoas[g.email];
-    const pos = i===0 ? 'agora' : (i+1)+'ª';
-    const rep = g.vezes>1 ? ` <span class="rep">×${g.vezes}</span>` : '';
-    const dica = g.vezes>1
-      ? `${p.nome} vai ${g.vezes} vezes antes de a fila girar — está atrás na contagem`
-      : (i===0 ? `${p.nome} está com a vez agora` : `${p.nome} é a ${i+1}ª a ser chamada`);
-    return `<span class="fila-item ${i===0?'agora':''}" title="${esc(dica)}">
-      <span class="pos">${pos}</span>${avatar(p,'avf')}
-      <span class="nm">${esc(p.nome)}${rep}</span></span>`;
-  }).join('');
+    const acum = Math.max(0, teto - VezRegra.conta(p, crit));
+    const mais = acum > 0 ? `<span class="rep" title="${esc(p.nome + ' ainda vai ' + acum + (acum===1?' vez':' vezes') + ' antes de a fila girar')}">+${acum}</span>` : '';
+    return `<span class="fila-item ${i===0?'agora':''}">
+      <span class="pos">${i+1}ª</span>${avatar(p,'avf')}
+      <span class="nm">${esc(p.nome)}</span>${mais}</span>`;
+  }).join('') : '<span class="fila-vazia">ninguém disponível</span>';
 
   /* Quem está no revezamento vem primeiro, em ordem alfabética; quem está fora dele
      desce para o fim. Na prática é a Jhennifer: ela aparecia entre a Ialey e a
@@ -829,15 +732,13 @@ function pintar(){
   $('rotuloDia').parentNode.classList.toggle('passado', !hojeMesmo);
   $('setaFrente').disabled = hojeMesmo;
   $('btHoje').hidden = hojeMesmo;
-  /* lançar depois só faz sentido em dia que já passou: hoje a pessoa marca na hora,
-     pelos três botões lá em cima */
-  if($('btLancar')) $('btLancar').hidden = hojeMesmo || !quemPodeLancar().length;
-
-  /* Quantas vezes a pessoa ainda vai ser chamada por causa do que ficou para trás.
-     Saiu de dentro dos números do dia e virou um número próprio: misturado com as
-     idas de hoje, ele fazia a conta do dia parecer errada. */
-  const aptas = VezRegra.elegiveis(estado.pessoas);
-  const teto = aptas.length ? Math.max.apply(null, aptas.map(e => VezRegra.conta(estado.pessoas[e], crit))) : 0;
+  /* Lançar é o único jeito de registrar, e vale para hoje também. Não pergunta de quem
+     é a vez: é a vez da Ialey, a Ialey está no almoço, quem foi à porta foi a Michelly
+     — e é a Michelly que lança. A ordem se reacerta com o que foi lançado. */
+  if($('btLancar')){
+    $('btLancar').hidden = !quemPodeLancar().length;
+    $('btLancar').textContent = hojeMesmo ? '+ Lançar ida' : '+ Lançar ida nesse dia';
+  }
 
   /* A contagem do dia é de quem pode ir à porta HOJE. Quem está fora o dia inteiro
      (férias, folga, atestado) ou fora do revezamento (a supervisora, até alguém
@@ -872,11 +773,12 @@ function pintar(){
     const motivo = af ? ('de ' + rotuloAfast(p) + daEscala) :
                    p.esperando ? ('esperando a fila zerar' + (falta ? ' · faltam '+falta : '')) :
                    (!p.participa ? 'fora do revezamento' : (!p.presente ? 'ausente agora'+daEscala : ''));
-    /* números do dia escolhido, e não o total desde sempre */
+    /* números do dia escolhido, e só. O "+N acumuladas" mudou de lugar: vive na ordem,
+       lá em cima, onde ele responde "quantas eu ainda vou?" no mesmo olhar que responde
+       "sou eu depois de quem?". Aqui no meio das idas do dia ele fazia a conta do dia
+       parecer errada. */
     const dd = noDia[p.nome] || {idas:0, vendas:0};
     const convDia = dd.idas ? Math.round(dd.vendas / dd.idas * 100) : null;
-    /* o que ela ainda tem para receber da fila — só faz sentido olhando para hoje */
-    const acum = (hojeMesmo && aptas.indexOf(k) >= 0) ? teto - VezRegra.conta(p, crit) : 0;
     /* dia que já passou: presença, férias e "da vez" são estados de AGORA, e não
        daquele dia — mostrá-los ali seria dizer que a pessoa estava assim naquele dia */
     return `<div class="pessoa ${hojeMesmo&&fora?'fora':''} ${hojeMesmo&&(af||p.esperando)?'afastada':''} ${hojeMesmo&&estado.daVez===k?'davez':''}">
@@ -886,7 +788,6 @@ function pintar(){
           <span class="num ${crit==='idas'?'governa':''}"><b>${dd.idas}</b><small>idas</small></span>
           <span class="num ${crit==='vendas'?'governa':''}"><b>${dd.vendas}</b><small>vendas</small></span>
           <span class="num"><b class="conv">${convDia===null?'—':convDia+'%'}</b><small>conv.</small></span>
-          ${acum>0?`<span class="num acum" title="Vezes que ela ficou para trás e ainda vai ser chamada — vem de antes de hoje"><b>+${acum}</b><small>${acum===1?'acumulada':'acumuladas'}</small></span>`:''}
         </span></span>
       ${hojeMesmo?`<span class="pes-acoes">
         ${souGestor ? `<button class="tog ${af||!p.presente||p.esperando?'afast':''}" onclick="pedirAfastamento('${k}')">${af?rotuloAfast(p):(!p.presente?'ausente':(p.esperando?'esperando':'ausência'))}</button>` : ''}
@@ -1039,18 +940,23 @@ function anotar(k, texto){
   }catch(e){ console.warn('não anotou', e); }
 }
 
-window.registrar = function(desfecho, motivo){
-  if(!estado || !estado.daVez) return;
-  const k = estado.daVez, p = estado.pessoas[k], agora = Date.now();
-  if(!podeMarcar(k)){ toast('Só a ' + p.nome + ', a supervisora ou a diretoria marcam esta vez'); return; }
+/* Registrar um atendimento de HOJE. A pessoa é dita, e não lida de quem está com a
+   vez: é a vez da Ialey, a Ialey está no almoço, quem foi à porta foi a Michelly — e
+   quem lança é a Michelly. A ordem se reacerta com o que foi lançado.
+   Sem a pessoa, vale a de quem está com a vez. */
+window.registrar = function(desfecho, motivo, quem){
+  if(!estado) return;
+  const k = quem || estado.daVez;
+  if(!k || !estado.pessoas[k]) return;
+  const p = estado.pessoas[k], agora = Date.now();
+  if(!podeMarcar(k)){ toast('Só a ' + p.nome + ', a supervisora ou a diretoria lançam por ela'); return; }
   const novo = VezRegra.registrar(estado, k, desfecho, agora);
-  if(db){
-    db.collection('ls_vez_hist').add({
-      email:p.email, nome:p.nome, desfecho, quando:agora,
-      motivo: motivo || null,
-      registradoPor:meuEmail || null
-    }).catch(()=>{});
-  }
+  const reg = { email:p.email, nome:p.nome, desfecho, quando:agora,
+                motivo: motivo || null, registradoPor:meuEmail || null };
+  /* com banco, quem devolve a linha é o snapshot; sem banco (demo, teste) ela entra
+     aqui mesmo, senão a tela registra e não mostra o que registrou */
+  if(db) db.collection('ls_vez_hist').add(reg).catch(()=>{});
+  else historico = [Object.assign({id:'reg'+agora+k}, reg)].concat(historico);
   const prox = novo.daVez ? novo.pessoas[novo.daVez].nome : 'ninguém';
   salvar(novo, desfecho==='venda' ? ('Venda registrada — agora é a vez de '+prox)
             : desfecho==='troca' ? 'Troca registrada — a vez continua'
@@ -1141,92 +1047,6 @@ window.afastar = function(tipo){
   salvar(VezRegra.revalidar(depois), depois.pessoas[k].esperando
     ? p.nome + ' voltou — entra quando a fila zerar' + (falta ? ' (faltam '+falta+')' : '')
     : p.nome + ' voltou e já entrou na fila');
-};
-
-/* Assumir o atendimento de quem não está na loja.
-
-   O caso é o do almoço: a Michelly sai sem marcar nada, o cliente entra, e quem atende
-   é a Natália. Sem isto ela não conseguia registrar coisa nenhuma — a vez não era dela
-   e os botões ficavam apagados —, e o jeito era chamar a supervisora no meio do
-   atendimento.
-
-   Só o cliente muda de mão: a colega NÃO sai da fila, porque ela pode estar voltando do
-   almoço agora e só não apertou nada. A contagem dela não anda, então a vez volta para
-   ela logo em seguida — e vai acumulando enquanto ela não atender.
-
-   Fica anotado com nome e hora, e a colega vê na tela dela na hora. */
-window.pedirAssumir = function(){
-  if(!estado || !estado.daVez) return;
-  const dv = estado.pessoas[estado.daVez];
-  if(!dv || ehMinha(estado.daVez)) return;
-  $('assumirTitulo').textContent = 'Atender no lugar da ' + dv.nome + '?';
-  $('assumirTexto').textContent =
-    'A ida conta para você, porque quem foi à porta foi você. A ' + dv.nome + ' continua na '
-    + 'fila e não perde nada: a contagem dela não anda, e a vez volta para ela na sequência.';
-  /* O desfecho é perguntado aqui. Antes esta folha só passava o cliente de mão e
-     esperava a pessoa apertar "Vendeu"/"Não vendeu" depois — e ninguém apertava: o
-     botão dizia "eu atendi", no passado, e a contagem não mexia. Duas telas para uma
-     coisa só é uma tela a mais para esquecer no meio do atendimento. */
-  $('listaAssumir').innerHTML =
-    `<button class="mot" onclick="assumirVez('venda')"><b>Atendi e vendeu</b></button>`
-    + `<button class="mot" onclick="assumirVez('sem-venda')"><b>Atendi e não vendeu</b></button>`
-    + `<button class="mot pular" onclick="fecharAssumir()">Cancelar</button>`;
-  $('folhaAssumir').classList.add('on');
-};
-window.fecharAssumir = function(){ $('folhaAssumir').classList.remove('on'); };
-
-window.assumirVez = function(desfecho){
-  fecharAssumir();
-  const eu = minhaChave(), k = estado && estado.daVez;
-  if(!k || !estado.pessoas[eu]){ toast('Você não está no revezamento'); return; }
-  if(k === eu){ toast('A vez já é sua'); return; }
-  const novo = JSON.parse(JSON.stringify(estado));
-  /* A colega NÃO sai da fila: ela pode estar voltando do almoço agora e só não apertou
-     nada, e tirar da vez quem está a caminho é justamente o que a loja não quer. Como a
-     contagem dela não anda, a vez volta para ela logo em seguida — e vai acumulando
-     enquanto ela não atender. */
-  novo.daVez = eu;
-  anotar(k, 'não pôde atender — ' + nomeDe(meuEmail) + ' pegou o cliente');
-  /* sem toast aqui: quem fala é o registro logo abaixo, e dois avisos seguidos no mesmo
-     canto da tela fazem o segundo passar batido */
-  salvar(VezRegra.revalidar(novo));
-  /* agora a vez é minha, e é a minha ida que vai ser contada */
-  if(desfecho === 'sem-venda') pedirMotivo(); else registrar('venda');
-};
-
-/* Passar a vez para outra.
-
-   Acontece o tempo todo na loja: a cliente é conhecida de alguém, a pessoa está no meio
-   de uma troca, ou simplesmente prefere ceder. Antes isso era resolvido no grito e a
-   tela ficava mentindo sobre quem estava atendendo.
-
-   Contagem nenhuma se mexe: quem passou não foi à porta, então continua devendo a vez a
-   si mesma e é chamada de novo logo adiante. Fica escrito quem passou, para quem, e
-   quem apertou o botão.                                                                */
-window.pedirPassar = function(){
-  if(!estado || !estado.daVez) return;
-  const dv = estado.pessoas[estado.daVez];
-  const outras = VezRegra.elegiveis(estado.pessoas).filter(k => k !== estado.daVez);
-  if(!dv || !outras.length) return;
-  $('passarTitulo').textContent = 'Passar a vez da ' + dv.nome;
-  $('passarTexto').textContent =
-    'Para a fila, é como se você já tivesse ido: a sua vez foi usada ao passar. As suas '
-    + 'idas, vendas e conversão não mudam. Fica registrado quem passou e para quem.';
-  $('listaPassar').innerHTML =
-    outras.map(k => `<button class="mot" onclick="passarVez('${k}')">${esc(estado.pessoas[k].nome)}</button>`).join('')
-    + `<button class="mot pular" onclick="fecharPassar()">Cancelar</button>`;
-  $('folhaPassar').classList.add('on');
-};
-window.fecharPassar = function(){ $('folhaPassar').classList.remove('on'); };
-
-window.passarVez = function(destino){
-  fecharPassar();
-  const k = estado && estado.daVez;
-  if(!k || !destino || destino === k || !estado.pessoas[destino]) return;
-  if(!(ehMinha(k) || souGestor)){ toast('Só quem está com a vez pode passar'); return; }
-  const novo = VezRegra.passarVez(estado, k, destino);
-  anotar(k, 'passou a vez para ' + novo.pessoas[destino].nome);
-  salvar(VezRegra.revalidar(novo), 'A vez agora é da ' + novo.pessoas[destino].nome);
 };
 
 /* Só 'participa' sobrou aqui. O botão "na loja / ausente" saiu da tela: ausência é
@@ -1392,28 +1212,29 @@ function quemPodeLancar(){
 
 let _lancAlvo = null;
 window.pedirLancamento = function(k){
-  if(ehHoje()){ toast('Hoje a vez se marca na hora, lá em cima'); return; }
   const podem = quemPodeLancar();
   if(!podem.length){ toast('Você não está no revezamento'); return; }
   _lancAlvo = k || (podem.length === 1 ? podem[0] : null);
   const dia = rotuloDoDia().toLowerCase();
 
+  const agora = ehHoje();
   if(!_lancAlvo){                                   /* gestão escolhendo por quem lança */
-    $('lancTitulo').textContent = 'Lançar ida em ' + dia;
-    $('lancTexto').textContent = 'De quem é a ida que faltou marcar?';
+    $('lancTitulo').textContent = 'Lançar ida' + (agora ? '' : ' em ' + dia);
+    $('lancTexto').textContent = 'Quem foi à porta?';
     $('listaLanc').innerHTML = podem.map(kk =>
       `<button class="mot" onclick="pedirLancamento('${kk}')">${esc(estado.pessoas[kk].nome)}</button>`).join('')
       + `<button class="mot pular" onclick="fecharLancamento()">Cancelar</button>`;
   } else {
     const p = estado.pessoas[_lancAlvo];
-    $('lancTitulo').textContent = p.nome + ' — ida em ' + dia;
-    $('lancTexto').textContent = 'Entra na contagem daquele dia, no resumo do mês e '
-      + 'também na fila de hoje — quem lança uma de ontem fica uma na frente, e a ordem '
-      + 'da porta se reacerta na hora.';
+    $('lancTitulo').textContent = p.nome + ' — ida' + (agora ? ' agora' : ' em ' + dia);
+    $('lancTexto').textContent = agora
+      ? 'A ordem se reacerta com o lançamento. Não importa de quem era a vez: quem foi à porta foi quem lança.'
+      : 'Entra na contagem daquele dia, no resumo do mês e também na fila de hoje — '
+        + 'quem lança uma de ontem fica uma na frente, e a ordem se reacerta na hora.';
     $('listaLanc').innerHTML =
-        `<button class="mot" onclick="lancar('venda')"><b>Foi e vendeu</b></button>`
-      + `<button class="mot" onclick="lancar('sem-venda')"><b>Foi e não vendeu</b></button>`
-      + `<button class="mot" onclick="lancar('troca')">Foi uma troca</button>`
+        `<button class="mot" onclick="lancar('venda')"><b>Vendeu — passa a vez</b></button>`
+      + `<button class="mot" onclick="lancar('sem-venda')"><b>Não vendeu — não passa a vez</b></button>`
+      + `<button class="mot" onclick="lancar('troca')">Era troca</button>`
       + `<button class="mot pular" onclick="fecharLancamento()">Cancelar</button>`;
   }
   $('folhaLanc').classList.add('on');
@@ -1425,7 +1246,14 @@ window.lancar = function(desfecho){
   fecharLancamento();
   if(!k || !estado.pessoas[k]) return;
   if(!podeMarcar(k)){ toast('Só a ' + estado.pessoas[k].nome + ' ou a gestão lançam por ela'); return; }
-  if(dia >= hojeISO()){ toast('Hoje a vez se marca na hora, lá em cima'); return; }
+  /* hoje é atendimento acontecendo: vale a regra do balcão inteira — vendeu passa a
+     vez, não vendeu continua com ela — e o motivo da não-venda vai para Vendas
+     Perdidas, como sempre foi */
+  if(dia === hojeISO()){
+    if(desfecho === 'sem-venda'){ _semVendaAlvo = k; pedirMotivo(); return; }
+    registrar(desfecho, null, k);
+    return;
+  }
   const p = estado.pessoas[k];
   const quando = new Date(dia + 'T12:00:00').getTime();
   const reg = { email:p.email, nome:p.nome, desfecho, quando, motivo:null,
@@ -1450,8 +1278,13 @@ const diaDe = ts => { const d=new Date(ts);
    Vendas Perdidas, que já existe: sem isso a vendedora digitaria a mesma coisa duas
    vezes, e na correria simplesmente não digita. Dá para pular, porque forçar motivo
    faria ela deixar de marcar a vez — que é o dado mais importante desta tela.       */
+/* de quem é a não-venda que está sendo detalhada. Guardado porque a folha de motivos
+   é uma segunda tela: entre abrir e escolher, "de quem é a vez" não vale mais como
+   resposta — quem lançou pode não ser quem estava com a vez. */
+let _semVendaAlvo = null;
 window.pedirMotivo = function(){
-  if(!estado || !estado.daVez) return;
+  if(!estado) return;
+  if(!_semVendaAlvo && !estado.daVez) return;
   $('listaMotivos').innerHTML = MOTIVOS.map(m =>
     `<button class="mot" onclick="confirmarSemVenda('${m.replace(/'/g,"\\'")}')">${esc(m)}</button>`).join('');
   $('folhaMotivo').classList.add('on');
@@ -1471,7 +1304,8 @@ window.fecharMotivo = function(){ $('folhaMotivo').classList.remove('on'); };
    que o sistema já sabe.                                                              */
 window.confirmarSemVenda = function(motivo){
   fecharMotivo();
-  registrar('sem-venda', motivo);
+  const quem = _semVendaAlvo; _semVendaAlvo = null;
+  registrar('sem-venda', motivo, quem);
   if(!motivo) return;
   const dia = diaDe(Date.now());
   try{
@@ -1741,11 +1575,11 @@ try{
   db = firebase.firestore(); auth = firebase.auth();
   auth.onAuthStateChanged(u=>{
     meuEmail = (u && u.email) || '';
-    if(!u){ $('nomeVez').textContent='entre pela Central'; return; }
+    if(!u){ $('fila').innerHTML = '<span class="fila-vazia">entre pela Central</span>'; return; }
     ligar();
   });
 }catch(e){
-  $('nomeVez').textContent = 'sem conexão';
+  $('fila').innerHTML = '<span class="fila-vazia">sem conexão</span>';
   console.warn('Firebase falhou', e);
 }
 </script>

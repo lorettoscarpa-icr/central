@@ -527,58 +527,6 @@ const AV = (o)=>Object.assign({id:'a1', chave:'natalia', tipo:'ferias', inicio:H
   eq('a vez passa para quem está na loja', r.estado.daVez !== 'natalia', true);
 }
 
-console.log('\n== passar a vez para outra ==');
-{
-  /* Passar consome a vez de quem passou — para a FILA. As métricas ficam intactas. */
-  let e = base('idas');
-  ['ialey','michelly','natalia'].forEach(k => { e.pessoas[k].idas = 8; e.pessoas[k].vendas = 4; });
-  e.daVez = 'ialey';
-  e = R.passarVez(e, 'ialey', 'natalia');
-  eq('a vez vai para quem recebeu', e.daVez, 'natalia');
-  eq('para a fila, quem passou já foi', R.conta(e.pessoas.ialey, 'idas'), 9);
-  eq('mas as idas dela são as mesmas', e.pessoas.ialey.idas, 8);
-  eq('e a conversão não se mexe', R.conversao(e.pessoas.ialey), 50);
-  eq('quem recebeu não ganha nem perde nada', R.conta(e.pessoas.natalia, 'idas'), 8);
-}
-{
-  /* O caso que a loja contou, do começo ao fim:
-     a Ialey passa a vez para a Natália, a Natália sai para o almoço, a Ialey atende no
-     lugar dela — e a Natália fica com DUAS vezes a receber antes de a Ialey voltar. */
-  let e = base('idas');
-  ['ialey','michelly','natalia'].forEach(k => e.pessoas[k].idas = 10);
-  e.daVez = null; e = R.revalidar(e);
-  eq('a vez começa com a Ialey, pela ordem da casa', e.daVez, 'ialey');
-
-  e = R.passarVez(e, 'ialey', 'natalia');          /* passou */
-  e = R.revalidar(e);
-  eq('a vez ficou com a Natália', e.daVez, 'natalia');
-
-  e.daVez = 'ialey';                                /* "atendi no lugar dela" */
-  e = R.registrar(R.revalidar(e), 'ialey', 'venda', 4000);
-  eq('a Natália não perdeu nada', R.conta(e.pessoas.natalia, 'idas'), 10);
-
-  const chamadas = [];
-  for (let i = 0; i < 4; i++) { e = R.revalidar(e); chamadas.push(e.daVez); e = R.registrar(e, e.daVez, 'venda', 4100 + i); }
-  eq('e ela é chamada DUAS vezes antes de a Ialey voltar',
-     chamadas, ['michelly', 'natalia', 'michelly', 'natalia']);
-  eq('só depois disso a vez volta para a Ialey', R.revalidar(e).daVez, 'ialey');
-}
-{
-  /* Por vendas, a passada anda na contagem que governa a fila. */
-  let e = base('vendas');
-  ['ialey','michelly','natalia'].forEach(k => { e.pessoas[k].vendas = 3; e.pessoas[k].idas = 6; });
-  e = R.passarVez(e, 'ialey', 'michelly');
-  eq('anda na fila por vendas', R.conta(e.pessoas.ialey, 'vendas'), 4);
-  eq('sem tocar nas vendas de verdade', e.pessoas.ialey.vendas, 3);
-}
-{
-  /* Passar para si mesma, ou para quem não existe, não faz nada. */
-  let e = base('idas');
-  const antes = JSON.stringify(e);
-  eq('passar para si mesma não muda nada', JSON.stringify(R.passarVez(e,'ialey','ialey')), antes);
-  eq('nem para quem não está na lista', JSON.stringify(R.passarVez(e,'ialey','fulana')), antes);
-}
-
 console.log('\n== a fila zerou: recomeça sempre na ordem da casa ==');
 {
   /* Ordem da casa = antiguidade: Ialey, Michelly, Natália. Toda vez que a fila zera,
