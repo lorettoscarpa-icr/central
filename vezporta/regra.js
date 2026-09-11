@@ -52,8 +52,9 @@
   }
 
   /* Quem pode ser chamada agora. Ficam fora: quem não participa do revezamento, quem
-     está ausente (almoço), quem está de ausência marcada, e quem voltou e ainda espera
-     a fila zerar. */
+     está ausente por algumas horas (a consulta que a escala manda — 'presente'), quem
+     está de férias, folga ou atestado ('afast'), e quem voltou e ainda espera a fila
+     zerar. Nenhum dos dois se marca à mão na tela: vêm da escala da equipe. */
   function apta(p) {
     return !!(p && p.participa && p.presente && !afastada(p) && !p.esperando);
   }
@@ -104,6 +105,10 @@
     if (!p) return novo;
     p.afast = null;
     delete p.ferias;
+    /* voltar é voltar por inteiro: a ausência curta (a consulta que a escala manda) vive
+       em 'presente', e deixá-la false aqui prendia a pessoa fora da vez sem botão nenhum
+       na tela para trazê-la de volta. */
+    p.presente = true;
     p.esperando = true;
     return liberar(novo);          /* se a fila já estiver zerada, entra agora mesmo */
   }
