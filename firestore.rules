@@ -15,6 +15,13 @@ service cloud.firestore {
         'jhenniferlorettoscarpa@gmail.com'
       ];
     }
+    // Só Gregory e Larissa: o que não tem volta não fica com a supervisão.
+    function diretoria() {
+      return logado() && request.auth.token.email in [
+        'lorettoscarpa@gmail.com',
+        'larissalorettoscarpa@gmail.com'
+      ];
+    }
     // true se a atualização mexeu SOMENTE nos campos informados
     function soMudou(campos) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(campos);
@@ -145,16 +152,26 @@ service cloud.firestore {
        cliente: é registro de trabalho da equipe. Escrita para conta de e-mail, porque
        qualquer uma pode marcar pela outra na correria — o histórico grava quem marcou. */
     match /ls_vez/{document=**}      { allow read, write: if logado(); }
-    /* O histórico é a prova de quem marcou o quê. Duas garantias que valem no servidor:
-       ninguém assina um registro com o nome de outra pessoa, e ninguém APAGA registro —
-       desfazer marca 'desfeito' e o registro continua lá. Apagar é da gestão. */
+    /* O histórico é a prova de quem marcou o quê. Três garantias que valem no servidor:
+       ninguém assina um registro com o nome de outra pessoa; desfazer marca 'desfeito'
+       em vez de apagar; e apagar de vez é da diretoria, só em registro já desfeito. */
     match /ls_vez_hist/{id} {
       allow read:   if logado();
       allow create: if logado() && request.resource.data.registradoPor == request.auth.token.email;
+      /* desfazer assina: quem marca o risco tem de escrever o próprio e-mail, senão
+         dá para riscar a venda da colega com o nome dela. Refazer (limpar o risco) é
+         da gestão, que é quem vê o botão na tela. */
       allow update: if logado()
                     && soMudou(['desfeito','desfeitoPor','desfeitoEm'])
-                    && request.resource.data.desfeitoPor == request.auth.token.email;
-      allow delete: if gestorOuSup();
+                    && (
+                         (request.resource.data.desfeito == true
+                           && request.resource.data.desfeitoPor == request.auth.token.email)
+                      || (request.resource.data.desfeito == false && gestorOuSup())
+                       );
+      /* apagar não tem volta, e é só da diretoria — na tela o botão nem aparece para
+         a supervisão. E só vale em registro já desfeito: é o desfazer que acerta a
+         contagem, apagar sem ele deixaria o dia contando o que não existe mais. */
+      allow delete: if diretoria() && resource.data.get('desfeito', false) == true;
     }
 
     /* Ausências avisadas pela própria equipe (dentro de Comunicados e Tarefas).

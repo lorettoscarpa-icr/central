@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v38">
+<meta name="app-ver" content="v39">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@300;400&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -244,6 +244,14 @@
   .hist .por{display:block;font-size:11px;color:var(--alerta);opacity:.85}
   .hist .por.desf{color:var(--creme-suave)}
   .hist .foi-desfeito b,.hist .foi-desfeito .tag{text-decoration:line-through;opacity:.55}
+  /* consertar o conserto: ficam na própria linha do registro riscado, pequenos, para
+     não competirem com o que a lista é — leitura, não painel de botões */
+  .desf-acoes{display:flex;gap:6px;margin-top:5px}
+  .mini{background:none;border:1px solid var(--linha);border-radius:99px;color:var(--creme-suave);
+    font-family:inherit;font-size:10.5px;letter-spacing:.3px;padding:2px 9px;cursor:pointer}
+  .mini:hover{border-color:var(--gold);color:var(--gold-claro)}
+  .mini.apaga:hover{border-color:var(--alerta);color:var(--alerta)}
+  .mini.confirma{border-color:var(--alerta);color:var(--alerta)}
   .hist .ev{color:var(--creme-suave)}
   .hist .ev i{font-style:normal;color:var(--gold-claro);opacity:.85}
   .tag{font-size:10px;letter-spacing:.5px;text-transform:uppercase;border-radius:99px;padding:1px 7px;margin-left:5px}
@@ -524,7 +532,10 @@ const MOTIVOS = ['Sem a numeração','Sem a cor','Modelo esgotado','Não trabalh
    precisaria de coleção com regra por e-mail, e o desfazer precisaria guardar o
    último registro no próprio estado. */
 const GESTORES = ['lorettoscarpa@gmail.com','larissalorettoscarpa@gmail.com','jhenniferlorettoscarpa@gmail.com'];
-let souGestor = false;
+/* Apagar de vez não volta atrás: fica com quem responde pela loja, e não com a
+   supervisão. Desfazer e refazer a supervisão faz — os dois são reversíveis. */
+const DIRETORIA = ['lorettoscarpa@gmail.com','larissalorettoscarpa@gmail.com'];
+let souGestor = false, souDiretoria = false;
 
 const $ = id => document.getElementById(id);
 let db=null, auth=null, meuEmail='', estado=null, historico=[];
@@ -694,6 +705,7 @@ function avatar(p, classe){ return `<span class="${classe}">${fotoOuInicial(p)}<
    depois da primeira: o onAuthStateChanged é assíncrono. */
 function aplicarPapel(){
   souGestor = GESTORES.indexOf((meuEmail||'').toLowerCase()) >= 0;
+  souDiretoria = DIRETORIA.indexOf((meuEmail||'').toLowerCase()) >= 0;
   document.body.classList.toggle('gestor', souGestor);
 }
 
@@ -906,7 +918,14 @@ function pintar(){
     const qdoDesf = h.desfeitoEm ? (mesmoDia(h.desfeitoEm,h.quando) ? ' às '+hhmm(h.desfeitoEm) : ' em '+dataHora(h.desfeitoEm)) : '';
     const desfeito = h.desfeito
       ? `<span class="por desf">desfeito${h.desfeitoPor?' por '+esc(nomeDe(h.desfeitoPor)):''}${qdoDesf}</span>` : '';
-    return faixa+`<div class="${h.desfeito?'foi-desfeito':''}">${avatarPorNome(h.nome,'h-av')}<span class="h-txt"><b>${esc(h.nome)}</b>${t} <small>${hhmm(h.quando)}</small>${porOutra}${desfeito}</span></div>`;
+    /* Desfazer errado acontece igual a marcar errado. Refazer devolve a contagem;
+       apagar tira da tela de vez, e por isso só a diretoria vê o botão — e só depois
+       de desfeito, que é quando os números já foram corrigidos. */
+    const conserto = (h.desfeito && souGestor && h.id)
+      ? `<span class="desf-acoes"><button class="mini" onclick="refazer('${esc(h.id)}')">↩ refazer</button>`
+        + (souDiretoria ? `<button class="mini apaga" onclick="pedirApagar(this,'${esc(h.id)}')">apagar</button>` : '')
+        + `</span>` : '';
+    return faixa+`<div class="${h.desfeito?'foi-desfeito':''}">${avatarPorNome(h.nome,'h-av')}<span class="h-txt"><b>${esc(h.nome)}</b>${t} <small>${hhmm(h.quando)}</small>${porOutra}${desfeito}${conserto}</span></div>`;
   }).join('') : '<div>Nada registrado ainda.</div>';
 }
 /* A escala manda 'ausente' além de férias/folga/atestado, e o aviso da equipe pode
@@ -1193,6 +1212,71 @@ window.desfazer = function(){
   if(db && ult.id) db.collection('ls_vez_hist').doc(ult.id).update(marca).catch(()=>{});
   historico = historico.map(h => h === ult ? Object.assign({}, h, marca) : h);
   salvar(novo, 'Desfeito — a vez voltou para '+p.nome);
+};
+
+/* Refazer é o inverso exato do desfazer: devolve a ida (e a venda) à contagem e tira
+   o risco da linha. Existe porque desfazer errado acontece na mesma correria em que
+   marcar errado acontece — e sem isto o jeito de consertar era marcar de novo HOJE,
+   que jogava a venda de anteontem no dia errado. */
+window.refazer = function(id){
+  const r = historico.filter(h => h.id === id)[0];
+  if(!r){ toast('Registro não encontrado'); return; }
+  if(!r.desfeito){ toast('Este registro não está desfeito'); return; }
+  const k = chave(r.email), novo = JSON.parse(JSON.stringify(estado)), p = novo.pessoas[k];
+  if(!p){ toast('Pessoa não está mais na lista'); return; }
+  if(!podeMarcar(k)){ toast('Este registro é da ' + r.nome + ' — só ela ou a gestão refazem'); return; }
+  if(r.desfecho !== 'troca'){
+    p.idas = (p.idas||0)+1;
+    if(r.desfecho==='venda') p.vendas = (p.vendas||0)+1;
+  }
+  /* A vez é do agora. Refazer o último registro devolve também para onde a vez tinha
+     ido; refazer um de três dias atrás devolve só a contagem, e não tira da porta
+     quem está lá neste minuto. A fila se reacerta sozinha, porque ela é governada
+     pelos contadores que acabaram de voltar. */
+  const ehOUltimo = !historico.some(h => h !== r && !h.desfeito
+    && VezRegra.ATENDIMENTOS.indexOf(h.desfecho) >= 0 && (h.quando||0) > (r.quando||0));
+  if(ehOUltimo && r.desfecho !== 'troca'){
+    novo.daVez = r.desfecho==='venda'
+      ? VezRegra.proximaDaVez(novo.pessoas, novo.criterio)   /* vendeu: a vez passa de novo */
+      : k;                                                   /* não vendeu: continua com ela */
+  }
+  const limpo = { desfeito:false, desfeitoPor:null, desfeitoEm:null };
+  if(db) db.collection('ls_vez_hist').doc(r.id).update(limpo).catch(()=>{});
+  historico = historico.map(h => h === r ? Object.assign({}, h, limpo) : h);
+  salvar(VezRegra.revalidar(novo), 'Refeito — a contagem de ' + p.nome + ' voltou');
+};
+
+/* Apagar não tem volta, então pede dois toques: o botão vira "apagar mesmo?" e só o
+   segundo apaga. Sem modal de propósito — a lista está dentro de um iframe na Central,
+   e dois toques no mesmo lugar nunca dependem de o modal aparecer. */
+window.pedirApagar = function(bt, id){
+  if(bt.classList.contains('confirma')) return apagarRegistro(id);
+  document.querySelectorAll('.mini.confirma').forEach(o=>{ o.classList.remove('confirma'); o.textContent='apagar'; });
+  bt.classList.add('confirma'); bt.textContent='apagar mesmo?';
+  clearTimeout(bt._t); bt._t = setTimeout(()=>{ bt.classList.remove('confirma'); bt.textContent='apagar'; }, 4000);
+};
+
+/* Só depois de desfeito: é o desfazer que mexe nos números, e apagar um registro que
+   ainda conta deixaria a contagem do dia mentindo. Some da tela e do banco, mas fica
+   a anotação de quem apagou — a linha muda de lugar, não deixa de existir. */
+window.apagarRegistro = function(id){
+  if(!souDiretoria){ toast('Só a diretoria apaga registro'); return; }
+  const r = historico.filter(h => h.id === id)[0];
+  if(!r){ toast('Registro não encontrado'); return; }
+  if(!r.desfeito){ toast('Desfaça primeiro: apagar não corrige a contagem'); return; }
+  historico = historico.filter(h => h !== r);
+  if(db){
+    db.collection('ls_vez_hist').doc(r.id).delete().catch(()=>toast('Não apagou: tente de novo'));
+    /* a anotação vai com o nome do registro, e não com o de quem estiver no estado:
+       apagar alguém que já saiu da equipe não pode virar "Gregory teve o registro
+       apagado" na lista. */
+    db.collection('ls_vez_hist').add({
+      tipo:'evento', evento:'teve o registro de ' + dataHora(r.quando) + ' apagado',
+      email:r.email||null, nome:r.nome||'', quando:Date.now(), registradoPor:meuEmail||null
+    }).catch(()=>{});
+  }
+  pintar();
+  toast('Registro apagado');
 };
 
 const diaDe = ts => { const d=new Date(ts);
