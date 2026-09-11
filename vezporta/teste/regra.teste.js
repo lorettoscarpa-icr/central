@@ -761,5 +761,46 @@ console.log('\n== o caso da Michelly de férias em setembro ==');
   eq('e repõe as que perdeu, que é o combinado para ausência de horas', tarde.michelly >= 3, true);
 }
 
+console.log('\n== ida lançada depois conta na fila ==');
+{
+  /* o caso da loja: as três emparelhadas, a vez é da Ialey, e aí ela lembra de uma de
+     ontem que esqueceu de marcar. Ela está uma NA FRENTE, não emparelhada. */
+  const e = base();
+  ['ialey','michelly','natalia'].forEach(k => { e.pessoas[k].idas = 5; e.pessoas[k].vendas = 2; });
+  e.daVez = 'ialey';
+  const d = R.lancarAtrasado(e, 'ialey', 'venda', 1000);
+  eq('a ida entra na conta dela', d.pessoas.ialey.idas, 6);
+  eq('a venda também', d.pessoas.ialey.vendas, 3);
+  eq('e a vez sai dela na hora', d.daVez, 'michelly');
+  eq('ela vai para o fim da ordem', R.ordemDaFila(d.pessoas, 'idas'), ['michelly','natalia','ialey']);
+  eq('e ninguém mais foi mexido', [d.pessoas.michelly.idas, d.pessoas.natalia.idas], [5,5]);
+}
+{
+  /* troca não é cliente novo na porta: nem lançada depois vira ida */
+  const e = base();
+  e.pessoas.ialey.idas = 2; e.pessoas.michelly.idas = 2; e.pessoas.natalia.idas = 2;
+  const d = R.lancarAtrasado(e, 'ialey', 'troca', 1000);
+  eq('troca lançada não conta ida', d.pessoas.ialey.idas, 2);
+  eq('e não mexe na vez', d.daVez, e.daVez);
+}
+{
+  /* ultimaEm é o desempate de quem está há mais tempo sem ir: um lançamento velho não
+     pode fazer parecer que a pessoa acabou de ir à porta */
+  const e = base();
+  e.pessoas.ialey.ultimaEm = 9000;
+  const d = R.lancarAtrasado(e, 'ialey', 'venda', 1000);
+  eq('lançamento velho não rejuvenesce a última ida', d.pessoas.ialey.ultimaEm, 9000);
+  const d2 = R.lancarAtrasado(e, 'michelly', 'venda', 9999);
+  eq('mas um mais novo que o guardado sobe', d2.pessoas.michelly.ultimaEm, 9999);
+}
+{
+  /* quem estava esperando a fila zerar entra se foi esta ida que fechou a rodada */
+  const e = base();
+  e.pessoas.ialey.idas = 2; e.pessoas.michelly.idas = 3; e.pessoas.natalia.idas = 3;
+  e.pessoas.natalia.esperando = true;
+  const d = R.lancarAtrasado(e, 'ialey', 'sem-venda', 1000);
+  eq('a rodada fechou e ela entrou', !!d.pessoas.natalia.esperando, false);
+}
+
 console.log(`\nresultado final: ${ok} ok, ${falhou} falha(s)`);
 process.exit(falhou ? 1 : 0);

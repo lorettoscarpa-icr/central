@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v42">
+<meta name="app-ver" content="v43">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@300;400&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -1377,9 +1377,10 @@ window.apagarRegistro = function(id){
    A tela não tinha esse "mais tarde": só dava para marcar a vez no instante em que ela
    acontece, e o dia fechava errado para sempre.
 
-   O que entra aqui é HISTÓRICO, e só. A fila de hoje não se mexe: a rodada daquele dia
-   já fechou, e reabrir ela agora tiraria da porta quem está lá neste minuto. O que
-   muda é a contagem do dia, o resumo e o ranking do mês — que é o que a loja olha.
+   E conta na fila igual à ida de agora. A rodada não fecha à meia-noite: ela fecha
+   quando todas emparelham. Se a Ialey emparelhou hoje mas esqueceu uma de ontem, ela
+   está uma na frente — e a ordem da porta tem de saber disso no minuto em que ela
+   lança, senão ela ganha uma vez que não era dela.
 
    A hora não é inventada: o registro fica no meio-dia daquele dia só para cair no
    grupo certo, e a linha do histórico escreve "lançado por Fulana em tal dia" no lugar
@@ -1406,8 +1407,9 @@ window.pedirLancamento = function(k){
   } else {
     const p = estado.pessoas[_lancAlvo];
     $('lancTitulo').textContent = p.nome + ' — ida em ' + dia;
-    $('lancTexto').textContent = 'Entra na contagem daquele dia e no resumo do mês. '
-      + 'A fila de hoje não muda: aquela rodada já fechou.';
+    $('lancTexto').textContent = 'Entra na contagem daquele dia, no resumo do mês e '
+      + 'também na fila de hoje — quem lança uma de ontem fica uma na frente, e a ordem '
+      + 'da porta se reacerta na hora.';
     $('listaLanc').innerHTML =
         `<button class="mot" onclick="lancar('venda')"><b>Foi e vendeu</b></button>`
       + `<button class="mot" onclick="lancar('sem-venda')"><b>Foi e não vendeu</b></button>`
@@ -1430,8 +1432,14 @@ window.lancar = function(desfecho){
                 lancadoEm:Date.now(), lancadoPor:meuEmail || null,
                 registradoPor:meuEmail || null };
   if(db) db.collection('ls_vez_hist').add(reg).catch(()=>toast('Não lançou: tente de novo'));
-  else { historico = [Object.assign({id:'lanc'+quando+k}, reg)].concat(historico); pintar(); }
-  toast('Lançado — ' + p.nome + ', ' + ddmm(quando));
+  else historico = [Object.assign({id:'lanc'+quando+k}, reg)].concat(historico);
+  /* e conta na fila, igual à ida de agora: a rodada não fecha à meia-noite, fecha
+     quando todas emparelham. Quem lança uma de ontem fica uma na frente hoje. */
+  const novo = VezRegra.lancarAtrasado(estado, k, desfecho, quando);
+  const prox = novo.daVez ? novo.pessoas[novo.daVez].nome : 'ninguém';
+  salvar(VezRegra.revalidar(novo), desfecho==='troca'
+    ? ('Troca lançada em ' + ddmm(quando) + ' — troca não conta ida')
+    : ('Lançado — ' + p.nome + ', ' + ddmm(quando) + '. Agora é a vez de ' + prox));
 };
 
 const diaDe = ts => { const d=new Date(ts);

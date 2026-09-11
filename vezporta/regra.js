@@ -221,6 +221,37 @@
     return novo;
   }
 
+  /* Ida que foi lançada depois — a de ontem que alguém esqueceu de marcar.
+
+     Conta na fila igual à de agora, e é isso que a loja pediu: no papel a rodada não
+     fecha à meia-noite, ela fecha quando todas emparelham. Se a Ialey emparelhou hoje
+     mas esqueceu uma de ontem, ela está uma na frente — e a fila tem de saber disso no
+     minuto em que ela lança, senão ela ganha uma vez que não era dela.
+
+     A vez é recalculada do zero (proximaDaVez), e não empurrada como em registrar():
+     "não vendeu, a vez continua com ela" é regra do atendimento que está acontecendo,
+     e este aqui aconteceu ontem.
+
+     ultimaEm só sobe: ela é o desempate de quem está há mais tempo sem ir, e um
+     lançamento velho não pode fazer parecer que a pessoa acabou de ir.               */
+  function lancarAtrasado(estado, email, desfecho, quando) {
+    var novo = JSON.parse(JSON.stringify(estado));
+    var p = novo.pessoas[email];
+    if (!p) return novo;
+
+    /* troca não é cliente novo na porta: não conta ida e não mexe na fila */
+    if (desfecho === 'troca') return novo;
+
+    p.idas = (p.idas || 0) + 1;
+    if (desfecho === 'venda') p.vendas = (p.vendas || 0) + 1;
+    if (quando && quando > (p.ultimaEm || 0)) p.ultimaEm = quando;
+
+    novo = liberar(novo);         /* esta ida pode ter sido a que fechou a rodada */
+    novo.daVez = proximaDaVez(novo.pessoas, novo.criterio);
+    novo.atualizadoEm = Date.now();
+    return novo;
+  }
+
   /* Marcar presença/ausência ou entrada/saída do revezamento pode deixar a vez com
      alguém que não está mais apta. Recalcula sem mexer em contador nenhum. */
   function revalidar(estado) {
@@ -435,6 +466,7 @@
   }
 
   var api = { proximaDaVez: proximaDaVez, registrar: registrar, revalidar: revalidar,
+              lancarAtrasado: lancarAtrasado,
               passarVez: passarVez,
               elegiveis: elegiveis, ordemDaFila: ordemDaFila, ordemDistinta: ordemDistinta,
               conversao: conversao, desequilibrio: desequilibrio, resumoPorDia: resumoPorDia,
