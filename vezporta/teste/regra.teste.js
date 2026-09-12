@@ -98,12 +98,13 @@ console.log('\n== o almoço se corrige sozinho ==');
   }
   eq('Natália ficou para trás', [e.pessoas.ialey.idas, e.pessoas.michelly.idas, e.pessoas.natalia.idas], [3, 3, 0]);
 
-  const quemEstavaComAVez = e.daVez;
   e.pessoas.natalia.presente = true;             // volta do almoço
   e = R.revalidar(e);
-  /* Voltar do almoço NÃO tira a vez de quem já está com ela: essa pessoa pode estar
-     atendendo agora. A Natália emparelha nas próximas, não nesta. */
-  eq('voltar do almoço não tira a vez de quem já a tem', e.daVez, quemEstavaComAVez);
+  /* Quem volta e está 3 atrás é a próxima, na hora. A tela não guarda mais "quem está
+     com o cliente" — ela mostra a ORDEM, e a ordem sai da contagem. Enquanto a vez
+     ficava parada com quem a tinha, a pessoa que voltava aparecia em segundo mesmo
+     tendo ido três vezes menos, que foi o que a loja reclamou. */
+  eq('quem voltou e está atrás é a próxima', e.daVez, 'natalia');
 
   for (let i = 0; i < 12; i++) e = R.registrar(e, e.daVez, 'venda', 2000 + i);
   const c = [e.pessoas.ialey.idas, e.pessoas.michelly.idas, e.pessoas.natalia.idas];
@@ -562,44 +563,34 @@ console.log('\n== a fila zerou: recomeça sempre na ordem da casa ==');
 
 console.log('\n== a colega saiu para o almoço sem marcar ==');
 {
-  /* O caso da loja: a vez é da Michelly, que saiu sem marcar. A Natália atende. O que
-     a regra promete é que a vez da Michelly fica EM ABERTO — a contagem dela não anda,
-     e quando ela voltar é ela a próxima. */
+  /* O caso da loja: a ordem começa pela Michelly, que saiu sem marcar. A Natália vai à
+     porta e lança a dela — hoje ninguém precisa pedir a vez a ninguém. O que a regra
+     promete é que a Michelly não perde nada: a contagem dela não anda, então ela volta
+     a ser a primeira, e vai acumulando enquanto não atender. */
   let e = base('idas');
   ['ialey','michelly','natalia'].forEach(k => { e.pessoas[k].idas = 10; e.pessoas[k].vendas = 5; });
   e.pessoas.ialey.idas = 11; e.pessoas.natalia.idas = 11;   /* as duas já foram nesta rodada */
   e.daVez = null;
   e = R.revalidar(e);
-  eq('a vez é da Michelly', e.daVez, 'michelly');
+  eq('a ordem começa pela Michelly, que está atrás', e.daVez, 'michelly');
 
-  /* a Natália atende no lugar dela: SÓ a vez muda de mão. A Michelly continua na fila —
-     pode estar voltando do almoço agora e só não ter apertado nada. */
-  e.daVez = 'natalia';
-  e = R.revalidar(e);
-  eq('a vez ficou com quem atendeu', e.daVez, 'natalia');
-  eq('e a colega segue na loja, sem ser tirada de nada', e.pessoas.michelly.presente, true);
-  e = R.registrar(e, 'natalia', 'venda', 5000);
-  eq('a ida foi para a Natália', R.conta(e.pessoas.natalia, 'idas'), 12);   /* ela já estava em 11 */
+  e = R.registrar(e, 'natalia', 'venda', 5000);             /* a Natália lança a dela */
+  eq('a ida foi para a Natália', R.conta(e.pessoas.natalia, 'idas'), 12);
   eq('e a contagem da Michelly não andou', R.conta(e.pessoas.michelly, 'idas'), 10);
+  eq('e a colega segue na loja, sem ser tirada de nada', e.pessoas.michelly.presente, true);
+  eq('a ordem volta para a Michelly', e.daVez, 'michelly');
 
-  /* como a contagem dela não andou, a vez volta para ela na sequência — e vai
-     acumulando enquanto ela não atender */
-  eq('a vez volta para a Michelly', e.daVez, 'michelly');
-  eq('com a contagem que ela tinha', R.conta(e.pessoas.michelly, 'idas'), 10);
-  /* a Natália atende de novo no lugar dela, e de novo a vez volta */
-  e.daVez = 'natalia';
-  e = R.registrar(R.revalidar(e), 'natalia', 'venda', 5200);
-  eq('duas seguidas no lugar dela: a vez continua voltando', e.daVez, 'michelly');
+  e = R.registrar(e, 'natalia', 'venda', 5200);             /* e de novo */
+  eq('duas seguidas no lugar dela: a ordem continua voltando', e.daVez, 'michelly');
   eq('e a Michelly segue devendo as duas', R.conta(e.pessoas.michelly, 'idas'), 10);
 }
 {
-  /* Assumir não dá vantagem a quem assume: a ida entra na conta dela. */
+  /* Lançar no lugar de quem não está não dá vantagem: a ida entra na conta de quem foi. */
   let e = base('idas');
   ['ialey','michelly','natalia'].forEach(k => e.pessoas[k].idas = 4);
   e.pessoas.michelly.presente = false;
-  e.daVez = 'natalia';
   e = R.registrar(R.revalidar(e), 'natalia', 'venda', 6000);
-  eq('quem assumiu paga a ida', R.conta(e.pessoas.natalia, 'idas'), 5);
+  eq('quem foi paga a ida', R.conta(e.pessoas.natalia, 'idas'), 5);
   eq('e vai para o fim da fila', R.proximaDaVez(e.pessoas, 'idas'), 'ialey');
 }
 
@@ -748,6 +739,71 @@ console.log('\n== ida lançada depois conta na fila ==');
   e.pessoas.natalia.esperando = true;
   const d = R.lancarAtrasado(e, 'ialey', 'sem-venda', 1000);
   eq('a rodada fechou e ela entrou', !!d.pessoas.natalia.esperando, false);
+}
+
+console.log('\n== a vez não fica presa em quem já foi mais ==');
+{
+  /* O caso que a loja pegou na tela: a Michelly de folga e a Natália ainda fora do
+     revezamento, então só a Ialey na fila. Ela atende três e vende as três — e a vez
+     fica com ela, porque não havia mais ninguém. Quando a Natália entra, a tela
+     mostrava a Ialey em primeiro com a Natália atrás, com +3. */
+  let e = base('idas');
+  e.pessoas.michelly.afast = 'folga';
+  e.pessoas.natalia.participa = false;
+  e = R.revalidar(e);
+  for (let i = 0; i < 3; i++) e = R.registrar(e, 'ialey', 'venda', 1000 + i);
+  eq('sozinha na fila, a vez continua com ela', e.daVez, 'ialey');
+
+  e.pessoas.natalia.participa = true;
+  e = R.revalidar(e);
+  eq('quando a colega entra, a ordem é rededuzida da contagem', e.daVez, 'natalia');
+  eq('e quem foi três vezes a mais vai por último', R.ordemDaFila(e.pessoas, 'idas', e.daVez, 2), ['natalia','natalia']);
+}
+{
+  /* mas "não vendeu — não passa a vez" continua valendo: aí a vez está SEGURA, e é
+     exceção declarada no estado, não vez parada por esquecimento */
+  let e = base('idas');
+  ['ialey','michelly','natalia'].forEach(k => e.pessoas[k].idas = 5);
+  e = R.revalidar(e);
+  eq('a rodada começa pela ordem da casa', e.daVez, 'ialey');
+  e = R.registrar(e, 'ialey', 'sem-venda', 2000);
+  eq('não vendeu: a vez continua com ela, mesmo já estando à frente', e.daVez, 'ialey');
+  eq('e continua depois de revalidar', R.revalidar(e).daVez, 'ialey');
+  eq('a marca diz que é ela que está segurando', e.segurando, 'ialey');
+
+  e = R.registrar(e, 'ialey', 'venda', 2100);
+  eq('vendeu: a vez passa', e.daVez !== 'ialey', true);
+  eq('e a marca cai', e.segurando, null);
+}
+{
+  /* troca também segura: não conta ida e não move a fila */
+  let e = base('idas');
+  ['ialey','michelly','natalia'].forEach(k => e.pessoas[k].idas = 5);
+  e = R.revalidar(e);
+  e = R.registrar(e, 'ialey', 'troca', 3000);
+  eq('troca não conta ida', e.pessoas.ialey.idas, 5);
+  eq('e a vez continua com ela', R.revalidar(e).daVez, 'ialey');
+}
+{
+  /* quem está segurando e sai da loja não segura mais nada */
+  let e = base('idas');
+  ['ialey','michelly','natalia'].forEach(k => e.pessoas[k].idas = 5);
+  e = R.revalidar(e);
+  e = R.registrar(e, 'ialey', 'sem-venda', 4000);
+  e.pessoas.ialey.afast = 'atestado';
+  e = R.revalidar(e);
+  eq('a vez sai dela', e.daVez !== 'ialey', true);
+  eq('e a marca some junto', e.segurando, null);
+}
+{
+  /* lançamento de dia passado não segura a vez de hoje */
+  let e = base('idas');
+  ['ialey','michelly','natalia'].forEach(k => e.pessoas[k].idas = 5);
+  e = R.revalidar(e);
+  e = R.registrar(e, 'ialey', 'sem-venda', 5000);       /* ela está segurando */
+  e = R.lancarAtrasado(e, 'ialey', 'venda', 1000);      /* e lança uma de ontem */
+  eq('a marca cai', e.segurando, null);
+  eq('e com 7 contra 5 ela deixa de ser a primeira', R.revalidar(e).daVez !== 'ialey', true);
 }
 
 console.log(`\nresultado final: ${ok} ok, ${falhou} falha(s)`);

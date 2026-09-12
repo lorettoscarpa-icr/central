@@ -178,6 +178,7 @@
       /* Troca não é cliente novo na porta: não conta ida e não move a fila.
          Existe como botão para a pessoa registrar que atendeu sem consumir a vez. */
       novo.daVez = email;
+      novo.segurando = email;
       novo.atualizadoEm = agora;
       return novo;
     }
@@ -191,9 +192,20 @@
        de a próxima ser escolhida, senão ela perderia a primeira vez da rodada nova */
     novo = liberar(novo);
 
-    novo.daVez = (desfecho === 'venda')
-      ? proximaDaVez(novo.pessoas, novo.criterio)   /* vendeu: passa */
-      : email;                                      /* não vendeu: continua com ela */
+    /* 'segurando' é o que faz "não vendeu — não passa a vez" ser verdade.
+
+       A vez normal sai da contagem: vai quem foi menos vezes. Quem não vendeu fica com
+       ela mesmo estando à frente na contagem — e isso é uma EXCEÇÃO à regra, então
+       precisa estar escrito no estado. Sem esta marca, a única forma de segurar a vez
+       era daVez ficar parado, e daVez parado sobrevivia a tudo: quando alguém entrava
+       na fila depois, a tela continuava mostrando na frente quem já tinha ido mais. */
+    if (desfecho === 'venda') {
+      novo.daVez = proximaDaVez(novo.pessoas, novo.criterio);
+      novo.segurando = null;
+    } else {
+      novo.daVez = email;
+      novo.segurando = email;
+    }
     novo.atualizadoEm = agora;
     return novo;
   }
@@ -224,6 +236,7 @@
     if (quando && quando > (p.ultimaEm || 0)) p.ultimaEm = quando;
 
     novo = liberar(novo);         /* esta ida pode ter sido a que fechou a rodada */
+    novo.segurando = null;        /* lançamento velho não segura a vez de hoje */
     novo.daVez = proximaDaVez(novo.pessoas, novo.criterio);
     novo.atualizadoEm = Date.now();
     return novo;
@@ -233,7 +246,13 @@
      alguém que não está mais apta. Recalcula sem mexer em contador nenhum. */
   function revalidar(estado) {
     var novo = liberar(JSON.parse(JSON.stringify(estado)));
-    if (!novo.daVez || !apta(novo.pessoas[novo.daVez])) {
+    /* Rededuz a vez da contagem, SALVO quando alguém está legitimamente segurando por
+       não ter vendido. Antes só rededuzia quando a pessoa deixava de ser apta — e aí
+       uma vez guardada de quando ela era a única na fila sobrevivia à entrada das
+       outras: a tela mostrava na frente quem já tinha ido três vezes a mais. */
+    var segura = novo.segurando && novo.segurando === novo.daVez && apta(novo.pessoas[novo.daVez]);
+    if (!segura) {
+      novo.segurando = null;
       novo.daVez = proximaDaVez(novo.pessoas, novo.criterio);
     }
     return novo;
