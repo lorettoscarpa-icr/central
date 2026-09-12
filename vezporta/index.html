@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v45">
+<meta name="app-ver" content="v46">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@300;400&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -737,7 +737,7 @@ function pintar(){
      — e é a Michelly que lança. A ordem se reacerta com o que foi lançado. */
   if($('btLancar')){
     $('btLancar').hidden = !quemPodeLancar().length;
-    $('btLancar').textContent = hojeMesmo ? '+ Lançar ida' : '+ Lançar ida nesse dia';
+    $('btLancar').textContent = hojeMesmo ? '+ Lançar ida na porta' : '+ Lançar ida na porta nesse dia';
   }
 
   /* A contagem do dia é de quem pode ir à porta HOJE. Quem está fora o dia inteiro
@@ -1219,14 +1219,14 @@ window.pedirLancamento = function(k){
 
   const agora = ehHoje();
   if(!_lancAlvo){                                   /* gestão escolhendo por quem lança */
-    $('lancTitulo').textContent = 'Lançar ida' + (agora ? '' : ' em ' + dia);
+    $('lancTitulo').textContent = 'Lançar ida na porta' + (agora ? '' : ' em ' + dia);
     $('lancTexto').textContent = 'Quem foi à porta?';
     $('listaLanc').innerHTML = podem.map(kk =>
       `<button class="mot" onclick="pedirLancamento('${kk}')">${esc(estado.pessoas[kk].nome)}</button>`).join('')
       + `<button class="mot pular" onclick="fecharLancamento()">Cancelar</button>`;
   } else {
     const p = estado.pessoas[_lancAlvo];
-    $('lancTitulo').textContent = p.nome + ' — ida' + (agora ? ' agora' : ' em ' + dia);
+    $('lancTitulo').textContent = p.nome + ' — ida à porta' + (agora ? ' agora' : ' em ' + dia);
     /* a troca é a que mais gera dúvida: ela não é cliente novo na porta, então não
        conta ida nenhuma e não move a fila. Está escrito no botão e repetido aqui. */
     $('lancTexto').textContent = agora
