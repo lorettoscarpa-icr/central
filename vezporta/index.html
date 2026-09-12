@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v44">
+<meta name="app-ver" content="v45">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@300;400&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -1227,14 +1227,16 @@ window.pedirLancamento = function(k){
   } else {
     const p = estado.pessoas[_lancAlvo];
     $('lancTitulo').textContent = p.nome + ' — ida' + (agora ? ' agora' : ' em ' + dia);
+    /* a troca é a que mais gera dúvida: ela não é cliente novo na porta, então não
+       conta ida nenhuma e não move a fila. Está escrito no botão e repetido aqui. */
     $('lancTexto').textContent = agora
-      ? 'A ordem se reacerta com o lançamento. Não importa de quem era a vez: quem foi à porta foi quem lança.'
+      ? 'Não importa de quem era a vez: quem foi à porta é quem lança, e a ordem se reacerta. Troca não conta ida à porta.'
       : 'Entra na contagem daquele dia, no resumo do mês e também na fila de hoje — '
         + 'quem lança uma de ontem fica uma na frente, e a ordem se reacerta na hora.';
     $('listaLanc').innerHTML =
         `<button class="mot" onclick="lancar('venda')"><b>Vendeu — passa a vez</b></button>`
       + `<button class="mot" onclick="lancar('sem-venda')"><b>Não vendeu — não passa a vez</b></button>`
-      + `<button class="mot" onclick="lancar('troca')">Era troca</button>`
+      + `<button class="mot" onclick="lancar('troca')"><b>Era troca — não passa a vez</b></button>`
       + `<button class="mot pular" onclick="fecharLancamento()">Cancelar</button>`;
   }
   $('folhaLanc').classList.add('on');
