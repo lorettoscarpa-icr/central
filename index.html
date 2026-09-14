@@ -281,6 +281,18 @@
 .rt-hora.turno{color:var(--creme-suave);letter-spacing:1px;text-transform:uppercase;font-size:8px;}
 .rt-txt{font-size:12px;color:var(--creme);line-height:1.35;word-break:break-word;}
 .rt-selo{display:inline-block;margin-top:5px;font-family:'DM Mono',monospace;font-size:7px;letter-spacing:.9px;text-transform:uppercase;padding:1px 5px;border-radius:2px;}
+.rt-papeis{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.rt-pchip{background:rgba(0,0,0,.16);border:1px solid var(--linha-fraca);color:var(--creme-suave);padding:5px 13px;border-radius:20px;font-family:inherit;font-size:12px;cursor:pointer;transition:.15s;}
+.rt-pchip.on{background:rgba(212,180,90,.18);border-color:var(--ouro);color:#fff;}
+.rt-ck{background:transparent;border:1px solid rgba(212,180,90,.5);color:transparent;width:16px;height:16px;border-radius:3px;flex:none;cursor:pointer;font-size:10px;line-height:1;padding:0;font-family:inherit;display:flex;align-items:center;justify-content:center;transition:.15s;}
+.rt-ck:hover{border-color:var(--ouro);color:rgba(212,180,90,.5);}
+.rt-ck.on{background:#6dbf6d;border-color:#6dbf6d;color:#15240c;}
+.rt-card.ok,.rt-linha.ok,.rt-av-c.ok{opacity:.55;}
+.rt-card.ok .rt-txt,.rt-linha.ok .rt-linha-t,.rt-av-c.ok .rt-txt{text-decoration:line-through;}
+.rt-card-top{display:flex;align-items:flex-start;gap:7px;}
+.rt-card-top .rt-txt{flex:1;min-width:0;}
+.rt-selo.sup{color:#7a9bbf;border:1px solid #7a9bbf;}
+.rt-selo.venda{color:#ebd48a;border:1px solid rgba(212,180,90,.5);}
 .rt-selo.extra{color:#6fa8c9;border:1px solid #6fa8c9;}
 .rt-selo.movido{color:#8fb35c;border:1px solid #8fb35c;}
 .rt-vazio{color:var(--creme-suave);font-size:11px;font-style:italic;padding:6px 2px;text-align:center;opacity:.7;}
@@ -650,6 +662,7 @@
               <span class="rt-sem" id="rtSemana"></span>
             </div>
             <div class="rt-pessoas" id="rtPessoas" style="display:none"></div>
+            <div class="rt-papeis" id="rtPapeis" style="display:none"></div>
             <div id="rtHoje"></div>
             <div class="rt-semana" id="rtGrade"></div>
             <div id="rtAvulsas"></div>
@@ -1942,6 +1955,79 @@
 
   let _itens=[], _quem=null, _unsub=null, _erro='';
 
+  /* PAPEL · a Jhennifer vende no salão e supervisa, e o cronograma dela tem as duas
+     coisas. O campo é gravado no documento pelo painel da supervisora — aqui só se
+     lê, porque duplicar a tabela de quem-faz-o-quê nos dois painéis é garantir que
+     um dos dois vai ficar velho. */
+  const ROT_PAPEL={sup:'Supervisão', venda:'Vendas'};
+  let _papel='todos';
+  function papeisDe(quem){
+    const set={};
+    _itens.forEach(i=>{
+      if(i.pessoa!==quem) return;
+      if(i.tipo!=='fixa'&&i.tipo!=='avulsa'&&i.tipo!=='extra') return;
+      if(i.papel) set[i.papel]=1;
+    });
+    return Object.keys(set).sort();
+  }
+
+  /* CHECKLIST · marcar o que já foi feito. Quem pode gravar em ls_rotina é a
+     direção e a supervisora (regra do Firestore), então a caixinha só aparece pra
+     elas — mostrar uma caixa que falha calada seria pior do que não ter caixa. */
+  function podeMarcar(){ return vePelaEquipe(); }
+  function semanaISO(dt){
+    const d=new Date(dt+'T12:00:00'), dia=(d.getDay()+6)%7;
+    d.setDate(d.getDate()-dia+3);
+    const q=new Date(d.getFullYear(),0,4);
+    const n=1+Math.round(((d-q)/86400000-3+((q.getDay()+6)%7))/7);
+    return d.getFullYear()+'-W'+String(n).padStart(2,'0');
+  }
+  function periodoDe(i,dt){
+    if(i.tipo==='avulsa'){
+      if(i.freq==='mensal') return String(dt).slice(0,7);
+      if(i.freq==='semanal') return semanaISO(dt);
+      return '';
+    }
+    return dt;
+  }
+  function chaveDe(i,dt){ const p=periodoDe(i,dt); return p?(i.id+'|'+p):''; }
+  function marcasDe(pessoa){
+    const m={};
+    _itens.forEach(r=>{
+      if(r.tipo!=='feitos'||r.pessoa!==pessoa) return;
+      const mk=r.marcas||{};
+      Object.keys(mk).forEach(k=>{ if(mk[k]) m[k]=true; });
+    });
+    return m;
+  }
+  function feito(i,dt,marcas){ const c=chaveDe(i,dt); return !!(c&&marcas[c]); }
+
+  window.rotMarcar=async function(id,dt){
+    if(!podeMarcar()||!db) return;
+    const i=_itens.filter(x=>x.id===id)[0]; if(!i) return;
+    const chave=chaveDe(i,dt); if(!chave) return;
+    const dono=i.pessoa||_quem, mes=dt.slice(0,7);
+    const jaFeito=feito(i,dt,marcasDe(dono));
+    try{
+      if(jaFeito){
+        // a semana pode atravessar a virada do mês: tira de todo documento que tiver
+        const alvos=_itens.filter(r=>r.tipo==='feitos'&&r.pessoa===dono&&(r.marcas||{})[chave]);
+        for(const d of alvos){
+          const c={}; c['marcas.'+chave]=firebase.firestore.FieldValue.delete();
+          await db.collection('ls_rotina').doc(d.id).update(c);
+        }
+        return;
+      }
+      const doc=_itens.filter(r=>r.tipo==='feitos'&&r.pessoa===dono&&r.mes===mes)[0];
+      if(doc){ const c={}; c['marcas.'+chave]=true; await db.collection('ls_rotina').doc(doc.id).update(c); }
+      else{
+        const m={}; m[chave]=true;
+        await db.collection('ls_rotina').add({tipo:'feitos',pessoa:dono,mes:mes,marcas:m,
+          criadoEm:Date.now(),criadoPor:meuNome()||''});
+      }
+    }catch(e){ console.warn('rotMarcar',e); alert('Não consegui marcar agora.'); }
+  };
+
   PANEL_NOME['rotina']='Tarefas e Rotina'; PANEL_URL['rotina']=null; PANEL_PEND['rotina']=false;
 
   function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -1991,6 +2077,16 @@
   }
   /* o que vale numa data, com as coberturas daquele dia já aplicadas */
   function doDia(dt,dow){
+    /* cobertura de PERÍODO: quem está de férias ou atestado passou atividades pra
+       outra pessoa de tal dia até tal dia. O realoc de UM dia é mais específico e
+       manda por cima. Mesma conta do painel da supervisora. */
+    const cob={};
+    _itens.forEach(r=>{
+      if(r.tipo!=='cobre'||!r.inicio||!r.fim) return;
+      if(dt<r.inicio||dt>r.fim) return;
+      const it=r.itens||{};
+      Object.keys(it).forEach(k=>{ if(it[k]) cob[k]=it[k]; });
+    });
     const ov={}; _itens.forEach(r=>{ if(r.tipo==='realoc'&&r.data===dt) ov[r.refId]=r.pessoa; });
     return _itens.filter(i=>{
       if(i.tipo==='extra') return i.data===dt;
@@ -2000,7 +2096,7 @@
       }
       return false;
     }).map(i=>{
-      const dono=ov[i.id];
+      const dono=ov[i.id]||cob[i.id];
       return Object.assign({},i,{pessoa:dono||i.pessoa, cobrindo:dono?i.pessoa:null, _iso:dt, _dow:dow});
     });
   }
@@ -2012,13 +2108,21 @@
   }
   function fotoDe(n){ const f=(window.FOTOS_DATA||{})[n]; return f?`<img src="${f}" alt="">`:esc((n||'?')[0]); }
 
-  function cardHTML(i){
-    const cls=i.tipo==='extra'?' extra':(i.cobrindo?' movido':'');
+  function ckHTML(i,dt,ok){
+    if(!podeMarcar()||!chaveDe(i,dt)) return '';
+    return `<button class="rt-ck${ok?' on':''}" title="${ok?'Feito — clique pra desmarcar':'Marcar como feito'}"`
+      +` onclick="rotMarcar('${esc(i.id)}','${dt}')">✓</button>`;
+  }
+  function cardHTML(i,marcas,dois){
+    const ok=feito(i,i._iso,marcas);
+    const cls=(i.tipo==='extra'?' extra':(i.cobrindo?' movido':''))+(ok?' ok':'');
     const quando=i.hora?`<div class="rt-hora">${esc(i.hora)}</div>`
       :(i.turno&&i.turno!=='dia'?`<div class="rt-hora turno">${esc(ROT_TURNO[i.turno]||i.turno)}</div>`:'');
-    const selo=i.tipo==='extra'?'<span class="rt-selo extra">só hoje</span>'
-      :(i.cobrindo?`<span class="rt-selo movido">cobrindo ${esc(i.cobrindo)}</span>`:'');
-    return `<div class="rt-card${cls}">${quando}<div class="rt-txt">${esc(i.texto)}</div>${selo}</div>`;
+    const selo=(dois&&i.papel?`<span class="rt-selo ${i.papel}">${esc(ROT_PAPEL[i.papel])}</span> `:'')
+      +(i.tipo==='extra'?'<span class="rt-selo extra">só hoje</span>'
+        :(i.cobrindo?`<span class="rt-selo movido">cobrindo ${esc(i.cobrindo)}</span>`:''));
+    return `<div class="rt-card${cls}">${quando}`
+      +`<div class="rt-card-top">${ckHTML(i,i._iso,ok)}<div class="rt-txt">${esc(i.texto)}</div></div>${selo}</div>`;
   }
 
   function render(){
@@ -2047,7 +2151,23 @@
       } else ps.style.display='none';
     }
 
-    const meusDia=d=>d.itens.filter(i=>i.pessoa===_quem).sort(ordena);
+    /* o filtro só existe pra quem acumula papéis — pra vendedora, "Vendas" em
+       cada cartão seria etiqueta repetida sem informação nenhuma */
+    const papeis=papeisDe(_quem);
+    const dois=papeis.length>1;
+    if(!dois) _papel='todos';
+    const pp=document.getElementById('rtPapeis');
+    if(pp){
+      if(dois){
+        pp.style.display='';
+        pp.innerHTML=`<button class="rt-pchip${_papel==='todos'?' on':''}" onclick="rotPapel('todos')">Tudo</button>`
+          +papeis.map(p=>`<button class="rt-pchip${_papel===p?' on':''}" onclick="rotPapel('${p}')">${esc(ROT_PAPEL[p]||p)}</button>`).join('');
+      } else pp.style.display='none';
+    }
+    const passa=i=>!dois||_papel==='todos'||i.papel===_papel;
+    const marcas=marcasDe(_quem);
+
+    const meusDia=d=>d.itens.filter(i=>i.pessoa===_quem&&passa(i)).sort(ordena);
 
     /* o dia de hoje por extenso, em cima — domingo não tem coluna, mas tem recado */
     const hd=document.getElementById('rtHoje');
@@ -2058,16 +2178,24 @@
       else{
         const meus=meusDia(c);
         const chegada=modeloDe(_quem,hj)==='chegada';
+        const nOk=meus.filter(i=>feito(i,hj,marcas)).length;
+        const conta=meus.length
+          ? (podeMarcar()
+              ? (nOk===meus.length?'tudo feito · '+meus.length:'faltam '+(meus.length-nOk)+' de '+meus.length)
+              : meus.length+(meus.length>1?' atividades':' atividade'))
+          : 'nada marcado';
         hd.innerHTML=`<div class="rt-hoje"><div class="rt-hoje-hd">`
           +`<h3>Hoje · ${ROT_DIA_EXT[c.d.dow]}, ${String(c.d.dia).padStart(2,'0')}/${hj.split('-')[1]}</h3>`
-          +`<span class="rt-hoje-q">${chegada?'📦 dia de chegada de sapato · ':''}${meus.length?meus.length+(meus.length>1?' atividades':' atividade'):'nada marcado'}</span>`
+          +`<span class="rt-hoje-q">${chegada?'📦 dia de chegada de sapato · ':''}${conta}</span>`
           +`</div>`
           +(meus.length?meus.map(i=>{
+              const ok=feito(i,hj,marcas);
               const q=i.hora?`<span class="rt-linha-h">${esc(i.hora)}</span>`
                 :`<span class="rt-linha-h turno">${esc(ROT_TURNO[i.turno]||'—')}</span>`;
-              const selo=i.tipo==='extra'?' <span class="rt-selo extra">só hoje</span>'
-                :(i.cobrindo?` <span class="rt-selo movido">cobrindo ${esc(i.cobrindo)}</span>`:'');
-              return `<div class="rt-linha">${q}<span class="rt-linha-t">${esc(i.texto)}${selo}</span></div>`;
+              const selo=(dois&&i.papel?` <span class="rt-selo ${i.papel}">${esc(ROT_PAPEL[i.papel])}</span>`:'')
+                +(i.tipo==='extra'?' <span class="rt-selo extra">só hoje</span>'
+                  :(i.cobrindo?` <span class="rt-selo movido">cobrindo ${esc(i.cobrindo)}</span>`:''));
+              return `<div class="rt-linha${ok?' ok':''}">${ckHTML(i,hj,ok)}${q}<span class="rt-linha-t">${esc(i.texto)}${selo}</span></div>`;
             }).join('')
            :'<div class="rt-vazio">Nada marcado pra hoje.</div>')
           +`</div>`;
@@ -2080,22 +2208,31 @@
       else if(!_quem){ g.innerHTML='<div class="rt-vazio" style="grid-column:1/-1">Sem rotina cadastrada pra você.</div>'; }
       else g.innerHTML=dias.map(x=>{
         const meus=meusDia(x);
+        const nOk=meus.filter(i=>feito(i,x.d.iso,marcas)).length;
         return `<div class="rt-col${x.d.iso===hj?' hoje':''}">`
           +`<div class="rt-col-hd"><span class="rt-dow">${ROT_DOW[x.d.dow]}</span>`
             +`<span>${modeloDe(_quem,x.d.iso)==='chegada'?'<span class="rt-caixa" title="Dia de chegada de sapato">📦</span> ':''}`
+            +`${(podeMarcar()&&meus.length)?`<span class="rt-hoje-q">${nOk}/${meus.length}</span> `:''}`
             +`<span class="rt-num">${String(x.d.dia).padStart(2,'0')}</span></span></div>`
-          +`<div class="rt-itens">${meus.length?meus.map(cardHTML).join(''):'<div class="rt-vazio">—</div>'}</div>`
+          +`<div class="rt-itens">${meus.length?meus.map(i=>cardHTML(i,marcas,dois)).join(''):'<div class="rt-vazio">—</div>'}</div>`
         +`</div>`;
       }).join('');
     }
 
     const av=document.getElementById('rtAvulsas');
     if(av){
-      const soltas=_quem?_itens.filter(i=>i.tipo==='avulsa'&&i.pessoa===_quem):[];
+      const soltas=_quem?_itens.filter(i=>i.tipo==='avulsa'&&i.pessoa===_quem&&passa(i)):[];
       av.innerHTML=soltas.length
         ? '<div class="rt-av"><div class="rt-av-t">Sem dia certo</div><div class="rt-av-g">'
-          +soltas.map(i=>`<div class="rt-av-c"><div class="rt-av-f">${esc(ROT_FREQ[i.freq]||'Conforme necessidade')}</div>`
-            +`<div class="rt-txt">${esc(i.texto)}</div></div>`).join('')
+          +soltas.map(i=>{
+            const ok=feito(i,hj,marcas);
+            const passou=i.diaLimite&&!ok&&(+hj.slice(8,10))>i.diaLimite;
+            return `<div class="rt-av-c${ok?' ok':''}"><div class="rt-av-f">${esc(ROT_FREQ[i.freq]||'Conforme necessidade')}`
+              +(i.diaLimite?` <span class="rt-selo" style="border:1px solid ${passou?'#e07070':'var(--linha-fraca)'};color:${passou?'#e07070':'inherit'}">até dia ${i.diaLimite}</span>`:'')
+              +(dois&&i.papel?` <span class="rt-selo ${i.papel}">${esc(ROT_PAPEL[i.papel])}</span>`:'')
+              +`</div>`
+              +`<div class="rt-card-top">${ckHTML(i,hj,ok)}<div class="rt-txt">${esc(i.texto)}</div></div></div>`;
+          }).join('')
           +'</div></div>'
         : '';
     }
@@ -2116,6 +2253,7 @@
   }
 
   window.rotQuem=function(n){ _quem=n; render(); };
+  window.rotPapel=function(p){ _papel=p; render(); };
 
   window.rotNavItem=function(){
     if(!temRotina()) return '';
