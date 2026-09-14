@@ -293,6 +293,16 @@
 .rt-card-top .rt-txt{flex:1;min-width:0;}
 .rt-selo.sup{color:#7a9bbf;border:1px solid #7a9bbf;}
 .rt-selo.venda{color:#ebd48a;border:1px solid rgba(212,180,90,.5);}
+.rt-av-gr{margin-top:12px;}
+.rt-av-gr:first-of-type{margin-top:0;}
+.rt-av-h{display:flex;align-items:baseline;gap:8px;font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:1.4px;text-transform:uppercase;margin-bottom:7px;padding-bottom:4px;border-bottom:1px solid var(--linha-fraca);}
+.rt-av-h span{margin-left:auto;color:var(--creme-suave);}
+.rt-av-gr.semanal .rt-av-h b{color:#ebd48a;}
+.rt-av-gr.semanal .rt-av-c{border-left-color:#d4b45a;}
+.rt-av-gr.mensal .rt-av-h b{color:#7a9bbf;}
+.rt-av-gr.mensal .rt-av-c{border-left-color:#7a9bbf;}
+.rt-av-gr.necessidade .rt-av-h b{color:var(--creme-suave);}
+.rt-av-gr.necessidade .rt-av-c{border-left-color:var(--linha-fraca);}
 .rt-selo.extra{color:#6fa8c9;border:1px solid #6fa8c9;}
 .rt-selo.movido{color:#8fb35c;border:1px solid #8fb35c;}
 .rt-vazio{color:var(--creme-suave);font-size:11px;font-style:italic;padding:6px 2px;text-align:center;opacity:.7;}
@@ -2222,19 +2232,26 @@
     const av=document.getElementById('rtAvulsas');
     if(av){
       const soltas=_quem?_itens.filter(i=>i.tipo==='avulsa'&&i.pessoa===_quem&&passa(i)):[];
-      av.innerHTML=soltas.length
-        ? '<div class="rt-av"><div class="rt-av-t">Sem dia certo</div><div class="rt-av-g">'
-          +soltas.map(i=>{
-            const ok=feito(i,hj,marcas);
-            const passou=i.diaLimite&&!ok&&(+hj.slice(8,10))>i.diaLimite;
-            return `<div class="rt-av-c${ok?' ok':''}"><div class="rt-av-f">${esc(ROT_FREQ[i.freq]||'Conforme necessidade')}`
-              +(i.diaLimite?` <span class="rt-selo" style="border:1px solid ${passou?'#e07070':'var(--linha-fraca)'};color:${passou?'#e07070':'inherit'}">até dia ${i.diaLimite}</span>`:'')
-              +(dois&&i.papel?` <span class="rt-selo ${i.papel}">${esc(ROT_PAPEL[i.papel])}</span>`:'')
-              +`</div>`
-              +`<div class="rt-card-top">${ckHTML(i,hj,ok)}<div class="rt-txt">${esc(i.texto)}</div></div></div>`;
-          }).join('')
-          +'</div></div>'
-        : '';
+      /* uma caixa só, com a frequência em letra miúda dentro do cartão, fazia o
+         que é toda semana parecer igual ao que é uma vez no mês. Cada frequência
+         vira um grupo, com título e cor. */
+      const avCard=i=>{
+        const ok=feito(i,hj,marcas);
+        const passou=i.diaLimite&&!ok&&(+hj.slice(8,10))>i.diaLimite;
+        const topo=(i.diaLimite?`<span class="rt-selo" style="border:1px solid ${passou?'#e07070':'var(--linha-fraca)'};color:${passou?'#e07070':'inherit'}">até dia ${i.diaLimite}</span>`:'')
+          +(dois&&i.papel?` <span class="rt-selo ${i.papel}">${esc(ROT_PAPEL[i.papel])}</span>`:'');
+        return `<div class="rt-av-c${ok?' ok':''}">${topo?`<div class="rt-av-f">${topo}</div>`:''}`
+          +`<div class="rt-card-top">${ckHTML(i,hj,ok)}<div class="rt-txt">${esc(i.texto)}</div></div></div>`;
+      };
+      const grupos=['semanal','mensal','necessidade'].map(f=>{
+        const lst=soltas.filter(i=>(i.freq||'necessidade')===f);
+        if(!lst.length) return '';
+        const ok=lst.filter(i=>feito(i,hj,marcas)).length;
+        const conta=(f==='necessidade'||!podeMarcar())?'':`<span>${ok}/${lst.length}</span>`;
+        return `<div class="rt-av-gr ${f}"><div class="rt-av-h"><b>${esc(ROT_FREQ[f])}</b>${conta}</div>`
+          +`<div class="rt-av-g">${lst.map(avCard).join('')}</div></div>`;
+      }).join('');
+      av.innerHTML=grupos ? `<div class="rt-av"><div class="rt-av-t">Sem dia certo</div>${grupos}</div>` : '';
     }
 
     const nota=document.getElementById('rtNota');
