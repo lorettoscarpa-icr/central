@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v48">
+<meta name="app-ver" content="v50">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@300;400&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -185,7 +185,12 @@
     opacity:.75;padding:6px 2px 2px}
   .aviso{border:1px dashed var(--linha);border-radius:11px;padding:11px 13px;font-size:12.5px;
     color:var(--creme-suave);line-height:1.55;margin-top:8px}
+  .hist-fil{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .hist-fil button{background:none;border:1px solid var(--linha);border-radius:99px;color:var(--creme-suave);
+    font-family:inherit;font-size:11.5px;padding:4px 11px;cursor:pointer}
+  .hist-fil button.on{background:var(--gold);border-color:var(--gold);color:var(--verde-noite);font-weight:600}
   .hist{font-size:12.5px;color:var(--creme-suave);line-height:1.7}
+  .hist .hist-mais{border-bottom:none;font-size:11.5px;font-style:italic;opacity:.75;padding-top:10px;display:block}
   /* foto na frente do nome: numa lista de quatro pessoas parecidas, o rosto acha a
      linha antes de a leitura chegar no nome. Flex para o que vem depois (o "marcado
      por", o "desfeito por") alinhar embaixo do nome, e não embaixo da foto. */
@@ -407,6 +412,9 @@
   <button class="sec sec-abre" id="btHist" onclick="verHist()">Últimos registros<span id="btHistQtd"></span></button>
   <div id="histCx" hidden>
     <div class="dica" style="text-align:left;margin:-4px 0 8px">Separado por dia: quem marcou, o que marcou e a que horas — inclusive quando foi a supervisora ou a diretoria que mexeu.</div>
+    <!-- filtrar por vendedora: a pergunta "quanto eu fiz" e "quanto a colega fez" são
+         a mesma lista com um recorte diferente -->
+    <div class="hist-fil" id="histFil"></div>
     <div class="hist" id="hist">—</div>
   </div>
 </div>
@@ -594,8 +602,17 @@ function desenharCalendario(){
   const [ano,mes] = calMesVisto.split('-').map(Number);
   const hoje = hojeISO(), sel = diaDaContagem();
 
+  /* O calendário é individual. Verde é o dia em que VOCÊ lançou: a Ialey e a Natália
+     abrem o mesmo mês e veem coisas diferentes, porque a pergunta que cada uma faz é
+     "faltou eu lançar em algum dia?", e não "a loja atendeu?".
+     Para quem não vai à porta (diretoria) não existe "o meu" — aí volta a ser da loja. */
+  const eu = estado && estado.pessoas[minhaChave()];
+  const meuNome = eu ? eu.nome : null;
   const idasNoDia = {};
-  VezRegra.resumoPorDia(historico).forEach(d => { if(d.idas) idasNoDia[d.dia] = d.idas; });
+  VezRegra.resumoPorDia(historico).forEach(d => {
+    const n = meuNome ? ((d.pessoas[meuNome] || {}).idas || 0) : d.idas;
+    if(n) idasNoDia[d.dia] = n;
+  });
 
   const totalDias = new Date(ano, mes, 0).getDate();
   const primeiroDiaSem = new Date(ano, mes-1, 1).getDay();
@@ -609,8 +626,9 @@ function desenharCalendario(){
     const futuro = d > ultimoClicavel, idas = idasNoDia[iso] || 0;
     let cls, titulo;
     if(futuro){ cls='fut'; titulo='ainda não chegou'; }
-    else if(idas){ cls='ok'; comAtendimento++; totalIdas += idas; titulo = idas===1 ? '1 ida à porta' : idas+' idas à porta'; }
-    else { cls='pend'; sem++; titulo='sem atendimento'; }
+    else if(idas){ cls='ok'; comAtendimento++; totalIdas += idas;
+      titulo = (idas===1 ? '1 ida à porta' : idas+' idas à porta') + (meuNome ? ' sua'+(idas===1?'':'s') : ''); }
+    else { cls='pend'; sem++; titulo = meuNome ? 'você não lançou nada' : 'sem atendimento'; }
     if(iso === sel) cls += ' sel';
     cels += `<button class="cal-dia ${cls}"${futuro?' disabled':` onclick="escolherDia('${iso}')"`}
       title="${String(d).padStart(2,'0')}/${String(mes).padStart(2,'0')} · ${titulo}">${d}</button>`;
@@ -622,14 +640,16 @@ function desenharCalendario(){
       <span class="cal-mes">${MESES_NOMES[mes-1]} de ${ano}</span>
       <button class="cal-seta" onclick="calMes(1,event)"${mesCorrente?' disabled':''} aria-label="Mês seguinte">›</button>
     </div>
-    <div class="cal-resumo">${totalIdas ? `<b>${totalIdas}</b> ${totalIdas===1?'ida à porta':'idas à porta'} em ${comAtendimento} ${comAtendimento===1?'dia':'dias'}` : 'Nada registrado neste mês'}</div>
+    <div class="cal-resumo">${totalIdas
+      ? `<b>${totalIdas}</b> ${totalIdas===1?'ida à porta':'idas à porta'}${meuNome?(totalIdas===1?' sua':' suas'):''} em ${comAtendimento} ${comAtendimento===1?'dia':'dias'}`
+      : (meuNome ? 'Você não lançou nada neste mês' : 'Nada registrado neste mês')}</div>
     <div class="cal-grade">
       ${['D','S','T','Q','Q','S','S'].map(d=>`<div class="cal-cab">${d}</div>`).join('')}
       ${cels}
     </div>
     <div class="cal-leg">
-      <span><i class="ok"></i>Com atendimento (${comAtendimento})</span>
-      <span><i class="pend"></i>Sem atendimento (${sem})</span>
+      <span><i class="ok"></i>${meuNome?'Você lançou':'Com atendimento'} (${comAtendimento})</span>
+      <span><i class="pend"></i>${meuNome?'Você não lançou':'Sem atendimento'} (${sem})</span>
     </div>`;
 }
 function escolherDia(iso){ irParaDia(iso); fecharCalendario(); }
@@ -827,18 +847,34 @@ function pintar(){
 
   desenharResumo();
 
-  /* o cabeçalho fechado precisa dizer o que tem dentro */
+  /* A lista segue a janela do resumo e o filtro de pessoa. Era um corte fixo nos 14
+     últimos registros: num dia movimentado isso não chegava nem a ontem, e quem punha
+     o resumo em "No mês" via a lista parada no dia 12. Agora as duas falam do mesmo
+     período — trocar a aba lá em cima muda a lista aqui embaixo. */
+  const doPeriodo = janelaHist();
+  const q = $('btHistQtd');
+  if(q){
+    const n = doPeriodo.length;
+    q.textContent = '· ' + (n ? (n===1?'1 registro':n+' registros') + ' ' + rotuloPeriodo()
+                              : 'nada ' + rotuloPeriodo());
+  }
+
+  /* os chips: todas, e cada uma que participa do revezamento */
   {
-    const n = historico.filter(h => !h.desfeito).length;
-    const q = $('btHistQtd');
-    if(q) q.textContent = '· ' + (n ? (n>14 ? 'últimos 14' : (n===1?'1 registro':n+' registros')) : 'nada ainda');
+    const fil = $('histFil');
+    if(fil){
+      const gente = Object.keys(estado.pessoas).filter(k => estado.pessoas[k].participa)
+        .sort((a,b) => VezRegra.antiguidade(estado.pessoas[a]) - VezRegra.antiguidade(estado.pessoas[b]));
+      fil.innerHTML = `<button class="${histPessoa?'':'on'}" onclick="filtrarHist(null)">Todas</button>`
+        + gente.map(k => `<button class="${histPessoa===k?'on':''}" onclick="filtrarHist('${k}')">${esc(estado.pessoas[k].nome)}</button>`).join('');
+    }
   }
 
   let diaNaLista=null;
   /* A faixa de dia só fecha certo com a lista em ordem: fora de ordem, o mesmo dia
      abriria faixa duas vezes e a tela pareceria quebrada. O banco já entrega ordenado,
      mas ordenar aqui não custa nada e tira a tela de depender disso. */
-  $('hist').innerHTML = historico.length ? historico.slice(0,14).sort((a,b)=>(b.quando||0)-(a.quando||0)).map(h=>{
+  $('hist').innerHTML = doPeriodo.length ? doPeriodo.slice(0,80).sort((a,b)=>(b.quando||0)-(a.quando||0)).map(h=>{
     /* abre faixa quando o dia vira — e nenhuma para dia que não tem registro */
     let faixa='';
     if(!diaNaLista || !mesmoDia(h.quando,diaNaLista)){ diaNaLista=h.quando; faixa=`<div class="dia-sep">${faixaDeDia(h.quando)}</div>`; }
@@ -866,13 +902,20 @@ function pintar(){
     /* Desfazer errado acontece igual a marcar errado. Refazer devolve a contagem;
        apagar tira da tela de vez, e por isso só a diretoria vê o botão — e só depois
        de desfeito, que é quando os números já foram corrigidos. */
-    const conserto = (h.desfeito && souGestor && h.id)
-      ? `<span class="desf-acoes"><button class="mini" onclick="refazer('${esc(h.id)}')">↩ refazer</button>`
-        + (souDiretoria ? `<button class="mini apaga" onclick="pedirApagar(this,'${esc(h.id)}')">apagar</button>` : '')
-        + `</span>` : '';
+    const conserto = !(souGestor && h.id) ? ''
+      : h.desfeito
+        ? `<span class="desf-acoes"><button class="mini" onclick="refazer('${esc(h.id)}')">↩ refazer</button>`
+          + (souDiretoria ? `<button class="mini apaga" onclick="pedirApagar(this,'${esc(h.id)}')">apagar</button>` : '')
+          + `</span>`
+        /* desfazer aqui, na própria linha, alcança o registro de qualquer dia — o botão
+           do rodapé só pega o último. Fica riscado com o nome de quem desfez, como
+           sempre: a edição aparece na lista, não some com o registro. */
+        : `<span class="desf-acoes"><button class="mini" onclick="desfazer('${esc(h.id)}')">desfazer</button></span>`;
     const hora = h.lancadoEm ? '' : ` <small>${hhmm(h.quando)}</small>`;
     return faixa+`<div class="${h.desfeito?'foi-desfeito':''}">${avatarPorNome(h.nome,'h-av')}<span class="h-txt"><b>${esc(h.nome)}</b>${t}${hora}${porOutra}${desfeito}${conserto}</span></div>`;
-  }).join('') : '<div>Nada registrado ainda.</div>';
+  }).join('') + (doPeriodo.length > 80
+      ? `<div class="hist-mais">Mostrando os 80 mais recentes de ${doPeriodo.length}.</div>` : '')
+    : `<div>${histPessoa ? 'Nada da ' + esc(estado.pessoas[histPessoa].nome) : 'Nada registrado'} ${rotuloPeriodo()}.</div>`;
 }
 /* A escala manda 'ausente' além de férias/folga/atestado, e o aviso da equipe pode
    trazer o rótulo pronto. Uma função só para a tela nunca escrever "de undefined". */
@@ -1082,9 +1125,16 @@ window.trocarCriterio = function(){
    quem toca nele não vê qual é. Um toque a mais derrubava a venda da colega de ontem.
    Por isso o botão agora só ABRE a folha: quem confirma vê a linha que vai cair. */
 let _paraDesfazer = null;
-window.desfazer = function(){
-  const ult = historico.filter(h => !h.desfeito && VezRegra.ATENDIMENTOS.indexOf(h.desfecho) >= 0)[0];
+/* Sem id: o último registro — é o conserto na hora, e quem marcou pode fazer.
+   Com id: um registro qualquer da lista, inclusive de dias atrás. Esse é o caso que a
+   loja levantou ("lancei duas e fui uma só, e já passaram dias"), e é da gestão: mexer
+   no que já fechou o dia não é conserto de balcão. */
+window.desfazer = function(id){
+  const ult = id ? historico.filter(h => h.id === id)[0]
+                 : historico.filter(h => !h.desfeito && VezRegra.ATENDIMENTOS.indexOf(h.desfecho) >= 0)[0];
   if(!ult){ toast('Não há nada para desfazer'); return; }
+  if(ult.desfeito){ toast('Este registro já foi desfeito'); return; }
+  if(id && !souGestor){ toast('Registro de outro dia: quem desfaz é a supervisora ou a diretoria'); return; }
   const k = chave(ult.email), p = estado.pessoas[k];
   if(!p){ toast('Pessoa não está mais na lista'); return; }
   if(!podeMarcar(k)){ toast('Este registro é da ' + ult.nome + ' — só ela ou a gestão desfazem'); return; }
@@ -1333,7 +1383,10 @@ const ABAS_RESUMO = {dia:'abaDia', semana:'abaSemana', mes:'abaMes', mesatual:'a
 window.verResumo = function(p){
   periodoResumo = p;
   Object.keys(ABAS_RESUMO).forEach(x => $(ABAS_RESUMO[x]).classList.toggle('on', x===p));
-  desenharResumo();
+  /* pintar() e não só desenharResumo(): a lista de registros lá embaixo segue esta
+     mesma janela, e trocar a aba sem repintar deixava as duas dizendo períodos
+     diferentes na mesma tela. */
+  pintar();
 };
 
 const plural = (n, um, muitos) => n + ' ' + (n === 1 ? um : muitos);
@@ -1342,6 +1395,28 @@ const diaMenos = n => { const d = new Date(); d.setDate(d.getDate() - n); return
 /* A janela é de dias de CALENDÁRIO, não dos últimos N dias que tiveram movimento:
    "últimos 7 dias" com um domingo fechado no meio tem de mostrar 6 dias e um vazio,
    senão o período escorrega para trás sem ninguém perceber. */
+/* ---------- a lista de registros ----------
+   Ela segue a mesma janela do resumo (No mês / Hoje / 7 dias / 30 dias), e não um
+   corte fixo de N registros: quem troca a aba lá em cima espera ver a lista mudar
+   junto. E dá para olhar uma pessoa só — "quanto eu fiz" e "quanto a colega fez" são
+   a mesma lista com um recorte diferente. */
+let histPessoa = null;
+window.filtrarHist = function(k){ histPessoa = k; pintar(); };
+
+function rotuloPeriodo(){
+  return periodoResumo === 'dia' ? 'hoje'
+       : periodoResumo === 'semana' ? 'nos últimos 7 dias'
+       : periodoResumo === 'mes' ? 'nos últimos 30 dias'
+       : 'no mês';
+}
+function janelaHist(){
+  const dias = janelaResumo();
+  if(!dias.length) return [];
+  const de = new Date(dias[0].dia + 'T00:00:00').getTime();
+  const nome = histPessoa && estado.pessoas[histPessoa] ? estado.pessoas[histPessoa].nome : null;
+  return historico.filter(h => (h.quando || 0) >= de && (!nome || h.nome === nome));
+}
+
 function janelaResumo(){
   const porDia = {};
   VezRegra.resumoPorDia(historico).forEach(d => porDia[d.dia] = d);
@@ -1568,7 +1643,9 @@ function ligar(){
   if(!_relogioAus) _relogioAus = setInterval(sincronizarAusencias, 60000);
 
   /* 400 registros cobrem com folga os 30 dias do resumo sem pesar o carregamento */
-  db.collection('ls_vez_hist').orderBy('quando','desc').limit(400).onSnapshot(s=>{
+  /* 800 e não 400: a lista agora mostra o mês inteiro, e um mês movimentado passa de
+     400 registros (12 idas por dia já dá 360, mais as anotações de ausência). */
+  db.collection('ls_vez_hist').orderBy('quando','desc').limit(800).onSnapshot(s=>{
     historico = []; s.forEach(d=>historico.push(Object.assign({id:d.id}, d.data())));
     pintar();
   }, ()=>{});
