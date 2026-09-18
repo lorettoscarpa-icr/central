@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="v51">
+<meta name="app-ver" content="v52">
 <title>Escala de Atendimento · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@300;400&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -243,6 +243,17 @@
     font-family:'Barlow',sans-serif;cursor:pointer}
   .mot:hover{border-color:var(--gold)}
   .mot.pular{color:var(--creme-suave);font-size:13px;border-style:dashed}
+  .edit-lin{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    border:1px solid var(--linha);border-radius:11px;background:rgba(0,0,0,.2);padding:11px 14px;margin-bottom:8px}
+  .edit-lin>span:first-child{font-size:14.5px;color:var(--creme)}
+  .edit-bt{display:flex;align-items:center;gap:4px}
+  .edit-bt button{width:34px;height:34px;border-radius:9px;border:1px solid var(--linha);
+    background:rgba(0,0,0,.25);color:var(--gold-claro);font-size:19px;font-family:inherit;cursor:pointer;line-height:1}
+  .edit-bt button:hover{border-color:var(--gold)}
+  .edit-bt b{min-width:38px;text-align:center;font-family:'Cormorant Garamond',serif;font-weight:400;
+    font-size:24px;color:var(--creme);font-variant-numeric:lining-nums tabular-nums}
+  .edit-aviso{font-size:12.5px;color:var(--creme-suave);line-height:1.5;margin:4px 0 12px;min-height:18px}
+  .edit-aviso b{color:var(--gold-claro)}
   /* virou o único jeito de registrar um atendimento, então tem o peso que os três
      botões do topo tinham: é o que a mão procura sem ler a tela */
   .lanc-bt{display:block;width:100%;margin:4px 0 6px;background:var(--gold);color:var(--verde-noite);
@@ -420,6 +431,23 @@
 </div>
 <div class="msg" id="msg"></div>
 <input type="file" id="arqFoto" accept="image/*" style="display:none">
+
+<!-- editar a contagem de um dia: a gestão acerta o número para mais ou para menos -->
+<div class="folha" id="folhaEdit" onclick="if(event.target===this)fecharEdicao()">
+  <div class="folha-cx">
+    <h3 id="editTitulo">Editar o dia</h3>
+    <p id="editTexto"></p>
+    <div class="edit-lin"><span>Idas à porta</span>
+      <span class="edit-bt"><button onclick="mexerEdit('idas',-1)">−</button>
+        <b id="editIdas">0</b><button onclick="mexerEdit('idas',1)">+</button></span></div>
+    <div class="edit-lin"><span>Vendas</span>
+      <span class="edit-bt"><button onclick="mexerEdit('vendas',-1)">−</button>
+        <b id="editVendas">0</b><button onclick="mexerEdit('vendas',1)">+</button></span></div>
+    <div class="edit-aviso" id="editAviso"></div>
+    <button class="mot" onclick="salvarEdicao()"><b>Salvar a correção</b></button>
+    <button class="mot pular" onclick="fecharEdicao()">Cancelar</button>
+  </div>
+</div>
 
 <!-- ausência: férias, folga ou atestado -->
 <div class="folha" id="folhaAfast" onclick="if(event.target===this)fecharAfastamento()">
@@ -811,10 +839,11 @@ function pintar(){
           <span class="num ${crit==='vendas'?'governa':''}"><b>${dd.vendas}</b><small>vendas</small></span>
           <span class="num"><b class="conv">${convDia===null?'—':convDia+'%'}</b><small>conv.</small></span>
         </span></span>
-      ${hojeMesmo?`<span class="pes-acoes">
-        ${souGestor ? `<button class="tog ${af||!p.presente||p.esperando?'afast':''}" onclick="pedirAfastamento('${k}')">${af?rotuloAfast(p):(!p.presente?'ausente':(p.esperando?'esperando':'ausência'))}</button>` : ''}
-        ${souGestor ? `<button class="tog ${p.participa?'on':''}" onclick="alternar('${k}','participa')">${p.participa?'na vez':'fora'}</button>` : ''}
-      </span>`:''}
+      <span class="pes-acoes">
+        ${hojeMesmo && souGestor ? `<button class="tog ${af||!p.presente||p.esperando?'afast':''}" onclick="pedirAfastamento('${k}')">${af?rotuloAfast(p):(!p.presente?'ausente':(p.esperando?'esperando':'ausência'))}</button>` : ''}
+        ${hojeMesmo && souGestor ? `<button class="tog ${p.participa?'on':''}" onclick="alternar('${k}','participa')">${p.participa?'na vez':'fora'}</button>` : ''}
+        ${souGestor ? `<button class="tog" onclick="pedirEdicao('${k}')">editar</button>` : ''}
+      </span>
     </div>`;
   };
 
@@ -1334,6 +1363,118 @@ window.lancar = function(desfecho){
   salvar(VezRegra.revalidar(novo), desfecho==='troca'
     ? ('Troca lançada em ' + ddmm(quando) + ' — troca não conta ida')
     : ('Lançado — ' + p.nome + ', ' + ddmm(quando) + '. Agora é a vez de ' + prox));
+};
+
+/* ---------- editar a contagem de um dia ----------
+
+   Desfazer conserta UM registro. Editar acerta o NÚMERO do dia: "foram 2 idas, não 3".
+   Para mais ou para menos, e é a gestão que faz.
+
+   Por baixo continua sendo registro: para menos, marca os registros do dia como
+   desfeitos; para mais, cria registros naquele dia (com carimbo de lançamento
+   atrasado, como qualquer coisa lançada depois). Nada é reescrito — a contagem do dia
+   é a soma dos registros, e continua sendo.
+
+   A ANOTAÇÃO da edição entra com a data de HOJE, e não a do dia editado. Uma correção
+   feita hoje num dia de dois meses atrás ficaria enterrada lá atrás na lista, onde
+   ninguém mais olha. O que a loja precisa ver é "hoje a Jhennifer mexeu em tal dia".  */
+let _editAlvo = null, _editDia = null, _editDe = null, _editPara = null;
+
+window.pedirEdicao = function(k){
+  if(!souGestor){ toast('Editar a contagem é a supervisora ou a diretoria'); return; }
+  const p = estado.pessoas[k]; if(!p) return;
+  _editAlvo = k;
+  _editDia = diaDaContagem();
+  const atual = contagemDoDia()[p.nome] || {idas:0, vendas:0};
+  _editDe   = { idas: atual.idas||0, vendas: atual.vendas||0 };
+  _editPara = { idas: _editDe.idas, vendas: _editDe.vendas };
+
+  $('editTitulo').textContent = p.nome + ' — ' + rotuloDoDia().toLowerCase();
+  $('editTexto').textContent = 'Acerte o número do dia. Vale para mais e para menos, '
+    + 'e entra na contagem daquele dia, no resumo e na fila.';
+  pintarEdicao();
+  $('folhaEdit').classList.add('on');
+};
+window.fecharEdicao = function(){ $('folhaEdit').classList.remove('on'); _editAlvo = null; };
+
+function pintarEdicao(){
+  $('editIdas').textContent = _editPara.idas;
+  $('editVendas').textContent = _editPara.vendas;
+  const di = _editPara.idas - _editDe.idas, dv = _editPara.vendas - _editDe.vendas;
+  const txt = [];
+  if(di) txt.push(`idas <b>${_editDe.idas} → ${_editPara.idas}</b>`);
+  if(dv) txt.push(`vendas <b>${_editDe.vendas} → ${_editPara.vendas}</b>`);
+  $('editAviso').innerHTML = txt.length
+    ? 'Vai ficar: ' + txt.join(', ') + '. Fica anotado hoje, com o seu nome.'
+    : 'Sem mudança ainda.';
+}
+
+window.mexerEdit = function(campo, passo){
+  if(!_editPara) return;
+  const v = Math.max(0, _editPara[campo] + passo);
+  _editPara[campo] = v;
+  /* venda é uma ida que fechou: não existe vender mais do que foi à porta */
+  if(campo === 'vendas' && v > _editPara.idas) _editPara.idas = v;
+  if(campo === 'idas'  && _editPara.vendas > v) _editPara.vendas = v;
+  pintarEdicao();
+};
+
+window.salvarEdicao = function(){
+  const k = _editAlvo, dia = _editDia, de = _editDe, para = _editPara;
+  fecharEdicao();
+  if(!k || !estado.pessoas[k]) return;
+  if(!souGestor){ toast('Editar a contagem é a supervisora ou a diretoria'); return; }
+  const p = estado.pessoas[k];
+  if(para.idas === de.idas && para.vendas === de.vendas){ toast('Nada mudou'); return; }
+
+  /* os registros daquele dia, dela, que contam ida — o mais novo primeiro, porque é o
+     último lançado que a correção desfaz */
+  const doDia = historico.filter(h => !h.desfeito && h.nome === p.nome
+      && (h.desfecho === 'venda' || h.desfecho === 'sem-venda') && diaDe(h.quando) === dia)
+    .sort((a,b) => (b.quando||0) - (a.quando||0));
+  const vendas = doDia.filter(h => h.desfecho === 'venda');
+  const semVenda = doDia.filter(h => h.desfecho === 'sem-venda');
+
+  /* as duas contas são independentes: vendas, e as idas que não viraram venda */
+  const alvoSem = para.idas - para.vendas, temSem = de.idas - de.vendas;
+  const agora = Date.now(), quando = new Date(dia + 'T12:00:00').getTime();
+  const marca = { desfeito:true, desfeitoPor:meuEmail||null, desfeitoEm:agora };
+  const desfazer = [], criar = [];
+
+  const ajustar = (lista, atual, alvo, desfecho) => {
+    for(let i = 0; i < atual - alvo; i++) if(lista[i]) desfazer.push(lista[i]);
+    for(let i = 0; i < alvo - atual; i++) criar.push({
+      email:p.email, nome:p.nome, desfecho, quando, motivo:null,
+      lancadoEm:agora, lancadoPor:meuEmail||null, registradoPor:meuEmail||null });
+  };
+  ajustar(vendas, de.vendas, para.vendas, 'venda');
+  ajustar(semVenda, temSem, alvoSem, 'sem-venda');
+
+  /* a anotação vai com a data de hoje: é hoje que a correção aconteceu */
+  const partes = [];
+  if(para.idas !== de.idas) partes.push('idas ' + de.idas + ' → ' + para.idas);
+  if(para.vendas !== de.vendas) partes.push('vendas ' + de.vendas + ' → ' + para.vendas);
+  const nota = { tipo:'evento', evento:'teve o dia ' + ddmm(quando) + ' corrigido: ' + partes.join(', '),
+                 email:p.email, nome:p.nome, quando:agora, registradoPor:meuEmail||null };
+
+  if(db){
+    desfazer.forEach(h => { if(h.id) db.collection('ls_vez_hist').doc(h.id).update(marca).catch(()=>{}); });
+    criar.forEach(r => db.collection('ls_vez_hist').add(r).catch(()=>{}));
+    db.collection('ls_vez_hist').add(nota).catch(()=>{});
+  } else {
+    const ids = new Set(desfazer.map(h => h.id));
+    historico = historico.map(h => ids.has(h.id) ? Object.assign({}, h, marca) : h);
+    criar.forEach((r,i) => historico.unshift(Object.assign({id:'ed'+agora+i}, r)));
+    historico.unshift(Object.assign({id:'nota'+agora}, nota));
+  }
+
+  /* a fila anda junto: ida lançada conta, ida desfeita desconta. A vez não é forçada
+     para ninguém — a ordem se reacerta pelos contadores, como no lançamento atrasado. */
+  const novo = JSON.parse(JSON.stringify(estado)), q = novo.pessoas[k];
+  q.idas   = Math.max(0, (q.idas||0)   + (para.idas   - de.idas));
+  q.vendas = Math.max(0, (q.vendas||0) + (para.vendas - de.vendas));
+  novo.segurando = null;
+  salvar(VezRegra.revalidar(novo), 'Corrigido — ' + p.nome + ', ' + ddmm(quando) + ': ' + partes.join(', '));
 };
 
 const diaDe = ts => { const d=new Date(ts);
