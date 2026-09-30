@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="app-ver" content="p1">
+<title>Calendário · Loretto Scarpa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --verde-noite:#1f2711;--verde-escuro:#2c3719;--verde-fundo:#3b4a22;--verde:#4a5c2a;--verde-claro:#5c7035;
+    --gold:#c9a950;--gold-claro:#e6d18a;--creme:#f1ede1;--creme-suave:#bdb9a6;
+    --linha:rgba(201,169,80,.22);--ok:#7fae6b;--alerta:#d08a45;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Barlow',sans-serif;color:var(--creme);min-height:100vh;
+    background:radial-gradient(120% 80% at 50% 0%,var(--verde) 0%,var(--verde-fundo) 45%,var(--verde-escuro) 100%);
+    padding:18px 16px calc(28px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased;
+    font-variant-numeric:lining-nums;font-feature-settings:"lnum" 1}
+  .wrap{max-width:640px;margin:0 auto}
+  h1{font-family:'Playfair Display',serif;font-size:23px;font-weight:700;color:var(--gold-claro)}
+  .sub{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-top:2px;font-weight:600}
+  .topo{margin-bottom:16px}
+  .sec{font-size:11.5px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:600;margin:22px 0 9px}
+
+  /* ── semana: setas, o nome da semana no meio e a volta para esta semana ── */
+  .navsem{display:flex;align-items:center;gap:8px;margin-bottom:10px;
+    background:rgba(0,0,0,.16);border:1px solid var(--linha);border-radius:11px;padding:7px 8px}
+  .navsem-bt{width:36px;height:36px;border-radius:9px;border:1px solid var(--linha);background:transparent;
+    color:var(--creme);font-size:20px;line-height:1;cursor:pointer;padding:0;flex:none;font-family:'Barlow',sans-serif}
+  .navsem-bt:hover{border-color:var(--gold);color:var(--gold-claro)}
+  .navsem-meio{flex:1;text-align:center;min-width:0}
+  .navsem-rot{font-family:'Playfair Display',serif;font-size:19px;font-weight:600;line-height:1.15}
+  .navsem-dica{font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--creme-suave);margin-top:2px}
+  .navsem-dica.prox{color:var(--gold-claro)}
+  .navsem-hoje{height:36px;padding:0 12px;border-radius:9px;border:1px solid var(--linha);background:transparent;
+    color:var(--creme-suave);font-size:12px;font-weight:600;cursor:pointer;flex:none;font-family:'Barlow',sans-serif}
+  .navsem-hoje[hidden]{display:none}
+
+  /* o lembrete da sexta: aparece de sexta a domingo enquanto a semana seguinte estiver vazia */
+  .lembrete{display:none;border:1px solid var(--gold);background:rgba(201,169,80,.12);border-radius:11px;
+    padding:12px 14px;margin-bottom:12px;font-size:13.5px;line-height:1.45}
+  .lembrete.on{display:block}
+  .lembrete b{color:var(--gold-claro)}
+  .lembrete button{margin-top:9px}
+
+  .acoes{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:6px}
+  .bt{border:1px solid var(--linha);background:rgba(0,0,0,.18);color:var(--creme);border-radius:10px;
+    padding:10px 13px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif}
+  .bt:hover{border-color:var(--gold)}
+  .bt.ouro{background:var(--gold);color:var(--verde-noite);border-color:var(--gold)}
+  .bt.ouro:hover{background:var(--gold-claro)}
+  .bt.perigo{border-color:rgba(208,138,69,.5);color:var(--alerta)}
+  .bt:disabled{opacity:.4;cursor:default}
+
+  /* ── os dias ── */
+  .dia{background:rgba(0,0,0,.16);border:1px solid var(--linha);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+  .dia.hoje{border-color:var(--gold);background:rgba(201,169,80,.08)}
+  .dia.passou{opacity:.62}
+  .dia-cab{display:flex;align-items:center;gap:8px}
+  .dia-nome{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;text-transform:capitalize}
+  .dia-data{font-size:12px;color:var(--creme-suave)}
+  .tag-hoje{font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;font-weight:700;color:var(--verde-noite);
+    background:var(--gold-claro);border-radius:99px;padding:1px 8px}
+  .dia-mais{margin-left:auto;border:1px dashed var(--linha);background:transparent;color:var(--creme-suave);
+    border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:'Barlow',sans-serif}
+  .dia-mais:hover{border-color:var(--gold);color:var(--creme)}
+  .dia-vazio{font-size:12.5px;color:var(--creme-suave);opacity:.8;margin-top:6px}
+  .ent{display:flex;align-items:center;gap:10px;margin-top:8px;padding:7px 8px;border-radius:9px;
+    border:1px solid transparent;width:100%;background:transparent;color:inherit;text-align:left;font-family:inherit}
+  body.editor .ent{cursor:pointer}
+  body.editor .ent:hover{border-color:var(--linha);background:rgba(0,0,0,.14)}
+  .av{width:34px;height:34px;border-radius:50%;flex:none;border:1.5px solid var(--gold);overflow:hidden;
+    display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:15px;
+    color:var(--gold);background:rgba(0,0,0,.25)}
+  .av img{width:100%;height:100%;object-fit:cover;display:block}
+  .ent-txt{flex:1;min-width:0}
+  .ent-nome{font-size:14.5px;font-weight:600;display:block}
+  .ent-info{font-size:12.5px;color:var(--creme-suave);display:block}
+  .ent-obs{font-size:12px;color:var(--creme-suave);font-style:italic;margin-top:1px}
+  .per{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;border-radius:99px;
+    padding:2px 8px;border:1px solid var(--linha);white-space:nowrap;flex:none}
+  .per.manha{color:var(--gold-claro);border-color:rgba(230,209,138,.45)}
+  .per.tarde{color:var(--alerta);border-color:rgba(208,138,69,.45)}
+  .per.integral{color:var(--ok);border-color:rgba(127,174,107,.45)}
+  .per.horario{color:var(--creme-suave)}
+
+  /* ── resumo por pessoa ── */
+  .res{display:flex;gap:10px;align-items:flex-start;background:rgba(0,0,0,.12);border:1px solid var(--linha);
+    border-radius:11px;padding:9px 12px;margin-bottom:6px}
+  .res b{font-size:14px;display:block}
+  .res div>span{font-size:12.5px;color:var(--creme-suave);line-height:1.5}
+  .vazio{font-size:13px;color:var(--creme-suave);border:1px dashed var(--linha);border-radius:11px;padding:14px;text-align:center}
+  .dica{font-size:12px;color:var(--creme-suave);line-height:1.5;margin-top:14px}
+
+  /* ── folha de lançar / editar ── */
+  .folha{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;z-index:20}
+  .folha.on{display:flex}
+  .folha-cx{background:var(--verde-escuro);border-top:2px solid var(--gold);border-radius:16px 16px 0 0;
+    width:100%;max-width:640px;margin:0 auto;max-height:90vh;overflow:auto;padding:18px 16px calc(20px + env(safe-area-inset-bottom))}
+  .folha h3{font-family:'Playfair Display',serif;font-size:19px;color:var(--gold-claro);margin-bottom:12px}
+  .rot{font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--gold);font-weight:600;margin:14px 0 7px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{border:1px solid var(--linha);background:rgba(0,0,0,.18);color:var(--creme);border-radius:99px;
+    padding:8px 13px;font-size:13px;cursor:pointer;font-family:'Barlow',sans-serif}
+  .chip.on{background:var(--gold);color:var(--verde-noite);border-color:var(--gold);font-weight:600}
+  .chip:disabled{opacity:.35;cursor:default}
+  input[type=text],input[type=time]{width:100%;background:rgba(0,0,0,.25);border:1px solid var(--linha);color:var(--creme);
+    border-radius:10px;padding:10px 12px;font-size:14.5px;font-family:'Barlow',sans-serif;color-scheme:dark}
+  input:focus{outline:none;border-color:var(--gold)}
+  .horas{display:flex;gap:8px;align-items:center}
+  .horas span{color:var(--creme-suave);font-size:13px}
+  .folha-pe{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+  .folha-pe .bt{flex:1}
+  .erro{color:var(--alerta);font-size:12.5px;margin-top:8px;min-height:1em}
+
+  .msg{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:var(--verde-noite);
+    border:1px solid var(--gold);color:var(--creme);padding:11px 18px;border-radius:99px;font-size:13.5px;
+    opacity:0;pointer-events:none;transition:.2s;z-index:30}
+  .msg.on{opacity:1}
+  .soEditor{display:none}
+  body.editor .soEditor{display:flex}
+  body.editor .dia-mais.soEditor{display:inline-block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topo"><h1>Calendário</h1><div class="sub">Presença da equipe · Loretto Scarpa</div></div>
+
+  <div class="navsem">
+    <button class="navsem-bt" onclick="andar(-1)" aria-label="Semana anterior">‹</button>
+    <div class="navsem-meio">
+      <div class="navsem-rot" id="semRot">—</div>
+      <div class="navsem-dica" id="semDica"></div>
+    </div>
+    <button class="navsem-hoje" id="btHoje" onclick="irPara(0)" hidden>Esta semana</button>
+    <button class="navsem-bt" onclick="andar(1)" aria-label="Próxima semana">›</button>
+  </div>
+
+  <!-- toda sexta a semana seguinte é lançada: o lembrete fica até alguém lançar -->
+  <div class="lembrete" id="lembrete"></div>
+
+  <div class="acoes soEditor">
+    <button class="bt ouro" onclick="abrirNovo(null)">+ Lançar presença</button>
+    <button class="bt" id="btCopiar" onclick="copiarAnterior()">Copiar a semana anterior</button>
+  </div>
+
+  <div id="dias"></div>
+
+  <div class="sec">Por pessoa nesta semana</div>
+  <div id="resumo"></div>
+
+  <p class="dica" id="dicaLeitura"></p>
+</div>
+
+<!-- lançar / editar -->
+<div class="folha" id="folha" onclick="if(event.target===this)fecharFolha()">
+  <div class="folha-cx">
+    <h3 id="fTitulo">Lançar presença</h3>
+
+    <div class="rot">Quem</div>
+    <div class="chips" id="fPessoas"></div>
+    <input type="text" id="fOutra" placeholder="Outra pessoa: digite o nome" style="margin-top:8px"
+           oninput="if(this.value.trim())escolherPessoa(null)">
+
+    <div class="rot" id="fDiasRot">Dias</div>
+    <div class="chips" id="fDias"></div>
+
+    <div class="rot">Período</div>
+    <div class="chips" id="fPeriodos"></div>
+
+    <div class="rot">Horário</div>
+    <div class="horas">
+      <input type="time" id="fIni"><span>até</span><input type="time" id="fFim">
+    </div>
+
+    <div class="rot">Observação (opcional)</div>
+    <input type="text" id="fObs" maxlength="120" placeholder="Ex.: sessão de fotos, gravação, reposição">
+
+    <div class="erro" id="fErro"></div>
+    <div class="folha-pe">
+      <button class="bt perigo" id="fApagar" onclick="apagar()" hidden>Apagar</button>
+      <button class="bt" onclick="fecharFolha()">Cancelar</button>
+      <button class="bt ouro" id="fSalvar" onclick="salvar()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="msg" id="msg"></div>
+
+<script src="../fotos.js"></script>
+<script>
+/* ===== Calendário de presença =====
+   Dia, horário e período em que cada pessoa vem à loja — a Lohane, o Edson e quem
+   mais precisar. Toda sexta se lança a semana seguinte; de sexta a domingo, enquanto
+   ela estiver vazia, o painel (e o sininho da Central) lembram.
+
+   Cada presença é um documento em ls_presenca, com o dia em 'AAAA-MM-DD'. A semana
+   é lida por intervalo nesse campo — um campo só, sem índice composto.            */
+
+const firebaseConfig={apiKey:"AIzaSyCogQoTSULCdC1JhTb0IUilWAIA1itBJ8U",authDomain:"loretto-scarpa-l-icr.firebaseapp.com",projectId:"loretto-scarpa-l-icr",storageBucket:"loretto-scarpa-l-icr.firebasestorage.app",messagingSenderId:"428188657366",appId:"1:428188657366:web:258f42f2c0a3813d83cb77"};
+
+/* Quem aparece de saída na hora de lançar. Qualquer outro nome pode ser digitado, e
+   quem já foi lançado nas últimas semanas entra sozinho na lista. */
+const PESSOAS_FIXAS = ['Lohane','Edson'];
+
+/* Quem lança e corrige. Os demais só leem. Mudou? Mude aqui e em firestore.rules
+   (função editorPresenca). */
+const EDITORES = ['lorettoscarpa@gmail.com','larissalorettoscarpa@gmail.com',
+                  'jhenniferlorettoscarpa@gmail.com','lorraynelorettoscarpa@gmail.com'];
+
+const PERIODOS = {
+  manha:   {rot:'Manhã',       ini:'09:00', fim:'12:00'},
+  tarde:   {rot:'Tarde',       ini:'13:00', fim:'18:00'},
+  integral:{rot:'Dia inteiro', ini:'09:00', fim:'18:00'},
+  horario: {rot:'Só horário',  ini:'',      fim:''}
+};
+const DIAS_SEM = ['segunda','terça','quarta','quinta','sexta','sábado','domingo'];
+const DIAS_CURTO = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+const $ = id => document.getElementById(id);
+let db=null, auth=null, meuEmail='', souEditor=false;
+let desloc = 0;                 /* semanas a partir desta: 0 = esta, 1 = a que vem */
+let itens = [], unsub = null, conhecidos = new Set(PESSOAS_FIXAS);
+let proxVazia = null, unsubProx = null;
+
+function toast(t){ const m=$('msg'); m.textContent=t; m.classList.add('on'); clearTimeout(m._t); m._t=setTimeout(()=>m.classList.remove('on'),2400); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+const chaveDia = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const deChave = k => { const [a,m,d]=k.split('-').map(Number); return new Date(a,m-1,d); };
+const hojeK = () => chaveDia(new Date());
+
+/* segunda-feira da semana de uma data, ao meio-dia (horário de verão não empurra o dia) */
+function segundaDe(d){
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12);
+  x.setDate(x.getDate() - ((x.getDay()+6)%7));
+  return x;
+}
+function diasDaSemana(n){
+  const seg = segundaDe(new Date()); seg.setDate(seg.getDate() + 7*n);
+  return Array.from({length:7}, (_,i)=>{ const d=new Date(seg); d.setDate(seg.getDate()+i); return d; });
+}
+const fmtDia = d => `${d.getDate()} ${MESES[d.getMonth()]}`;
+const fmtHora = h => h ? h.replace(/^0/,'').replace(':00','h').replace(':','h') : '';
+function faixa(i){
+  if(i.ini && i.fim) return `${fmtHora(i.ini)} às ${fmtHora(i.fim)}`;
+  if(i.ini) return `a partir das ${fmtHora(i.ini)}`;
+  if(i.fim) return `até as ${fmtHora(i.fim)}`;
+  return '';
+}
+function avatar(nome){
+  const f = window.FOTOS_DATA && window.FOTOS_DATA[nome];
+  return `<span class="av">${f?`<img src="${f}" alt="">`:esc((nome||'?')[0])}</span>`;
+}
+
+/* ---------- a semana na tela ---------- */
+function rotuloSemana(n){
+  if(n===0) return 'esta semana';
+  if(n===1) return 'semana que vem';
+  if(n===-1) return 'semana passada';
+  return n>0 ? `daqui a ${n} semanas` : `há ${-n} semanas`;
+}
+function pintar(){
+  const dias = diasDaSemana(desloc), hoje = hojeK();
+  const ini = dias[0], fim = dias[6];
+  $('semRot').textContent = ini.getMonth()===fim.getMonth()
+    ? `${ini.getDate()} a ${fmtDia(fim)}` : `${fmtDia(ini)} a ${fmtDia(fim)}`;
+  $('semDica').textContent = rotuloSemana(desloc);
+  $('semDica').classList.toggle('prox', desloc===1);
+  $('btHoje').hidden = desloc===0;
+  $('btCopiar').disabled = itens.length > 0;
+  $('btCopiar').title = itens.length ? 'A semana já tem lançamentos' : '';
+
+  const porDia = {};
+  itens.forEach(i => (porDia[i.dia] = porDia[i.dia] || []).push(i));
+  Object.values(porDia).forEach(l => l.sort((a,b)=>(a.ini||'99').localeCompare(b.ini||'99') || a.nome.localeCompare(b.nome)));
+
+  /* domingo só aparece se tiver alguém: a loja não abre, e um cartão vazio a mais
+     todo dia só empurra o resumo para baixo */
+  $('dias').innerHTML = dias.map((d,idx)=>{
+    const k = chaveDia(d), l = porDia[k] || [];
+    if(idx===6 && !l.length) return '';
+    const cls = k===hoje ? ' hoje' : (k<hoje ? ' passou' : '');
+    const corpo = l.length ? l.map(i=>`
+      <button class="ent" onclick="abrirEdicao('${esc(i.id)}')">
+        ${avatar(i.nome)}
+        <span class="ent-txt">
+          <span class="ent-nome">${esc(i.nome)}</span>
+          <span class="ent-info">${esc(faixa(i))}</span>
+          ${i.obs?`<div class="ent-obs">${esc(i.obs)}</div>`:''}
+        </span>
+        <span class="per ${esc(i.periodo)}">${esc((PERIODOS[i.periodo]||PERIODOS.horario).rot)}</span>
+      </button>`).join('') : '<div class="dia-vazio">Ninguém lançado.</div>';
+    return `<div class="dia${cls}">
+      <div class="dia-cab"><span class="dia-nome">${DIAS_SEM[idx]}</span><span class="dia-data">${fmtDia(d)}</span>
+        ${k===hoje?'<span class="tag-hoje">hoje</span>':''}
+        <button class="dia-mais soEditor" onclick="abrirNovo('${k}')">+ lançar</button></div>
+      ${corpo}</div>`;
+  }).join('');
+
+  const porPessoa = {};
+  itens.forEach(i => (porPessoa[i.nome] = porPessoa[i.nome] || []).push(i));
+  const nomes = Object.keys(porPessoa).sort((a,b)=>a.localeCompare(b));
+  $('resumo').innerHTML = nomes.length ? nomes.map(n=>{
+    const l = porPessoa[n].slice().sort((a,b)=>a.dia.localeCompare(b.dia));
+    const txt = l.map(i=>{
+      const d = deChave(i.dia), p = (PERIODOS[i.periodo]||PERIODOS.horario).rot.toLowerCase();
+      return `${DIAS_CURTO[(d.getDay()+6)%7].toLowerCase()} ${d.getDate()} · ${i.periodo==='horario'?faixa(i):p}`;
+    }).join('<br>');
+    return `<div class="res">${avatar(n)}<div><b>${esc(n)} · ${l.length} dia${l.length>1?'s':''}</b><span>${txt}</span></div></div>`;
+  }).join('') : '<div class="vazio">Nada lançado nesta semana.</div>';
+
+  $('dicaLeitura').textContent = souEditor
+    ? 'Toque numa presença para corrigir ou apagar. Toda sexta, lance a semana seguinte — "Copiar a semana anterior" adianta quando a rotina se repete.'
+    : 'Quem lança é a gestão e o marketing. Viu algo errado? Avise quem lançou.';
+  pintarLembrete();
+}
+
+/* de sexta a domingo, com a semana seguinte vazia */
+function pintarLembrete(){
+  const dow = new Date().getDay();
+  const epoca = dow===5 || dow===6 || dow===0;
+  const on = souEditor && epoca && proxVazia===true;
+  const el = $('lembrete');
+  el.classList.toggle('on', on);
+  if(!on){ el.innerHTML=''; return; }
+  const d = diasDaSemana(1);
+  el.innerHTML = `<b>Hora de lançar a semana que vem</b> (${fmtDia(d[0])} a ${fmtDia(d[6])}). Ainda não tem ninguém nela.`
+    + (desloc!==1 ? '<br><button class="bt ouro" onclick="irPara(1)">Ir para a semana que vem</button>' : '');
+}
+
+/* ---------- leitura ---------- */
+function ouvirSemana(){
+  if(unsub){ try{unsub();}catch(_){} unsub=null; }
+  const d = diasDaSemana(desloc), de = chaveDia(d[0]), ate = chaveDia(d[6]), alvo = desloc;
+  itens = []; pintar();
+  unsub = db.collection('ls_presenca').where('dia','>=',de).where('dia','<=',ate).onSnapshot(s=>{
+    if(alvo!==desloc) return;
+    itens = []; s.forEach(x=>{ const v=x.data(); if(v && v.nome && v.dia) itens.push(Object.assign({id:x.id}, v)); });
+    itens.forEach(i=>conhecidos.add(i.nome));
+    pintar();
+  }, e=>{ console.warn('presenca', e); toast('Não consegui ler o calendário'); });
+}
+function ouvirProxima(){
+  if(unsubProx) return;
+  const d = diasDaSemana(1);
+  unsubProx = db.collection('ls_presenca').where('dia','>=',chaveDia(d[0])).where('dia','<=',chaveDia(d[6])).limit(1)
+    .onSnapshot(s=>{ proxVazia = s.empty; pintarLembrete(); }, ()=>{});
+}
+/* nomes das últimas quatro semanas entram como atalho na hora de lançar */
+function carregarConhecidos(){
+  const d = diasDaSemana(-4)[0];
+  db.collection('ls_presenca').where('dia','>=',chaveDia(d)).get()
+    .then(s=>s.forEach(x=>{ const v=x.data(); if(v && v.nome) conhecidos.add(v.nome); })).catch(()=>{});
+}
+window.andar = n => irPara(desloc + n);
+window.irPara = n => { desloc = n; ouvirSemana(); };
+
+/* ---------- lançar / editar ---------- */
+let form = null;   /* {id|null, nome, dias:Set, periodo} */
+function pintarForm(){
+  const nomes = [...conhecidos].sort((a,b)=>a.localeCompare(b));
+  $('fPessoas').innerHTML = nomes.map(n=>`<button class="chip${form.nome===n?' on':''}" onclick="escolherPessoa(this.dataset.n)" data-n="${esc(n)}">${esc(n)}</button>`).join('');
+  const dias = diasDaSemana(desloc), hoje = hojeK();
+  $('fDiasRot').textContent = form.id ? 'Dia' : 'Dias (pode marcar vários)';
+  $('fDias').innerHTML = dias.map((d,idx)=>{
+    const k = chaveDia(d);
+    return `<button class="chip${form.dias.has(k)?' on':''}" onclick="alternarDia('${k}')">${DIAS_CURTO[idx]} ${d.getDate()}${k===hoje?' · hoje':''}</button>`;
+  }).join('');
+  $('fPeriodos').innerHTML = Object.keys(PERIODOS).map(p=>`<button class="chip${form.periodo===p?' on':''}" onclick="escolherPeriodo('${p}')">${PERIODOS[p].rot}</button>`).join('');
+}
+window.escolherPessoa = n => {
+  if(n){ form.nome = n; $('fOutra').value=''; } else form.nome = null;
+  pintarForm();
+};
+window.alternarDia = k => {
+  if(form.id){ form.dias = new Set([k]); }       /* editando: um dia só */
+  else if(form.dias.has(k)) form.dias.delete(k); else form.dias.add(k);
+  pintarForm();
+};
+window.escolherPeriodo = p => {
+  form.periodo = p;
+  if(p!=='horario'){ $('fIni').value = PERIODOS[p].ini; $('fFim').value = PERIODOS[p].fim; }
+  pintarForm();
+};
+function abrirFolha(){ $('fErro').textContent=''; pintarForm(); $('folha').classList.add('on'); }
+window.fecharFolha = () => { $('folha').classList.remove('on'); form=null; };
+
+window.abrirNovo = dia => {
+  if(!souEditor) return;
+  form = {id:null, nome:null, dias:new Set(dia?[dia]:[]), periodo:'manha'};
+  $('fTitulo').textContent = 'Lançar presença';
+  $('fOutra').value=''; $('fObs').value='';
+  $('fIni').value = PERIODOS.manha.ini; $('fFim').value = PERIODOS.manha.fim;
+  $('fApagar').hidden = true;
+  abrirFolha();
+};
+window.abrirEdicao = id => {
+  if(!souEditor) return;
+  const i = itens.find(x=>x.id===id); if(!i) return;
+  const fixo = conhecidos.has(i.nome);
+  form = {id, nome: fixo ? i.nome : null, dias:new Set([i.dia]), periodo: PERIODOS[i.periodo] ? i.periodo : 'horario'};
+  $('fTitulo').textContent = 'Corrigir presença';
+  $('fOutra').value = fixo ? '' : i.nome;
+  $('fObs').value = i.obs || '';
+  $('fIni').value = i.ini || ''; $('fFim').value = i.fim || '';
+  $('fApagar').hidden = false;
+  abrirFolha();
+};
+
+window.salvar = async () => {
+  if(!form) return;
+  const nome = (form.nome || $('fOutra').value).trim().replace(/\s+/g,' ');
+  const ini = $('fIni').value, fim = $('fFim').value, obs = $('fObs').value.trim().slice(0,120);
+  const err = t => { $('fErro').textContent = t; };
+  if(!nome) return err('Escolha ou digite quem vem.');
+  if(!form.dias.size) return err('Marque pelo menos um dia.');
+  if(form.periodo==='horario' && !ini) return err('Em "Só horário", diga a partir de que horas.');
+  if(ini && fim && fim <= ini) return err('O fim precisa ser depois do início.');
+  /* a mesma pessoa duas vezes no mesmo dia e no mesmo período é quase sempre toque duplo */
+  const repetido = [...form.dias].find(k => itens.some(i => i.id!==form.id && i.dia===k && i.nome.toLowerCase()===nome.toLowerCase() && i.periodo===form.periodo));
+  if(repetido) return err(`Já existe presença de ${nome} nesse período em ${fmtDia(deChave(repetido))}.`);
+
+  $('fSalvar').disabled = true;
+  const agora = Date.now();
+  const base = {nome, periodo:form.periodo, ini, fim, obs};
+  try{
+    if(form.id){
+      await db.collection('ls_presenca').doc(form.id).update(Object.assign({}, base,
+        {dia:[...form.dias][0], atualizadoPor:meuEmail, atualizadoEm:agora}));
+      toast('Corrigido');
+    }else{
+      const lote = db.batch();
+      [...form.dias].sort().forEach(k => lote.set(db.collection('ls_presenca').doc(),
+        Object.assign({}, base, {dia:k, criadoPor:meuEmail, criadoEm:agora})));
+      await lote.commit();
+      toast(form.dias.size>1 ? `${form.dias.size} dias lançados` : 'Lançado');
+    }
+    conhecidos.add(nome);
+    fecharFolha();
+  }catch(e){ console.warn(e); err('Não consegui salvar. Confira a conexão e tente de novo.'); }
+  $('fSalvar').disabled = false;
+};
+
+window.apagar = async () => {
+  if(!form || !form.id) return;
+  const i = itens.find(x=>x.id===form.id);
+  if(!confirm(`Apagar ${i?i.nome:'esta presença'} de ${i?fmtDia(deChave(i.dia)):'deste dia'}?`)) return;
+  try{ await db.collection('ls_presenca').doc(form.id).delete(); toast('Apagado'); fecharFolha(); }
+  catch(e){ console.warn(e); $('fErro').textContent='Não consegui apagar.'; }
+};
+
+/* a semana anterior à que está na tela, dia por dia, sete dias para a frente */
+window.copiarAnterior = async () => {
+  if(!souEditor || itens.length) return;
+  const ant = diasDaSemana(desloc-1);
+  try{
+    const s = await db.collection('ls_presenca').where('dia','>=',chaveDia(ant[0])).where('dia','<=',chaveDia(ant[6])).get();
+    if(s.empty){ toast('A semana anterior também está vazia'); return; }
+    if(!confirm(`Copiar ${s.size} presença${s.size>1?'s':''} da semana anterior para esta? Dá para corrigir uma a uma depois.`)) return;
+    const lote = db.batch(), agora = Date.now();
+    s.forEach(x=>{
+      const v = x.data(), d = deChave(v.dia); d.setDate(d.getDate()+7);
+      lote.set(db.collection('ls_presenca').doc(), {nome:v.nome, periodo:v.periodo||'horario', ini:v.ini||'', fim:v.fim||'',
+        obs:v.obs||'', dia:chaveDia(d), criadoPor:meuEmail, criadoEm:agora, copiadoDe:v.dia});
+    });
+    await lote.commit();
+    toast('Semana copiada');
+  }catch(e){ console.warn(e); toast('Não consegui copiar'); }
+};
+
+/* a Central manda "semanaquevem" quando o aviso da sexta é tocado */
+window.centralFoco = f => { if(f==='semanaquevem') irPara(1); };
+window.addEventListener('message', e=>{
+  const d = e.data || {};
+  if(e.origin===location.origin && d.tipo==='central-foco') window.centralFoco(d.foco);
+});
+
+function ligar(){
+  souEditor = EDITORES.indexOf(meuEmail) >= 0;
+  document.body.classList.toggle('editor', souEditor);
+  const foco = new URLSearchParams(location.search).get('foco');
+  if(foco==='semanaquevem') desloc = 1;
+  ouvirSemana(); ouvirProxima(); carregarConhecidos();
+}
+
+try{
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore(); auth = firebase.auth();
+  auth.onAuthStateChanged(u=>{
+    meuEmail = ((u && u.email) || '').toLowerCase();
+    if(!u || !u.email){ $('dias').innerHTML = '<div class="vazio">Entre pela Central.</div>'; return; }
+    ligar();
+  });
+}catch(e){
+  $('dias').innerHTML = '<div class="vazio">Sem conexão.</div>';
+  console.warn('Firebase falhou', e);
+}
+</script>
+</body>
+</html>

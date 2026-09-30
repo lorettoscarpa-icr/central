@@ -201,6 +201,25 @@ service cloud.firestore {
                         || gestorOuSup());
     }
 
+    /* Calendário de presença (painel Calendário, dentro de Marketing): dia, horário e
+       período de quem vem à loja. Toda a equipe logada LÊ; lançar, corrigir e apagar é
+       da diretoria, da supervisora e do marketing — a mesma lista EDITORES de
+       presenca/index.html. Quem lança assina: criadoPor tem de ser o próprio e-mail. */
+    function editorPresenca() {
+      return logado() && request.auth.token.email.lower() in [
+        'lorettoscarpa@gmail.com',
+        'larissalorettoscarpa@gmail.com',
+        'jhenniferlorettoscarpa@gmail.com',
+        'lorraynelorettoscarpa@gmail.com'
+      ];
+    }
+    match /ls_presenca/{id} {
+      allow read:   if logado();
+      allow create: if editorPresenca()
+                    && request.resource.data.criadoPor == request.auth.token.email.lower();
+      allow update, delete: if editorPresenca();
+    }
+
     // ===== Rotina (ls_rotina) =====
     // A rotina passou a ser lida por TODA a equipe na Central (aba Rotina), e não
     // mais só pela supervisora. Ler tudo bem — é o que cada um tem pra fazer.
@@ -299,7 +318,7 @@ service cloud.firestore {
     // (mesmo motivo de 'ls_ausencias' estar aqui: sem isto qualquer logado
     // apagaria o aviso de ausência de qualquer outra pessoa)
     match /{coll}/{document=**} {
-      allow read, write: if !(coll in ['hub_config','ls_acessos','lancamentos','bancoHoras','documentosRH','ls_comunicados','ls_tarefas','catalogos_arquivos','ls_ausencias','ls_vez_hist','ls_rotina'])
+      allow read, write: if !(coll in ['hub_config','ls_acessos','lancamentos','bancoHoras','documentosRH','ls_comunicados','ls_tarefas','catalogos_arquivos','ls_ausencias','ls_vez_hist','ls_rotina','ls_presenca'])
         && request.auth != null
         && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
