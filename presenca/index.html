@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="p3">
+<meta name="app-ver" content="p4">
 <title>Calendário · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -158,6 +158,8 @@
   .ent.faltou .ent-nome{text-decoration:line-through;opacity:.7}
   .ent-tags{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
   .res-num{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+  .res-txt{flex:1;min-width:0}
+  .res-pdf{margin-top:9px;padding:7px 11px;font-size:12px}
   /* no celular a célula tem uns 48px: o período desce para a linha de baixo do nome */
   @media(max-width:420px){.cel{min-height:46px}.chipc{font-size:8.5px;padding:1px 2px}.chipc .h{display:block;font-size:8px}}
 
@@ -443,30 +445,198 @@ function pintarMes(){
   doMes.forEach(i => (porPessoa[i.nome] = porPessoa[i.nome] || []).push(i));
   const nomes = Object.keys(porPessoa).sort((a,b)=>a.localeCompare(b));
   $('resumo').innerHTML = nomes.length ? nomes.map(n=>{
-    const l = porPessoa[n];
-    const feitos = l.filter(i=>i.dia<=hoje && !i.faltou), faltas = l.filter(i=>i.dia<=hoje && i.faltou).length;
-    const prox = l.filter(i=>i.dia>hoje).length;
-    /* em DIAS, para fechar com o total: meio período vale meio dia. Cedo no marketing e
-       tarde no e-commerce dá ½ para cada um. */
-    const conta = f => feitos.filter(i=>funDe(i)===f).reduce((t,i)=>t+(i.periodo==='manha'||i.periodo==='tarde'?0.5:1),0);
-    const fmtD = n => (n%1 ? `${Math.floor(n)||''}½` : String(n)) + (n>1?' dias':' dia');
-    /* um dia dividido (cedo numa função, tarde na outra) são dois registros, mas um dia
-       só na loja — e conta como dia todo, não como um cedo e um tarde */
-    const porDiaP = {};
-    feitos.forEach(i => (porDiaP[i.dia] = porDiaP[i.dia] || new Set()).add(i.periodo));
-    const diasNaLoja = Object.keys(porDiaP).length;
-    let meio=0, tarde=0, todo=0;
-    Object.values(porDiaP).forEach(ps => { if(ps.has('integral') || (ps.has('manha') && ps.has('tarde'))) todo++; else if(ps.has('manha')) meio++; else if(ps.has('tarde')) tarde++; });
-    const tags = Object.keys(FUNCOES).filter(f=>conta(f)).map(f=>`<span class="fun ${f}">${FUNCOES[f].rot} ${fmtD(conta(f))}</span>`).join('')
-      + (faltas?`<span class="naoveio">não veio ${faltas}</span>`:'');
+    const c = contagem(porPessoa[n], hoje);
+    const tags = Object.keys(FUNCOES).filter(f=>c.porFuncao[f]).map(f=>`<span class="fun ${f}">${FUNCOES[f].rot} ${nDias(c.porFuncao[f])}</span>`).join('')
+      + (c.faltas?`<span class="naoveio">não veio ${c.faltas}</span>`:'');
     const linha = [
-      `${diasNaLoja} ${diasNaLoja===1?'dia':'dias'} na loja`,
-      [meio?`${meio} cedo`:'', tarde?`${tarde} tarde`:'', todo?`${todo} ${todo>1?'dias inteiros':'dia inteiro'}`:''].filter(Boolean).join(' · '),
-      prox ? `${prox} lançado${prox>1?'s':''} para frente` : ''
+      `${nDias(c.total)} contados`,
+      c.diasCal!==c.total ? `em ${c.diasCal} de calendário` : '',
+      c.prox ? `${c.prox} lançado${c.prox>1?'s':''} para frente` : ''
     ].filter(Boolean).join(' · ');
-    return `<div class="res">${avatar(n)}<div><b>${esc(n)}</b><span>${linha}</span>${tags?`<div class="res-num">${tags}</div>`:''}</div></div>`;
+    return `<div class="res">${avatar(n)}<div class="res-txt"><b>${esc(n)}</b><span>${linha}</span>${tags?`<div class="res-num">${tags}</div>`:''}
+      <button class="bt res-pdf" onclick="relatorio(this.dataset.n)" data-n="${esc(n)}">Relatório do mês (PDF)</button></div></div>`;
   }).join('') : '<div class="vazio">Nada lançado neste mês.</div>';
 }
+
+/* ---------- a conta dos dias ----------
+   A regra da loja: cada período trabalhado conta UM dia. Cedo é 1, tarde é 1, e o dia
+   todo à disposição de uma função só conta 2 — é como se ela tivesse ido dois dias.
+   Cedo no marketing e tarde no e-commerce dá 1 para cada um.
+   Só entra o que já aconteceu e não está marcado como "não veio". A tela e o PDF usam
+   esta mesma função, para nunca dizerem números diferentes. */
+const pesoDe = i => i.periodo==='integral' ? 2 : 1;
+const nDias = n => `${n} ${n===1?'dia':'dias'}`;
+function contagem(lista, hoje){
+  const feitos = lista.filter(i=>i.dia<=hoje && !i.faltou);
+  const porFuncao = {}; Object.keys(FUNCOES).forEach(f=>porFuncao[f]=0);
+  feitos.forEach(i=>{ porFuncao[funDe(i)] += pesoDe(i); });
+  return {
+    feitos, porFuncao,
+    total: feitos.reduce((t,i)=>t+pesoDe(i),0),
+    diasCal: new Set(feitos.map(i=>i.dia)).size,
+    faltas: lista.filter(i=>i.dia<=hoje && i.faltou).length,
+    prox: lista.filter(i=>i.dia>hoje).length
+  };
+}
+
+/* ---------- relatório do mês em PDF ----------
+   A biblioteca só é baixada quando alguém pede o relatório: quem só olha a escala não
+   paga por ela. Sem o cdnjs, tenta o jsdelivr. */
+function carregarJsPDF(){
+  if(window.jspdf) return Promise.resolve(window.jspdf);
+  const fontes = ['https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+                  'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'];
+  const tenta = ix => new Promise((ok, falha)=>{
+    const sc = document.createElement('script'); sc.src = fontes[ix];
+    sc.onload = () => window.jspdf ? ok(window.jspdf) : falha();
+    sc.onerror = () => { sc.remove(); falha(); };
+    document.head.appendChild(sc);
+  }).catch(()=> ix+1 < fontes.length ? tenta(ix+1) : Promise.reject(new Error('sem jsPDF')));
+  return tenta(0);
+}
+const COR = {
+  verde:[44,55,25], gold:[201,169,80], texto:[40,40,32], suave:[120,116,100], linha:[214,206,180],
+  marketing:[236,220,160], ecommerce:[196,222,238], outra:[222,219,210], faltou:[208,138,69]
+};
+const ABREV = {marketing:'Marketing', ecommerce:'E-commerce', outra:'Outra'};
+
+window.relatorio = async nome => {
+  const bt = [...document.querySelectorAll('.res-pdf')].find(b=>b.dataset.n===nome);
+  if(bt){ bt.disabled = true; bt.textContent = 'Gerando…'; }
+  try{
+    const {jsPDF} = await carregarJsPDF();
+    gerarPDF(jsPDF, nome);
+  }catch(e){ console.warn(e); toast('Não consegui gerar o PDF. Confira a internet.'); }
+  if(bt){ bt.disabled = false; bt.textContent = 'Relatório do mês (PDF)'; }
+};
+
+function gerarPDF(jsPDF, nome){
+  const {ano, mes} = gradeDoMes(), hoje = hojeK();
+  const ym = `${ano}-${String(mes+1).padStart(2,'0')}`;
+  const lista = itensMes.filter(i=>i.nome===nome && i.dia.slice(0,7)===ym)
+    .sort((a,b)=>a.dia.localeCompare(b.dia) || (a.ini||'').localeCompare(b.ini||''));
+  const c = contagem(lista, hoje);
+  const doc = new jsPDF({unit:'mm', format:'a4'});
+  const W = 210, M = 14;
+  const cor = (k, tipo) => tipo==='d' ? doc.setDrawColor(...COR[k]) : tipo==='f' ? doc.setFillColor(...COR[k]) : doc.setTextColor(...COR[k]);
+
+  // cabeçalho
+  cor('verde','f'); doc.rect(0, 0, W, 30, 'F');
+  cor('gold'); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+  doc.text('LORETTO SCARPA', M, 11);
+  doc.setTextColor(241,237,225); doc.setFontSize(19);
+  doc.text(`Relatório de presença · ${nome}`, M, 21);
+  cor('gold'); doc.setFont('helvetica','normal'); doc.setFontSize(11);
+  doc.text(`${MESES_LONGO[mes]} ${ano}`, W-M, 21, {align:'right'});
+
+  // os números
+  let y = 38;
+  const caixas = [
+    {rot:'Total de dias', val:c.total, fundo:'outra'},
+    {rot:'Marketing', val:c.porFuncao.marketing, fundo:'marketing'},
+    {rot:'E-commerce', val:c.porFuncao.ecommerce, fundo:'ecommerce'}
+  ];
+  if(c.porFuncao.outra) caixas.push({rot:'Outra função', val:c.porFuncao.outra, fundo:'outra'});
+  if(c.faltas) caixas.push({rot:'Não veio', val:c.faltas, fundo:null});
+  const gap = 4, cw = (W - 2*M - gap*(caixas.length-1)) / caixas.length;
+  caixas.forEach((b,ix)=>{
+    const x = M + ix*(cw+gap);
+    if(b.fundo){ cor(b.fundo,'f'); doc.roundedRect(x, y, cw, 22, 2, 2, 'F'); }
+    else { cor('faltou','d'); doc.setLineDashPattern([1.2,1],0); doc.roundedRect(x, y, cw, 22, 2, 2, 'S'); doc.setLineDashPattern([],0); }
+    cor('texto'); doc.setFont('helvetica','bold'); doc.setFontSize(18);
+    doc.text(String(b.val), x+cw/2, y+11, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); cor('suave');
+    doc.text(b.rot.toUpperCase(), x+cw/2, y+17.5, {align:'center'});
+  });
+  y += 28;
+  doc.setFontSize(8); cor('suave');
+  doc.text('Cada período conta 1 dia: cedo = 1, tarde = 1. Dia todo numa mesma função = 2 dias.', M, y);
+  y += 4;
+  doc.text(`${c.diasCal} ${c.diasCal===1?'dia':'dias'} de calendário na loja` + (c.prox?` · ${c.prox} lançado${c.prox>1?'s':''} para depois de hoje (não contam ainda)`:''), M, y);
+
+  // o calendário
+  y += 7;
+  const cel = (W - 2*M) / 7, ini = new Date(ano, mes, 1, 12);
+  const off = ini.getDay(), nd = new Date(ano, mes+1, 0).getDate();
+  const linhas = Math.ceil((off + nd) / 7), ch = 19;
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.5); cor('suave');
+  ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'].forEach((d,ix)=>doc.text(d, M + ix*cel + cel/2, y, {align:'center'}));
+  y += 2;
+  const porDia = {}; lista.forEach(i=>(porDia[i.dia]=porDia[i.dia]||[]).push(i));
+  doc.setLineWidth(0.2);
+  for(let r=0; r<linhas; r++) for(let col=0; col<7; col++){
+    const n = r*7 + col - off + 1, x = M + col*cel, yy = y + r*ch;
+    cor('linha','d');
+    if(n<1 || n>nd){ doc.setFillColor(246,244,238); doc.rect(x, yy, cel, ch, 'FD'); continue; }
+    doc.rect(x, yy, cel, ch, 'S');
+    const k = `${ym}-${String(n).padStart(2,'0')}`;
+    doc.setFont('helvetica', k===hoje?'bold':'normal'); doc.setFontSize(7.5); cor('suave');
+    doc.text(String(n), x+1.5, yy+3.6);
+    (porDia[k]||[]).slice(0,3).forEach((i,ix)=>{
+      const by = yy + 5 + ix*5.2, bw = cel-2.4;
+      const per = perDe(i).rot;
+      /* dia que ainda não chegou: só o contorno na cor da função — está lançado, não contado */
+      if(i.dia > hoje && !i.faltou){ cor(funDe(i)==='outra'?'linha':funDe(i),'d'); doc.setLineWidth(0.5); doc.roundedRect(x+1.2, by, bw, 4.4, 0.8, 0.8, 'S'); doc.setLineWidth(0.2); cor('suave'); }
+      else if(i.faltou){ cor('faltou','d'); doc.setLineDashPattern([0.8,0.6],0); doc.roundedRect(x+1.2, by, bw, 4.4, 0.8, 0.8, 'S'); doc.setLineDashPattern([],0); cor('faltou'); }
+      else { cor(funDe(i),'f'); doc.roundedRect(x+1.2, by, bw, 4.4, 0.8, 0.8, 'F'); cor('texto'); }
+      doc.setFont('helvetica','bold'); doc.setFontSize(5.6);
+      const txt = i.faltou ? `${per} · não veio` : `${per} · ${ABREV[funDe(i)]}${i.dia>hoje?' (prev.)':''}`;
+      doc.text(doc.splitTextToSize(txt, bw-1.4)[0], x+1.9, by+3.1);
+    });
+  }
+  y += linhas*ch + 5;
+
+  // legenda
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+  let lx = M;
+  [['marketing','Marketing'],['ecommerce','E-commerce'],['outra','Outra']].forEach(([k,t])=>{
+    cor(k,'f'); doc.rect(lx, y-2.6, 3, 3, 'F'); cor('texto'); doc.text(t, lx+4.5, y); lx += doc.getTextWidth(t) + 11;
+  });
+  cor('faltou','d'); doc.setLineDashPattern([0.8,0.6],0); doc.rect(lx, y-2.6, 3, 3, 'S'); doc.setLineDashPattern([],0);
+  cor('texto'); doc.text('Não veio', lx+4.5, y);
+  y += 8;
+
+  // a lista, dia a dia
+  const cols = [{t:'Data',w:24},{t:'Dia',w:24},{t:'Período',w:26},{t:'Função',w:30},{t:'Horário',w:30},{t:'Conta',w:18},{t:'Obs.',w:30}];
+  const cab = () => {
+    cor('verde','f'); doc.rect(M, y, W-2*M, 6.5, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(241,237,225);
+    let cx = M+2; cols.forEach(cl=>{ doc.text(cl.t, cx, y+4.4); cx += cl.w; });
+    y += 6.5;
+  };
+  if(y > 260){ doc.addPage(); y = M; }
+  cab();
+  doc.setFont('helvetica','normal');
+  if(!lista.length){ doc.setFontSize(9); cor('suave'); doc.text('Nada lançado neste mês.', M+2, y+6); }
+  lista.forEach((i,ix)=>{
+    if(y > 283){ doc.addPage(); y = M; cab(); doc.setFont('helvetica','normal'); }
+    if(ix%2){ doc.setFillColor(248,246,240); doc.rect(M, y, W-2*M, 6, 'F'); }
+    const d = deChave(i.dia), futuro = i.dia > hoje;
+    const conta = i.faltou ? 'não veio' : futuro ? 'previsto' : String(pesoDe(i));
+    const vals = [`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`,
+      DIAS_SEM[(d.getDay()+6)%7], perDe(i).rot, ABREV[funDe(i)], faixa(i), conta, i.obs||''];
+    doc.setFontSize(8);
+    let cx = M+2;
+    vals.forEach((v,vi)=>{
+      if(vi===5 && (i.faltou||futuro)) cor('faltou'); else cor('texto');
+      doc.text(doc.splitTextToSize(String(v), cols[vi].w-2)[0] || '', cx, y+4.1); cx += cols[vi].w;
+    });
+    y += 6;
+  });
+
+  // rodapé em todas as páginas
+  const pags = doc.getNumberOfPages(), quando = new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  for(let pg=1; pg<=pags; pg++){
+    doc.setPage(pg); doc.setFontSize(7); cor('suave'); doc.setFont('helvetica','normal');
+    doc.text(`Gerado em ${quando} pela Central Loretto Scarpa`, M, 292);
+    doc.text(`${pg}/${pags}`, W-M, 292, {align:'right'});
+  }
+  const arq = `presenca-${slugNome(nome)}-${ym}.pdf`;
+  doc.save(arq);
+  toast('Relatório baixado');
+}
+const slugNome = t => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-');
+
 function ouvirMes(){
   if(unsubMes){ try{unsubMes();}catch(_){} unsubMes=null; }
   const g = gradeDoMes(), alvo = mesDesloc;
