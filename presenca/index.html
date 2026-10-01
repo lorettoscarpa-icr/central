@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="p1">
+<meta name="app-ver" content="p2">
 <title>Calendário · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -122,6 +122,45 @@
     border:1px solid var(--gold);color:var(--creme);padding:11px 18px;border-radius:99px;font-size:13.5px;
     opacity:0;pointer-events:none;transition:.2s;z-index:30}
   .msg.on{opacity:1}
+  /* ── o mês: a mesma grade da Escala da equipe, em Comunicados ── */
+  .mes-card{background:rgba(0,0,0,.16);border:1px solid var(--linha);border-radius:12px;padding:12px 12px 14px;margin-bottom:6px}
+  .mes-nav{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .mes-rot{flex:1;text-align:center;font-family:'Playfair Display',serif;font-size:19px;font-weight:600;color:var(--gold-claro)}
+  .legenda{display:flex;gap:12px;flex-wrap:wrap;font-size:10px;letter-spacing:1px;text-transform:uppercase;
+    color:var(--creme-suave);margin-bottom:10px}
+  .legenda span{display:flex;align-items:center;gap:5px}
+  .pt{width:9px;height:9px;border-radius:2px;display:inline-block}
+  .grade{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+  .dow{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--creme-suave);text-align:center;padding:2px 0 5px}
+  .cel{min-height:58px;border:1px solid rgba(201,169,80,.12);border-radius:4px;padding:3px;display:flex;flex-direction:column;
+    gap:2px;background:rgba(0,0,0,.12);cursor:pointer;min-width:0;font-family:inherit;color:inherit;text-align:left}
+  .cel:hover{border-color:var(--linha)}
+  .cel.fora{opacity:.4}
+  .cel.dom{background:rgba(0,0,0,.24)}
+  .cel.hoje{border-color:var(--gold);background:rgba(201,169,80,.1)}
+  .cel.nasemana{box-shadow:inset 0 -2px 0 var(--gold)}
+  .cel-num{font-size:10px;color:var(--creme-suave)}
+  .cel.hoje .cel-num{color:var(--gold-claro);font-weight:700}
+  .chipc{font-size:9.5px;line-height:1.25;padding:2px 3px;border-radius:2px;color:#1f280f;font-weight:600;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chipc .h{font-weight:500;opacity:.75}
+  /* as cores são da FUNÇÃO: é o que a grade precisa responder de longe */
+  .marketing{background:var(--gold)}
+  .ecommerce{background:#6fa8c9}
+  .outra{background:#9a9384}
+  /* não veio: some a cor da função, fica o contorno riscado */
+  .chipc.faltou{background:transparent;border:1px dashed var(--alerta);color:var(--alerta);text-decoration:line-through}
+  .pt.faltou{background:transparent;border:1px dashed var(--alerta)}
+  .fun{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;border-radius:3px;padding:2px 6px;
+    color:#1f280f;white-space:nowrap;flex:none}
+  .naoveio{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--alerta);
+    border:1px dashed var(--alerta);border-radius:3px;padding:1px 6px;white-space:nowrap;flex:none}
+  .ent.faltou .ent-nome{text-decoration:line-through;opacity:.7}
+  .ent-tags{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
+  .res-num{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+  /* no celular a célula tem uns 48px: o período desce para a linha de baixo do nome */
+  @media(max-width:420px){.cel{min-height:46px}.chipc{font-size:8.5px;padding:1px 2px}.chipc .h{display:block;font-size:8px}}
+
   .soEditor{display:none}
   body.editor .soEditor{display:flex}
   body.editor .dia-mais.soEditor{display:inline-block}
@@ -131,6 +170,28 @@
 <div class="wrap">
   <div class="topo"><h1>Calendário</h1><div class="sub">Presença da equipe · Loretto Scarpa</div></div>
 
+  <!-- O mês inteiro, de relance: quem veio, em que período e para qual função, e quem
+       estava lançado e não veio. Tocar num dia leva a semana lá de baixo para ele. -->
+  <section class="mes-card">
+    <div class="mes-nav">
+      <button class="navsem-bt" onclick="andarMes(-1)" aria-label="Mês anterior">‹</button>
+      <div class="mes-rot" id="mesRot">—</div>
+      <button class="navsem-hoje" id="btMesHoje" onclick="irMes(0)" hidden>Este mês</button>
+      <button class="navsem-bt" onclick="andarMes(1)" aria-label="Próximo mês">›</button>
+    </div>
+    <div class="legenda">
+      <span><i class="pt marketing"></i>Marketing</span>
+      <span><i class="pt ecommerce"></i>E-commerce</span>
+      <span><i class="pt outra"></i>Outra</span>
+      <span><i class="pt faltou"></i>Não veio</span>
+    </div>
+    <div class="grade" id="grade"></div>
+  </section>
+
+  <div class="sec" id="resMesRot">No mês</div>
+  <div id="resumo"></div>
+
+  <div class="sec">Semana</div>
   <div class="navsem">
     <button class="navsem-bt" onclick="andar(-1)" aria-label="Semana anterior">‹</button>
     <div class="navsem-meio">
@@ -151,9 +212,6 @@
 
   <div id="dias"></div>
 
-  <div class="sec">Por pessoa nesta semana</div>
-  <div id="resumo"></div>
-
   <p class="dica" id="dicaLeitura"></p>
 </div>
 
@@ -172,6 +230,15 @@
 
     <div class="rot">Período</div>
     <div class="chips" id="fPeriodos"></div>
+
+    <div class="rot">Função</div>
+    <div class="chips" id="fFuncoes"></div>
+
+    <!-- só aparece quando o dia já chegou: lançado para frente, ainda não dá para saber -->
+    <div id="fVeioCx">
+      <div class="rot">Veio?</div>
+      <div class="chips" id="fVeio"></div>
+    </div>
 
     <div class="rot">Horário</div>
     <div class="horas">
@@ -195,8 +262,10 @@
 <script src="../fotos.js"></script>
 <script>
 /* ===== Calendário de presença =====
-   Dia, horário e período em que cada pessoa vem à loja — a Lohane, o Edson e quem
-   mais precisar. Toda sexta se lança a semana seguinte; de sexta a domingo, enquanto
+   Dia, período (cedo, tarde ou o dia inteiro), horário e função (marketing ou
+   e-commerce) de quem vem à loja — a Lohane, o Edson e quem mais precisar. Em cima,
+   o mês inteiro numa grade, com quem veio e quem estava lançado e não veio; embaixo,
+   a semana, onde se lança. Toda sexta se lança a semana seguinte; de sexta a domingo, enquanto
    ela estiver vazia, o painel (e o sininho da Central) lembram.
 
    Cada presença é um documento em ls_presenca, com o dia em 'AAAA-MM-DD'. A semana
@@ -213,14 +282,27 @@ const PESSOAS_FIXAS = ['Lohane','Edson'];
 const EDITORES = ['lorettoscarpa@gmail.com','larissalorettoscarpa@gmail.com',
                   'jhenniferlorettoscarpa@gmail.com','lorraynelorettoscarpa@gmail.com'];
 
+/* A Lohane trabalha meio período: cedo ou de tarde. A chave gravada continua
+   'manha' — só o rótulo fala como a loja fala. 'horario' fica para ler lançamento
+   antigo, e não aparece mais na hora de lançar. */
 const PERIODOS = {
-  manha:   {rot:'Manhã',       ini:'09:00', fim:'12:00'},
-  tarde:   {rot:'Tarde',       ini:'13:00', fim:'18:00'},
-  integral:{rot:'Dia inteiro', ini:'09:00', fim:'18:00'},
-  horario: {rot:'Só horário',  ini:'',      fim:''}
+  manha:   {rot:'Cedo',        curto:'cedo',  ini:'09:00', fim:'12:00'},
+  tarde:   {rot:'Tarde',       curto:'tarde', ini:'13:00', fim:'18:00'},
+  integral:{rot:'Dia inteiro', curto:'dia',   ini:'09:00', fim:'18:00'},
+  horario: {rot:'Horário',     curto:'',      ini:'',      fim:'', escondido:true}
 };
+/* Para que a pessoa veio. A Lohane divide o tempo entre as duas; quem não é de
+   nenhuma das duas (o Edson numa reposição, por exemplo) entra como Outra. */
+const FUNCOES = {
+  marketing:{rot:'Marketing'},
+  ecommerce:{rot:'E-commerce'},
+  outra:    {rot:'Outra'}
+};
+const funDe = i => FUNCOES[i.funcao] ? i.funcao : 'outra';
+const perDe = i => PERIODOS[i.periodo] || PERIODOS.horario;
 const DIAS_SEM = ['segunda','terça','quarta','quinta','sexta','sábado','domingo'];
 const DIAS_CURTO = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+const MESES_LONGO = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 
 const $ = id => document.getElementById(id);
@@ -228,6 +310,7 @@ let db=null, auth=null, meuEmail='', souEditor=false;
 let desloc = 0;                 /* semanas a partir desta: 0 = esta, 1 = a que vem */
 let itens = [], unsub = null, conhecidos = new Set(PESSOAS_FIXAS);
 let proxVazia = null, unsubProx = null;
+let mesDesloc = 0, itensMes = [], unsubMes = null;   /* o mês da grade, à parte da semana */
 
 function toast(t){ const m=$('msg'); m.textContent=t; m.classList.add('on'); clearTimeout(m._t); m._t=setTimeout(()=>m.classList.remove('on'),2400); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -287,14 +370,17 @@ function pintar(){
     if(idx===6 && !l.length) return '';
     const cls = k===hoje ? ' hoje' : (k<hoje ? ' passou' : '');
     const corpo = l.length ? l.map(i=>`
-      <button class="ent" onclick="abrirEdicao('${esc(i.id)}')">
+      <button class="ent${i.faltou?' faltou':''}" onclick="abrirEdicao('${esc(i.id)}')">
         ${avatar(i.nome)}
         <span class="ent-txt">
           <span class="ent-nome">${esc(i.nome)}</span>
           <span class="ent-info">${esc(faixa(i))}</span>
           ${i.obs?`<div class="ent-obs">${esc(i.obs)}</div>`:''}
         </span>
-        <span class="per ${esc(i.periodo)}">${esc((PERIODOS[i.periodo]||PERIODOS.horario).rot)}</span>
+        <span class="ent-tags">
+          <span class="per ${esc(i.periodo)}">${esc(perDe(i).rot)}</span>
+          ${i.faltou?'<span class="naoveio">não veio</span>':`<span class="fun ${funDe(i)}">${FUNCOES[funDe(i)].rot}</span>`}
+        </span>
       </button>`).join('') : '<div class="dia-vazio">Ninguém lançado.</div>';
     return `<div class="dia${cls}">
       <div class="dia-cab"><span class="dia-nome">${DIAS_SEM[idx]}</span><span class="dia-data">${fmtDia(d)}</span>
@@ -303,23 +389,89 @@ function pintar(){
       ${corpo}</div>`;
   }).join('');
 
-  const porPessoa = {};
-  itens.forEach(i => (porPessoa[i.nome] = porPessoa[i.nome] || []).push(i));
-  const nomes = Object.keys(porPessoa).sort((a,b)=>a.localeCompare(b));
-  $('resumo').innerHTML = nomes.length ? nomes.map(n=>{
-    const l = porPessoa[n].slice().sort((a,b)=>a.dia.localeCompare(b.dia));
-    const txt = l.map(i=>{
-      const d = deChave(i.dia), p = (PERIODOS[i.periodo]||PERIODOS.horario).rot.toLowerCase();
-      return `${DIAS_CURTO[(d.getDay()+6)%7].toLowerCase()} ${d.getDate()} · ${i.periodo==='horario'?faixa(i):p}`;
-    }).join('<br>');
-    return `<div class="res">${avatar(n)}<div><b>${esc(n)} · ${l.length} dia${l.length>1?'s':''}</b><span>${txt}</span></div></div>`;
-  }).join('') : '<div class="vazio">Nada lançado nesta semana.</div>';
-
   $('dicaLeitura').textContent = souEditor
-    ? 'Toque numa presença para corrigir ou apagar. Toda sexta, lance a semana seguinte — "Copiar a semana anterior" adianta quando a rotina se repete.'
+    ? 'Toque numa presença para corrigir, apagar ou marcar que a pessoa não veio. Toda sexta, lance a semana seguinte — "Copiar a semana anterior" adianta quando a rotina se repete.'
     : 'Quem lança é a gestão e o marketing. Viu algo errado? Avise quem lançou.';
   pintarLembrete();
+  pintarMes();
 }
+
+/* ---------- o mês ---------- */
+function mesAlvo(){ const h=new Date(); return new Date(h.getFullYear(), h.getMonth()+mesDesloc, 1, 12); }
+/* começa no domingo da semana do dia 1 e fecha a última semana, como a Escala da equipe.
+   As pontas são de outro mês, mas a semana de hoje muitas vezes cai nelas — por isso
+   elas mostram quem veio também, só mais apagadas, e ficam de fora do resumo do mês. */
+function gradeDoMes(){
+  const m = mesAlvo(), ano = m.getFullYear(), mes = m.getMonth();
+  const ini = new Date(ano, mes, 1, 12); ini.setDate(1 - ini.getDay());
+  const ult = new Date(ano, mes+1, 0, 12); const fim = new Date(ult); fim.setDate(ult.getDate() + (6-ult.getDay()));
+  return {ano, mes, ini, fim};
+}
+function pintarMes(){
+  const {ano, mes, ini, fim} = gradeDoMes(), hoje = hojeK();
+  const ym = `${ano}-${String(mes+1).padStart(2,'0')}`;
+  const doMes = itensMes.filter(i=>i.dia.slice(0,7)===ym);
+  $('mesRot').textContent = `${MESES_LONGO[mes]} ${ano}`;
+  $('btMesHoje').hidden = mesDesloc===0;
+  const semana = new Set(diasDaSemana(desloc).map(chaveDia));
+
+  const porDia = {};
+  itensMes.forEach(i => (porDia[i.dia] = porDia[i.dia] || []).push(i));
+  Object.values(porDia).forEach(l => l.sort((a,b)=>(a.ini||'99').localeCompare(b.ini||'99') || a.nome.localeCompare(b.nome)));
+
+  let h = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d=>`<div class="dow">${d}</div>`).join('');
+  for(const d = new Date(ini); d <= fim; d.setDate(d.getDate()+1)){
+    const k = chaveDia(d), noMes = d.getMonth()===mes;
+    const l = porDia[k] || [];
+    h += `<button class="cel${noMes?'':' fora'}${k===hoje?' hoje':''}${d.getDay()===0?' dom':''}${semana.has(k)?' nasemana':''}" onclick="irDia('${k}')">`
+       + `<span class="cel-num">${d.getDate()}</span>`
+       + l.map(i=>`<span class="chipc ${i.faltou?'faltou':funDe(i)}" title="${esc(i.nome+' · '+perDe(i).rot+' · '+(i.faltou?'não veio':FUNCOES[funDe(i)].rot))}">${esc(i.nome)}${perDe(i).curto?` <span class="h">${perDe(i).curto}</span>`:''}</span>`).join('')
+       + '</button>';
+  }
+  $('grade').innerHTML = h;
+
+  /* resumo do mês por pessoa: o que já aconteceu (veio / não veio, e para qual função)
+     separado do que ainda está só lançado para frente */
+  $('resMesRot').textContent = `${MESES_LONGO[mes]} por pessoa`;
+  const porPessoa = {};
+  doMes.forEach(i => (porPessoa[i.nome] = porPessoa[i.nome] || []).push(i));
+  const nomes = Object.keys(porPessoa).sort((a,b)=>a.localeCompare(b));
+  $('resumo').innerHTML = nomes.length ? nomes.map(n=>{
+    const l = porPessoa[n];
+    const feitos = l.filter(i=>i.dia<=hoje && !i.faltou), faltas = l.filter(i=>i.dia<=hoje && i.faltou).length;
+    const prox = l.filter(i=>i.dia>hoje).length;
+    const conta = f => feitos.filter(i=>funDe(i)===f).length;
+    const meio = feitos.filter(i=>i.periodo==='manha').length, tarde = feitos.filter(i=>i.periodo==='tarde').length;
+    const tags = Object.keys(FUNCOES).filter(f=>conta(f)).map(f=>`<span class="fun ${f}">${FUNCOES[f].rot} ${conta(f)}</span>`).join('')
+      + (faltas?`<span class="naoveio">não veio ${faltas}</span>`:'');
+    const linha = [
+      `${feitos.length} ${feitos.length===1?'dia':'dias'} na loja`,
+      meio||tarde ? `${meio} cedo · ${tarde} tarde` : '',
+      prox ? `${prox} lançado${prox>1?'s':''} para frente` : ''
+    ].filter(Boolean).join(' · ');
+    return `<div class="res">${avatar(n)}<div><b>${esc(n)}</b><span>${linha}</span>${tags?`<div class="res-num">${tags}</div>`:''}</div></div>`;
+  }).join('') : '<div class="vazio">Nada lançado neste mês.</div>';
+}
+function ouvirMes(){
+  if(unsubMes){ try{unsubMes();}catch(_){} unsubMes=null; }
+  const g = gradeDoMes(), alvo = mesDesloc;
+  const de = chaveDia(g.ini), ate = chaveDia(g.fim);
+  itensMes = []; pintarMes();
+  unsubMes = db.collection('ls_presenca').where('dia','>=',de).where('dia','<=',ate).onSnapshot(s=>{
+    if(alvo!==mesDesloc) return;
+    itensMes = []; s.forEach(x=>{ const v=x.data(); if(v && v.nome && v.dia) itensMes.push(Object.assign({id:x.id}, v)); });
+    itensMes.forEach(i=>conhecidos.add(i.nome));
+    pintarMes();
+  }, e=>console.warn('presenca mes', e));
+}
+window.andarMes = n => irMes(mesDesloc + n);
+window.irMes = n => { mesDesloc = n; ouvirMes(); };
+/* tocar num dia do mês traz a semana dele para baixo, onde se lança e corrige */
+window.irDia = k => {
+  const alvo = Math.round((segundaDe(deChave(k)) - segundaDe(new Date())) / (7*86400000));
+  if(alvo !== desloc) irPara(alvo);
+  setTimeout(()=>{ const el = document.querySelector('.navsem'); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); }, 50);
+};
 
 /* de sexta a domingo, com a semana seguinte vazia */
 function pintarLembrete(){
@@ -372,7 +524,12 @@ function pintarForm(){
     const k = chaveDia(d);
     return `<button class="chip${form.dias.has(k)?' on':''}" onclick="alternarDia('${k}')">${DIAS_CURTO[idx]} ${d.getDate()}${k===hoje?' · hoje':''}</button>`;
   }).join('');
-  $('fPeriodos').innerHTML = Object.keys(PERIODOS).map(p=>`<button class="chip${form.periodo===p?' on':''}" onclick="escolherPeriodo('${p}')">${PERIODOS[p].rot}</button>`).join('');
+  $('fFuncoes').innerHTML = Object.keys(FUNCOES).map(f=>`<button class="chip${form.funcao===f?' on':''}" onclick="escolherFuncao('${f}')">${FUNCOES[f].rot}</button>`).join('');
+  const jaChegou = [...form.dias].some(k=>k<=hoje);
+  $('fVeioCx').style.display = jaChegou ? '' : 'none';
+  $('fVeio').innerHTML = `<button class="chip${!form.faltou?' on':''}" onclick="escolherVeio(false)">Veio</button>`
+                       + `<button class="chip${form.faltou?' on':''}" onclick="escolherVeio(true)">Não veio</button>`;
+  $('fPeriodos').innerHTML = Object.keys(PERIODOS).filter(p=>!PERIODOS[p].escondido || form.periodo===p).map(p=>`<button class="chip${form.periodo===p?' on':''}" onclick="escolherPeriodo('${p}')">${PERIODOS[p].rot}</button>`).join('');
 }
 window.escolherPessoa = n => {
   if(n){ form.nome = n; $('fOutra').value=''; } else form.nome = null;
@@ -383,6 +540,8 @@ window.alternarDia = k => {
   else if(form.dias.has(k)) form.dias.delete(k); else form.dias.add(k);
   pintarForm();
 };
+window.escolherFuncao = f => { form.funcao = f; pintarForm(); };
+window.escolherVeio = v => { form.faltou = v; pintarForm(); };
 window.escolherPeriodo = p => {
   form.periodo = p;
   if(p!=='horario'){ $('fIni').value = PERIODOS[p].ini; $('fFim').value = PERIODOS[p].fim; }
@@ -393,7 +552,7 @@ window.fecharFolha = () => { $('folha').classList.remove('on'); form=null; };
 
 window.abrirNovo = dia => {
   if(!souEditor) return;
-  form = {id:null, nome:null, dias:new Set(dia?[dia]:[]), periodo:'manha'};
+  form = {id:null, nome:null, dias:new Set(dia?[dia]:[]), periodo:'manha', funcao:null, faltou:false};
   $('fTitulo').textContent = 'Lançar presença';
   $('fOutra').value=''; $('fObs').value='';
   $('fIni').value = PERIODOS.manha.ini; $('fFim').value = PERIODOS.manha.fim;
@@ -404,7 +563,8 @@ window.abrirEdicao = id => {
   if(!souEditor) return;
   const i = itens.find(x=>x.id===id); if(!i) return;
   const fixo = conhecidos.has(i.nome);
-  form = {id, nome: fixo ? i.nome : null, dias:new Set([i.dia]), periodo: PERIODOS[i.periodo] ? i.periodo : 'horario'};
+  form = {id, nome: fixo ? i.nome : null, dias:new Set([i.dia]), periodo: PERIODOS[i.periodo] ? i.periodo : 'horario',
+          funcao: FUNCOES[i.funcao] ? i.funcao : null, faltou: !!i.faltou};
   $('fTitulo').textContent = 'Corrigir presença';
   $('fOutra').value = fixo ? '' : i.nome;
   $('fObs').value = i.obs || '';
@@ -420,7 +580,8 @@ window.salvar = async () => {
   const err = t => { $('fErro').textContent = t; };
   if(!nome) return err('Escolha ou digite quem vem.');
   if(!form.dias.size) return err('Marque pelo menos um dia.');
-  if(form.periodo==='horario' && !ini) return err('Em "Só horário", diga a partir de que horas.');
+  if(!form.funcao) return err('Diga para qual função: Marketing ou E-commerce.');
+  if(form.periodo==='horario' && !ini) return err('Diga a partir de que horas.');
   if(ini && fim && fim <= ini) return err('O fim precisa ser depois do início.');
   /* a mesma pessoa duas vezes no mesmo dia e no mesmo período é quase sempre toque duplo */
   const repetido = [...form.dias].find(k => itens.some(i => i.id!==form.id && i.dia===k && i.nome.toLowerCase()===nome.toLowerCase() && i.periodo===form.periodo));
@@ -428,16 +589,19 @@ window.salvar = async () => {
 
   $('fSalvar').disabled = true;
   const agora = Date.now();
-  const base = {nome, periodo:form.periodo, ini, fim, obs};
+  /* "não veio" só vale para dia que já chegou: lançando vários dias de uma vez, os de
+     frente nascem sem a marca */
+  const faltouEm = k => !!form.faltou && k <= hojeK();
+  const base = {nome, periodo:form.periodo, funcao:form.funcao, ini, fim, obs};
   try{
     if(form.id){
       await db.collection('ls_presenca').doc(form.id).update(Object.assign({}, base,
-        {dia:[...form.dias][0], atualizadoPor:meuEmail, atualizadoEm:agora}));
+        {dia:[...form.dias][0], faltou:faltouEm([...form.dias][0]), atualizadoPor:meuEmail, atualizadoEm:agora}));
       toast('Corrigido');
     }else{
       const lote = db.batch();
       [...form.dias].sort().forEach(k => lote.set(db.collection('ls_presenca').doc(),
-        Object.assign({}, base, {dia:k, criadoPor:meuEmail, criadoEm:agora})));
+        Object.assign({}, base, {dia:k, faltou:faltouEm(k), criadoPor:meuEmail, criadoEm:agora})));
       await lote.commit();
       toast(form.dias.size>1 ? `${form.dias.size} dias lançados` : 'Lançado');
     }
@@ -466,7 +630,7 @@ window.copiarAnterior = async () => {
     const lote = db.batch(), agora = Date.now();
     s.forEach(x=>{
       const v = x.data(), d = deChave(v.dia); d.setDate(d.getDate()+7);
-      lote.set(db.collection('ls_presenca').doc(), {nome:v.nome, periodo:v.periodo||'horario', ini:v.ini||'', fim:v.fim||'',
+      lote.set(db.collection('ls_presenca').doc(), {nome:v.nome, periodo:v.periodo||'horario', funcao:v.funcao||'outra', faltou:false, ini:v.ini||'', fim:v.fim||'',
         obs:v.obs||'', dia:chaveDia(d), criadoPor:meuEmail, criadoEm:agora, copiadoDe:v.dia});
     });
     await lote.commit();
@@ -486,7 +650,7 @@ function ligar(){
   document.body.classList.toggle('editor', souEditor);
   const foco = new URLSearchParams(location.search).get('foco');
   if(foco==='semanaquevem') desloc = 1;
-  ouvirSemana(); ouvirProxima(); carregarConhecidos();
+  ouvirSemana(); ouvirMes(); ouvirProxima(); carregarConhecidos();
 }
 
 try{
