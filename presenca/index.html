@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="p2">
+<meta name="app-ver" content="p3">
 <title>Calendário · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -93,7 +93,7 @@
   .res{display:flex;gap:10px;align-items:flex-start;background:rgba(0,0,0,.12);border:1px solid var(--linha);
     border-radius:11px;padding:9px 12px;margin-bottom:6px}
   .res b{font-size:14px;display:block}
-  .res div>span{font-size:12.5px;color:var(--creme-suave);line-height:1.5}
+  .res>div>span{font-size:12.5px;color:var(--creme-suave);line-height:1.5}
   .vazio{font-size:13px;color:var(--creme-suave);border:1px dashed var(--linha);border-radius:11px;padding:14px;text-align:center}
   .dica{font-size:12px;color:var(--creme-suave);line-height:1.5;margin-top:14px}
 
@@ -231,8 +231,14 @@
     <div class="rot">Período</div>
     <div class="chips" id="fPeriodos"></div>
 
-    <div class="rot">Função</div>
+    <div class="rot" id="fFunRot">Função</div>
     <div class="chips" id="fFuncoes"></div>
+    <!-- dia todo: cada metade tem a sua função. Cedo marketing e tarde e-commerce vira
+         duas presenças no mesmo dia; as duas iguais ficam uma só, de dia todo. -->
+    <div id="fFun2Cx">
+      <div class="rot">Função à tarde</div>
+      <div class="chips" id="fFuncoes2"></div>
+    </div>
 
     <!-- só aparece quando o dia já chegou: lançado para frente, ainda não dá para saber -->
     <div id="fVeioCx">
@@ -263,7 +269,7 @@
 <script>
 /* ===== Calendário de presença =====
    Dia, período (cedo, tarde ou o dia inteiro), horário e função (marketing ou
-   e-commerce) de quem vem à loja — a Lohane, o Edson e quem mais precisar. Em cima,
+   e-commerce) de quem vem à loja — a Lorrayne, o Edson e quem mais precisar. Em cima,
    o mês inteiro numa grade, com quem veio e quem estava lançado e não veio; embaixo,
    a semana, onde se lança. Toda sexta se lança a semana seguinte; de sexta a domingo, enquanto
    ela estiver vazia, o painel (e o sininho da Central) lembram.
@@ -275,23 +281,23 @@ const firebaseConfig={apiKey:"AIzaSyCogQoTSULCdC1JhTb0IUilWAIA1itBJ8U",authDomai
 
 /* Quem aparece de saída na hora de lançar. Qualquer outro nome pode ser digitado, e
    quem já foi lançado nas últimas semanas entra sozinho na lista. */
-const PESSOAS_FIXAS = ['Lohane','Edson'];
+const PESSOAS_FIXAS = ['Lorrayne','Edson'];
 
 /* Quem lança e corrige. Os demais só leem. Mudou? Mude aqui e em firestore.rules
    (função editorPresenca). */
 const EDITORES = ['lorettoscarpa@gmail.com','larissalorettoscarpa@gmail.com',
                   'jhenniferlorettoscarpa@gmail.com','lorraynelorettoscarpa@gmail.com'];
 
-/* A Lohane trabalha meio período: cedo ou de tarde. A chave gravada continua
+/* A Lorrayne trabalha cedo, de tarde ou o dia todo. A chave gravada continua
    'manha' — só o rótulo fala como a loja fala. 'horario' fica para ler lançamento
    antigo, e não aparece mais na hora de lançar. */
 const PERIODOS = {
   manha:   {rot:'Cedo',        curto:'cedo',  ini:'09:00', fim:'12:00'},
   tarde:   {rot:'Tarde',       curto:'tarde', ini:'13:00', fim:'18:00'},
-  integral:{rot:'Dia inteiro', curto:'dia',   ini:'09:00', fim:'18:00'},
+  integral:{rot:'Dia todo',    curto:'dia',   ini:'09:00', fim:'18:00'},
   horario: {rot:'Horário',     curto:'',      ini:'',      fim:'', escondido:true}
 };
-/* Para que a pessoa veio. A Lohane divide o tempo entre as duas; quem não é de
+/* Para que a pessoa veio. A Lorrayne divide o tempo entre as duas; quem não é de
    nenhuma das duas (o Edson numa reposição, por exemplo) entra como Outra. */
 const FUNCOES = {
   marketing:{rot:'Marketing'},
@@ -440,13 +446,22 @@ function pintarMes(){
     const l = porPessoa[n];
     const feitos = l.filter(i=>i.dia<=hoje && !i.faltou), faltas = l.filter(i=>i.dia<=hoje && i.faltou).length;
     const prox = l.filter(i=>i.dia>hoje).length;
-    const conta = f => feitos.filter(i=>funDe(i)===f).length;
-    const meio = feitos.filter(i=>i.periodo==='manha').length, tarde = feitos.filter(i=>i.periodo==='tarde').length;
-    const tags = Object.keys(FUNCOES).filter(f=>conta(f)).map(f=>`<span class="fun ${f}">${FUNCOES[f].rot} ${conta(f)}</span>`).join('')
+    /* em DIAS, para fechar com o total: meio período vale meio dia. Cedo no marketing e
+       tarde no e-commerce dá ½ para cada um. */
+    const conta = f => feitos.filter(i=>funDe(i)===f).reduce((t,i)=>t+(i.periodo==='manha'||i.periodo==='tarde'?0.5:1),0);
+    const fmtD = n => (n%1 ? `${Math.floor(n)||''}½` : String(n)) + (n>1?' dias':' dia');
+    /* um dia dividido (cedo numa função, tarde na outra) são dois registros, mas um dia
+       só na loja — e conta como dia todo, não como um cedo e um tarde */
+    const porDiaP = {};
+    feitos.forEach(i => (porDiaP[i.dia] = porDiaP[i.dia] || new Set()).add(i.periodo));
+    const diasNaLoja = Object.keys(porDiaP).length;
+    let meio=0, tarde=0, todo=0;
+    Object.values(porDiaP).forEach(ps => { if(ps.has('integral') || (ps.has('manha') && ps.has('tarde'))) todo++; else if(ps.has('manha')) meio++; else if(ps.has('tarde')) tarde++; });
+    const tags = Object.keys(FUNCOES).filter(f=>conta(f)).map(f=>`<span class="fun ${f}">${FUNCOES[f].rot} ${fmtD(conta(f))}</span>`).join('')
       + (faltas?`<span class="naoveio">não veio ${faltas}</span>`:'');
     const linha = [
-      `${feitos.length} ${feitos.length===1?'dia':'dias'} na loja`,
-      meio||tarde ? `${meio} cedo · ${tarde} tarde` : '',
+      `${diasNaLoja} ${diasNaLoja===1?'dia':'dias'} na loja`,
+      [meio?`${meio} cedo`:'', tarde?`${tarde} tarde`:'', todo?`${todo} ${todo>1?'dias inteiros':'dia inteiro'}`:''].filter(Boolean).join(' · '),
       prox ? `${prox} lançado${prox>1?'s':''} para frente` : ''
     ].filter(Boolean).join(' · ');
     return `<div class="res">${avatar(n)}<div><b>${esc(n)}</b><span>${linha}</span>${tags?`<div class="res-num">${tags}</div>`:''}</div></div>`;
@@ -524,7 +539,11 @@ function pintarForm(){
     const k = chaveDia(d);
     return `<button class="chip${form.dias.has(k)?' on':''}" onclick="alternarDia('${k}')">${DIAS_CURTO[idx]} ${d.getDate()}${k===hoje?' · hoje':''}</button>`;
   }).join('');
+  const dividir = form.periodo==='integral';
+  $('fFunRot').textContent = dividir ? 'Função de cedo' : 'Função';
+  $('fFun2Cx').style.display = dividir ? '' : 'none';
   $('fFuncoes').innerHTML = Object.keys(FUNCOES).map(f=>`<button class="chip${form.funcao===f?' on':''}" onclick="escolherFuncao('${f}')">${FUNCOES[f].rot}</button>`).join('');
+  $('fFuncoes2').innerHTML = Object.keys(FUNCOES).map(f=>`<button class="chip${form.funcao2===f?' on':''}" onclick="escolherFuncao2('${f}')">${FUNCOES[f].rot}</button>`).join('');
   const jaChegou = [...form.dias].some(k=>k<=hoje);
   $('fVeioCx').style.display = jaChegou ? '' : 'none';
   $('fVeio').innerHTML = `<button class="chip${!form.faltou?' on':''}" onclick="escolherVeio(false)">Veio</button>`
@@ -540,7 +559,10 @@ window.alternarDia = k => {
   else if(form.dias.has(k)) form.dias.delete(k); else form.dias.add(k);
   pintarForm();
 };
-window.escolherFuncao = f => { form.funcao = f; pintarForm(); };
+/* a tarde acompanha a de cedo até alguém escolher outra para ela: o comum é o dia
+   todo numa função só, e assim basta um toque */
+window.escolherFuncao = f => { if(!form.funcao2 || form.funcao2===form.funcao) form.funcao2 = f; form.funcao = f; pintarForm(); };
+window.escolherFuncao2 = f => { form.funcao2 = f; pintarForm(); };
 window.escolherVeio = v => { form.faltou = v; pintarForm(); };
 window.escolherPeriodo = p => {
   form.periodo = p;
@@ -552,7 +574,7 @@ window.fecharFolha = () => { $('folha').classList.remove('on'); form=null; };
 
 window.abrirNovo = dia => {
   if(!souEditor) return;
-  form = {id:null, nome:null, dias:new Set(dia?[dia]:[]), periodo:'manha', funcao:null, faltou:false};
+  form = {id:null, nome:null, dias:new Set(dia?[dia]:[]), periodo:'manha', funcao:null, funcao2:null, faltou:false};
   $('fTitulo').textContent = 'Lançar presença';
   $('fOutra').value=''; $('fObs').value='';
   $('fIni').value = PERIODOS.manha.ini; $('fFim').value = PERIODOS.manha.fim;
@@ -564,7 +586,7 @@ window.abrirEdicao = id => {
   const i = itens.find(x=>x.id===id); if(!i) return;
   const fixo = conhecidos.has(i.nome);
   form = {id, nome: fixo ? i.nome : null, dias:new Set([i.dia]), periodo: PERIODOS[i.periodo] ? i.periodo : 'horario',
-          funcao: FUNCOES[i.funcao] ? i.funcao : null, faltou: !!i.faltou};
+          funcao: FUNCOES[i.funcao] ? i.funcao : null, funcao2: FUNCOES[i.funcao] ? i.funcao : null, faltou: !!i.faltou};
   $('fTitulo').textContent = 'Corrigir presença';
   $('fOutra').value = fixo ? '' : i.nome;
   $('fObs').value = i.obs || '';
@@ -581,30 +603,44 @@ window.salvar = async () => {
   if(!nome) return err('Escolha ou digite quem vem.');
   if(!form.dias.size) return err('Marque pelo menos um dia.');
   if(!form.funcao) return err('Diga para qual função: Marketing ou E-commerce.');
+  if(form.periodo==='integral' && !form.funcao2) return err('Diga a função da tarde.');
   if(form.periodo==='horario' && !ini) return err('Diga a partir de que horas.');
   if(ini && fim && fim <= ini) return err('O fim precisa ser depois do início.');
-  /* a mesma pessoa duas vezes no mesmo dia e no mesmo período é quase sempre toque duplo */
-  const repetido = [...form.dias].find(k => itens.some(i => i.id!==form.id && i.dia===k && i.nome.toLowerCase()===nome.toLowerCase() && i.periodo===form.periodo));
-  if(repetido) return err(`Já existe presença de ${nome} nesse período em ${fmtDia(deChave(repetido))}.`);
+
+  /* o que vai para o banco: uma presença por período. Dia todo com a mesma função nas
+     duas metades é uma só; com funções diferentes, vira cedo + tarde — e cada metade
+     entra na conta da função dela */
+  const partes = (form.periodo==='integral' && form.funcao2!==form.funcao)
+    ? [{periodo:'manha', funcao:form.funcao,  ini, fim:PERIODOS.manha.fim},
+       {periodo:'tarde', funcao:form.funcao2, ini:PERIODOS.tarde.ini, fim}]
+    : [{periodo:form.periodo, funcao:form.funcao, ini, fim}];
+
+  /* a mesma pessoa duas vezes na mesma metade do dia é quase sempre toque duplo.
+     Dia todo cobre as duas metades. */
+  const metades = p => p==='integral' ? ['manha','tarde'] : [p];
+  const cruza = (a,b) => metades(a).some(x=>metades(b).includes(x));
+  const outras = itens.filter(i => i.id!==form.id && i.nome.toLowerCase()===nome.toLowerCase());
+  const repetido = [...form.dias].find(k => outras.some(i => i.dia===k && partes.some(pt=>cruza(i.periodo, pt.periodo))));
+  if(repetido) return err(`Já existe presença de ${nome} nesse período em ${fmtDia(deChave(repetido))}. Corrija a que já está lá.`);
 
   $('fSalvar').disabled = true;
   const agora = Date.now();
   /* "não veio" só vale para dia que já chegou: lançando vários dias de uma vez, os de
      frente nascem sem a marca */
   const faltouEm = k => !!form.faltou && k <= hojeK();
-  const base = {nome, periodo:form.periodo, funcao:form.funcao, ini, fim, obs};
+  const novo = (pt,k) => Object.assign({nome, obs}, pt, {dia:k, faltou:faltouEm(k), criadoPor:meuEmail, criadoEm:agora});
   try{
+    const lote = db.batch(), col = db.collection('ls_presenca');
     if(form.id){
-      await db.collection('ls_presenca').doc(form.id).update(Object.assign({}, base,
-        {dia:[...form.dias][0], faltou:faltouEm([...form.dias][0]), atualizadoPor:meuEmail, atualizadoEm:agora}));
-      toast('Corrigido');
+      /* corrigindo: a primeira metade fica no mesmo registro, a segunda (se dividiu) nasce */
+      const k = [...form.dias][0];
+      lote.update(col.doc(form.id), Object.assign({nome, obs}, partes[0], {dia:k, faltou:faltouEm(k), atualizadoPor:meuEmail, atualizadoEm:agora}));
+      partes.slice(1).forEach(pt => lote.set(col.doc(), novo(pt,k)));
     }else{
-      const lote = db.batch();
-      [...form.dias].sort().forEach(k => lote.set(db.collection('ls_presenca').doc(),
-        Object.assign({}, base, {dia:k, faltou:faltouEm(k), criadoPor:meuEmail, criadoEm:agora})));
-      await lote.commit();
-      toast(form.dias.size>1 ? `${form.dias.size} dias lançados` : 'Lançado');
+      [...form.dias].sort().forEach(k => partes.forEach(pt => lote.set(col.doc(), novo(pt,k))));
     }
+    await lote.commit();
+    toast(form.id ? 'Corrigido' : (form.dias.size>1 ? `${form.dias.size} dias lançados` : 'Lançado'));
     conhecidos.add(nome);
     fecharFolha();
   }catch(e){ console.warn(e); err('Não consegui salvar. Confira a conexão e tente de novo.'); }
