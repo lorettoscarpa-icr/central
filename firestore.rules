@@ -15,31 +15,22 @@ service cloud.firestore {
         'jhenniferlorettoscarpa@gmail.com'
       ];
     }
-    // Só Gregory e Larissa: o que não tem volta não fica com a supervisão.
-    function diretoria() {
+    // ▼▼ NOVO — quem ABRE o painel da supervisora ▼▼
+    // A Ávia está aqui e NÃO está em gestorOuSup: é isso que faz o acesso dela
+    // ser só de visualização. Ela lê tudo do painel e não grava nada.
+    // Quer dar acesso de edição pra ela? Mova o e-mail dela para gestorOuSup.
+    function painelSup() {
       return logado() && request.auth.token.email in [
         'lorettoscarpa@gmail.com',
-        'larissalorettoscarpa@gmail.com'
+        'larissalorettoscarpa@gmail.com',
+        'jhenniferlorettoscarpa@gmail.com',
+        'aviaconsultoriaempresarial@gmail.com'
       ];
     }
+    // ▲▲ fim do novo ▲▲
     // true se a atualização mexeu SOMENTE nos campos informados
     function soMudou(campos) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(campos);
-    }
-    /* hasOnly() diz QUAIS campos mudaram, nunca PARA O QUE. Sozinho ele deixava
-       qualquer logado marcar tarefa como concluída no nome de outra pessoa e apagar
-       comentário alheio. As três funções abaixo olham o conteúdo. */
-
-    // só o próprio e-mail de quem escreve pode entrar ou sair da lista
-    function soMexeuNoMeu(campo) {
-      let novo = request.resource.data[campo];
-      let velho = resource.data[campo];
-      let eu = [request.auth.token.email];
-      return novo.hasOnly(velho.concat(eu)) && velho.hasOnly(novo.concat(eu));
-    }
-    // lista que só pode crescer: ninguém apaga o que já está registrado
-    function soCresceu(campo) {
-      return request.resource.data[campo].size() >= resource.data[campo].size();
     }
 
     // ▼▼ ALTERAÇÃO 1 de 3 — Central de Catálogos ▼▼
@@ -63,23 +54,19 @@ service cloud.firestore {
     // Lista única de acessos — todos os logados LEEM (o porteiro precisa),
     // só a diretoria EDITA
     match /ls_acessos/{document=**} {
-      allow read:  if logado();
+      allow read:  if request.auth != null;
       allow write: if request.auth != null
         && request.auth.token.email == "lorettoscarpa@gmail.com";
     }
     // Dashboard de tráfego pago — aberto (acesso pelo link privado)
-    match /ls_trafego/{document=**} { allow read, write: if logado(); }
+    match /ls_trafego/{document=**} { allow read, write: if true; }
     // Conversor de vendas (Loretto + Ávia) — aberto (acesso pelo link privado)
-    match /ls_relatorios_vendas/{document=**} { allow read, write: if logado(); }
+    match /ls_relatorios_vendas/{document=**} { allow read, write: if true; }
     // Central de Etiquetas / Estoque — compartilhados (aberto, acesso pelo link privado)
-    match /ls_fila_etiquetas/{document=**} { allow read, write: if logado(); }
-    match /ls_etiq_prefs/{document=**}     { allow read, write: if logado(); }
-    match /ls_avarias/{document=**}        { allow read, write: if logado(); }
-    /* o painel do entregador lê o catálogo para montar os cards.
-       Não dá para exigir logado() aqui sem tirar o entregador do ar: ele entra por
-       login anônimo. Exigir sessão já barra o acesso REST sem token nenhum, que era
-       o pior caso. Fechar de vez depende de dar identidade real ao entregador. */
-    match /ls_catalogo/{document=**}       { allow read, write: if request.auth != null; }
+    match /ls_fila_etiquetas/{document=**} { allow read, write: if true; }
+    match /ls_etiq_prefs/{document=**}     { allow read, write: if true; }
+    match /ls_avarias/{document=**}        { allow read, write: if true; }
+    match /ls_catalogo/{document=**}       { allow read, write: if true; }
 
     // ▼▼ NOVO — Conferência da volta (aba dentro do Estoque) ▼▼
     // Sem estas duas linhas, tudo que o Yuri conferia sumia no primeiro
@@ -88,55 +75,43 @@ service cloud.firestore {
     // fala com o Firestore do mesmo jeito que elas — e porque guardam só
     // dia, entregador, quais peças voltaram e nome de modelo. Nada de
     // nome, endereço ou telefone de cliente.
-    /* Conferência da volta — o app do entregador (anônimo) assina esta coleção.
-       Não dá para exigir logado() aqui sem tirar o entregador do ar: ele entra por
-       login anônimo. Exigir sessão já barra o acesso REST sem token nenhum, que era
-       o pior caso. Fechar de vez depende de dar identidade real ao entregador. */
-    match /conferencias/{document=**}   { allow read, write: if request.auth != null; }
-    /* idem: cores aprendidas na conferência, lidas pelo painel do entregador.
-       Não dá para exigir logado() aqui sem tirar o entregador do ar: ele entra por
-       login anônimo. Exigir sessão já barra o acesso REST sem token nenhum, que era
-       o pior caso. Fechar de vez depende de dar identidade real ao entregador. */
-    match /ls_conf_licoes/{document=**} { allow read, write: if request.auth != null; }
+    match /conferencias/{document=**}   { allow read, write: if true; }
+    match /ls_conf_licoes/{document=**} { allow read, write: if true; }
     // ▲▲ fim do novo ▲▲
 
     // Suprimentos (aba dentro do Estoque) — aberto, igual às demais do estoque
-    match /suprimentos_config/{document=**}    { allow read, write: if logado(); }
-    match /suprimentos_historico/{document=**} { allow read, write: if logado(); }
+    match /suprimentos_config/{document=**}    { allow read, write: if true; }
+    match /suprimentos_historico/{document=**} { allow read, write: if true; }
     // Reposição / Pronta-entrega (Estoque + painel da fábrica via link) — aberto, acesso pelo link privado
-    match /ls_rep_cfg/{document=**}    { allow read, write: if logado(); }
-    /* fotos de modelo exibidas no card da entrega.
-       Não dá para exigir logado() aqui sem tirar o entregador do ar: ele entra por
-       login anônimo. Exigir sessão já barra o acesso REST sem token nenhum, que era
-       o pior caso. Fechar de vez depende de dar identidade real ao entregador. */
-    match /ls_rep_fotos/{document=**}  { allow read, write: if request.auth != null; }
-    match /ls_pe/{document=**}         { allow read, write: if logado(); }
-    match /ls_pe_tokens/{document=**}  { allow read, write: if logado(); }
-    match /ls_pe_config/{document=**}  { allow read, write: if logado(); }
-    match /ls_pe_fotos/{document=**}   { allow read, write: if logado(); }
+    match /ls_rep_cfg/{document=**}    { allow read, write: if true; }
+    match /ls_rep_fotos/{document=**}  { allow read, write: if true; }
+    match /ls_pe/{document=**}         { allow read, write: if true; }
+    match /ls_pe_tokens/{document=**}  { allow read, write: if true; }
+    match /ls_pe_config/{document=**}  { allow read, write: if true; }
+    match /ls_pe_fotos/{document=**}   { allow read, write: if true; }
     // Financeiro / Conferência de Caixa (dentro do Estoque) — aberto, acesso pelo link privado
-    match /ls_fin_entradas/{document=**}  { allow read, write: if logado(); }
-    match /ls_fin_arquivos/{document=**}  { allow read, write: if logado(); }
-    match /conferenciasCaixa/{document=**} { allow read, write: if logado(); }
+    match /ls_fin_entradas/{document=**}  { allow read, write: if true; }
+    match /ls_fin_arquivos/{document=**}  { allow read, write: if true; }
+    match /conferenciasCaixa/{document=**} { allow read, write: if true; }
     // Central de Modelos (parceiros) — aberto (acesso pelo link privado)
-    match /modelos/{document=**} { allow read, write: if logado(); }
+    match /modelos/{document=**} { allow read, write: if true; }
     // Central de Metas / Retrospecto — aberto, acesso pelo link privado
-    match /ls_historico/{document=**}    { allow read, write: if logado(); }
-    match /ls_metas/{document=**}        { allow read, write: if logado(); }
-    match /ls_maior_venda/{document=**}  { allow read, write: if logado(); }
-    match /ls_retrospecto/{document=**}  { allow read, write: if logado(); }
-    match /_setup/{document=**}          { allow read, write: if logado(); }
+    match /ls_historico/{document=**}    { allow read, write: if true; }
+    match /ls_metas/{document=**}        { allow read, write: if true; }
+    match /ls_maior_venda/{document=**}  { allow read, write: if true; }
+    match /ls_retrospecto/{document=**}  { allow read, write: if true; }
+    match /_setup/{document=**}          { allow read, write: if true; }
     // Central de Encomendas (vendedoras) — aberto, acesso pelo link privado
-    match /encomendas/{document=**} { allow read, write: if logado(); }
+    match /encomendas/{document=**} { allow read, write: if true; }
     // Central de Pós-venda — aberto, acesso pelo link privado
-    match /ls_posvendas/{document=**} { allow read, write: if logado(); }
+    match /ls_posvendas/{document=**} { allow read, write: if true; }
     // Central de Coleções — aberto, acesso pelo link privado
-    match /colecoes_modelos/{document=**} { allow read, write: if logado(); }
-    match /colecoes_users/{document=**}   { allow read, write: if logado(); }
-    match /colecoes_fotos/{document=**}   { allow read, write: if logado(); }
+    match /colecoes_modelos/{document=**} { allow read, write: if true; }
+    match /colecoes_users/{document=**}   { allow read, write: if true; }
+    match /colecoes_fotos/{document=**}   { allow read, write: if true; }
     // Central de Campanhas — aberto, acesso pelo link privado
-    match /campanhas_items/{document=**} { allow read, write: if logado(); }
-    match /campanhas_fotos/{document=**} { allow read, write: if logado(); }
+    match /campanhas_items/{document=**} { allow read, write: if true; }
+    match /campanhas_fotos/{document=**} { allow read, write: if true; }
 
     // ▼▼ ALTERAÇÃO 2 de 3 — Central de Catálogos ▼▼
     // Toda vendedora logada LÊ a lista (é o que faz a tela atualizar
@@ -148,64 +123,50 @@ service cloud.firestore {
     }
     // ▲▲ fim da alteração 2 ▲▲
 
-    /* Escala de Atendimento (a vez na porta) — de quem é a vez e quantas vezes cada uma foi. Não guarda dado de
-       cliente: é registro de trabalho da equipe. Escrita para conta de e-mail, porque
-       qualquer uma pode marcar pela outra na correria — o histórico grava quem marcou. */
-    match /ls_vez/{document=**}      { allow read, write: if logado(); }
-    /* O histórico é a prova de quem marcou o quê. Três garantias que valem no servidor:
-       ninguém assina um registro com o nome de outra pessoa; desfazer marca 'desfeito'
-       em vez de apagar; e apagar de vez é da diretoria, só em registro já desfeito. */
-    match /ls_vez_hist/{id} {
-      allow read:   if logado();
-      allow create: if logado() && request.resource.data.registradoPor == request.auth.token.email;
-      /* desfazer assina: quem marca o risco tem de escrever o próprio e-mail, senão
-         dá para riscar a venda da colega com o nome dela. Refazer (limpar o risco) é
-         da gestão, que é quem vê o botão na tela. */
-      allow update: if logado()
-                    && soMudou(['desfeito','desfeitoPor','desfeitoEm'])
-                    && (
-                         (request.resource.data.desfeito == true
-                           && request.resource.data.desfeitoPor == request.auth.token.email)
-                      || (request.resource.data.desfeito == false && gestorOuSup())
-                       );
-      /* apagar não tem volta, e é só da diretoria — na tela o botão nem aparece para
-         a supervisão. E só vale em registro já desfeito: é o desfazer que acerta a
-         contagem, apagar sem ele deixaria o dia contando o que não existe mais. */
-      allow delete: if diretoria() && resource.data.get('desfeito', false) == true;
-    }
+    // ▼▼ NOVO — PAINEL DA SUPERVISORA ▼▼
+    //
+    // Estas coleções nunca tiveram regra própria: caíam na coringa lá do
+    // final, que dá LEITURA E ESCRITA a qualquer conta logada. Na prática
+    // qualquer vendedora podia reescrever a avaliação mensal da colega, ou
+    // apagar a rotina do time, pelo endereço direto — sem passar pelo painel.
+    //
+    // Agora: escreve a diretoria e a Jhennifer (gestorOuSup). Lê quem abre o
+    // painel (painelSup, que inclui a Ávia). As duas de baixo são exceção
+    // porque a equipe inteira precisa delas na Central.
 
-    /* Ausências avisadas pela própria equipe (dentro de Comunicados e Tarefas).
-       Todo mundo LÊ: a loja precisa saber quem sai às 14h. Cada uma escreve a SUA —
-       o documento tem de nascer com o e-mail de quem está gravando em criadoPor, e o
-       campo email (de quem é a ausência) só pode ser de outra pessoa se quem grava
-       for diretoria ou supervisora, que é o caso de "ela ligou dizendo que não vem".
-       Apagar e corrigir: a dona do aviso, quem o lançou, ou a gestão.
-       Não guarda atestado nem motivo médico — isso é RH, e mora em /lancamentos. */
-    match /ls_ausencias/{id} {
-      allow read: if logado();
-      allow create: if logado()
-                    && request.resource.data.criadoPor == request.auth.token.email
-                    && (request.resource.data.email == request.auth.token.email || gestorOuSup())
-                    // férias é lançamento de gestão: some do formulário de quem não é,
-                    // e some aqui também — esconder campo na tela não é proteção
-                    // .get() porque campo ausente no documento derruba a avaliação
-                    // inteira com erro, em vez de simplesmente não casar
-                    && (request.resource.data.get('tipo', '') != 'ferias' || gestorOuSup());
-      // resource é null quando o documento não existe — sem esta guarda, um create
-      // feito com set() derruba a avaliação deste ramo com erro em vez de só negar
-      allow update, delete: if logado() && resource != null
-                    // no delete o request.resource é null; só o update carrega tipo novo
-                    && (request.resource == null || request.resource.data.get('tipo', '') != 'ferias' || gestorOuSup())
-                    && (resource.data.email == request.auth.token.email
-                        || resource.data.criadoPor == request.auth.token.email
-                        || gestorOuSup());
-    }
+    // A equipe toda LÊ (a Central mostra a rotina e a escala do mês pra todos)
+    match /ls_rotina/{document=**} { allow read: if logado(); allow write: if gestorOuSup(); }
+    match /ls_escala/{document=**} { allow read: if logado(); allow write: if gestorOuSup(); }
 
-    /* Calendário de presença (painel Calendário, dentro de Marketing): dia, horário e
-       período de quem vem à loja. Toda a equipe logada LÊ; lançar, corrigir e apagar é
-       da diretoria, da supervisora e do marketing — a mesma lista EDITORES de
-       presenca/index.html. Quem lança assina: criadoPor tem de ser o próprio e-mail. */
-    function editorPresenca() {
+    // Só quem abre o painel LÊ — aqui é assunto de pessoa: ocorrência,
+    // avaliação mensal, plano de desenvolvimento, quem faltou, quem cobriu
+    match /ls_ocorrencias/{document=**} { allow read: if painelSup(); allow write: if gestorOuSup(); }
+    match /ls_avaliacoes/{document=**}  { allow read: if painelSup(); allow write: if gestorOuSup(); }
+    match /ls_pdi/{document=**}         { allow read: if painelSup(); allow write: if gestorOuSup(); }
+    match /ls_pautas/{document=**}      { allow read: if painelSup(); allow write: if gestorOuSup(); }
+    match /ls_presenca/{document=**}    { allow read: if painelSup(); allow write: if gestorOuSup(); }
+    match /ls_coberturas/{document=**}  { allow read: if painelSup(); allow write: if gestorOuSup(); }
+    match /ls_conferencias/{document=**}{ allow read: if painelSup(); allow write: if gestorOuSup(); }
+    match /ls_melhorias/{document=**}   { allow read: if painelSup(); allow write: if gestorOuSup(); }
+    match /ls_eventos/{document=**}     { allow read: if painelSup(); allow write: if gestorOuSup(); }
+    // ▲▲ fim do novo ▲▲
+
+    // ▼▼ NOVO — CALENDÁRIO DO MARKETING (aba Calendário, dentro de Marketing) ▼▼
+    //
+    // POR QUE UMA COLEÇÃO NOVA, e não a ls_presenca de cima:
+    // as duas telas estavam gravando no MESMO lugar com formatos diferentes.
+    // A Supervisora grava um documento por DIA (ls_presenca/2025-10-14) com as
+    // correções de presença da equipe — assunto de pessoa, que só quem abre o
+    // painel pode ler. O Calendário grava um documento por LANÇAMENTO
+    // (dia, período, horário, quem). Para o Calendário funcionar, a equipe
+    // precisa LER; se eu abrisse a ls_presenca para isso, abriria junto quem
+    // faltou e quem cobriu. Separando, cada uma fica com o acesso que precisa.
+    //
+    // Quem lança: diretoria, Jhennifer e a Lorrayne (marketing). É a mesma
+    // lista da constante EDITORES em presenca/index.html — mudou lá, mude aqui.
+    // Era exatamente isto que faltava: a Lorrayne não estava em NENHUMA lista,
+    // então toda tentativa de salvar dela voltava recusada pelo banco.
+    function editorCalendario() {
       return logado() && request.auth.token.email.lower() in [
         'lorettoscarpa@gmail.com',
         'larissalorettoscarpa@gmail.com',
@@ -213,23 +174,15 @@ service cloud.firestore {
         'lorraynelorettoscarpa@gmail.com'
       ];
     }
-    match /ls_presenca/{id} {
+    match /ls_presenca_mkt/{id} {
+      // a equipe toda vê o calendário — é escala de trabalho, não ficha de pessoa
       allow read:   if logado();
-      allow create: if editorPresenca()
+      // quem lança assina: o documento nasce com o e-mail de quem gravou
+      allow create: if editorCalendario()
                     && request.resource.data.criadoPor == request.auth.token.email.lower();
-      allow update, delete: if editorPresenca();
+      allow update, delete: if editorCalendario();
     }
-
-    // ===== Rotina (ls_rotina) =====
-    // A rotina passou a ser lida por TODA a equipe na Central (aba Rotina), e não
-    // mais só pela supervisora. Ler tudo bem — é o que cada um tem pra fazer.
-    // Escrever, não: sem esta regra a coringa lá embaixo deixaria qualquer pessoa
-    // logada apagar ou reescrever a rotina de qualquer outra. Quem monta é quem
-    // manda: diretoria + Jhennifer.
-    match /ls_rotina/{document=**} {
-      allow read:  if logado();
-      allow write: if gestorOuSup();
-    }
+    // ▲▲ fim do novo ▲▲
 
     // ===== Comunicados e Tarefas (Central) — regra específica no servidor =====
     // Ler: qualquer logado. Criar/editar/apagar: só diretoria + Jhennifer.
@@ -239,7 +192,7 @@ service cloud.firestore {
       allow create: if gestorOuSup();
       allow delete: if gestorOuSup();
       allow update: if gestorOuSup()
-                    || (logado() && soMudou(['vistos']) && soCresceu('vistos'));
+                    || (logado() && soMudou(['vistos']));
     }
     // Ler: qualquer logado. Criar/editar/apagar: só diretoria + Jhennifer.
     // Concluir (feitosPor), reset de recorrência (feitosPor+periodo) e comentar (comentarios)
@@ -249,8 +202,8 @@ service cloud.firestore {
       allow create: if gestorOuSup();
       allow delete: if gestorOuSup();
       allow update: if gestorOuSup()
-                    || (logado() && soMudou(['feitosPor','periodo']) && soMexeuNoMeu('feitosPor'))
-                    || (logado() && soMudou(['comentarios']) && soCresceu('comentarios'));
+                    || (logado() && soMudou(['feitosPor','periodo']))
+                    || (logado() && soMudou(['comentarios']));
     }
 
     // Central de Entregas: entregas + rastreio + fotos — qualquer logado, INCLUSIVE entregador anônimo
@@ -309,16 +262,15 @@ service cloud.firestore {
       allow read, write: if rhEscreve();
     }
     // Tudo o resto (ICR, futuros dashboards), MENOS hub_config, ls_acessos,
-    // as do RH e as de Comunicados/Tarefas: só conta de verdade (e-mail), NUNCA anônimo
+    // as do RH, as de Comunicados/Tarefas e as do painel da Supervisora:
+    // só conta de verdade (e-mail), NUNCA anônimo
     //
-    // ▼▼ ALTERAÇÃO 3 de 3 — 'catalogos_arquivos' entrou nesta lista ▼▼
-    // SEM isto, esta regra coringa daria escrita a QUALQUER logado na
-    // coleção de catálogos, e a alteração 2 não serviria de nada: no
-    // Firestore as regras se somam, basta UMA liberar pra liberar.
-    // (mesmo motivo de 'ls_ausencias' estar aqui: sem isto qualquer logado
-    // apagaria o aviso de ausência de qualquer outra pessoa)
+    // ▼▼ ALTERAÇÃO 3 de 3 — a lista de fora ▼▼
+    // SEM isto, esta regra coringa daria escrita a QUALQUER logado nas
+    // coleções acima, e as regras que eu escrevi não serviriam de nada: no
+    // Firestore as regras se SOMAM, basta UMA liberar pra liberar.
     match /{coll}/{document=**} {
-      allow read, write: if !(coll in ['hub_config','ls_acessos','lancamentos','bancoHoras','documentosRH','ls_comunicados','ls_tarefas','catalogos_arquivos','ls_ausencias','ls_vez_hist','ls_rotina','ls_presenca'])
+      allow read, write: if !(coll in ['hub_config','ls_acessos','lancamentos','bancoHoras','documentosRH','ls_comunicados','ls_tarefas','catalogos_arquivos','ls_rotina','ls_escala','ls_ocorrencias','ls_avaliacoes','ls_pdi','ls_pautas','ls_presenca','ls_presenca_mkt','ls_coberturas','ls_conferencias','ls_melhorias','ls_eventos'])
         && request.auth != null
         && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }

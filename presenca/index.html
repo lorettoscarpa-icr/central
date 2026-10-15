@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-ver" content="p4">
+<meta name="app-ver" content="p5">
 <title>Calendário · Loretto Scarpa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -276,7 +276,7 @@
    a semana, onde se lança. Toda sexta se lança a semana seguinte; de sexta a domingo, enquanto
    ela estiver vazia, o painel (e o sininho da Central) lembram.
 
-   Cada presença é um documento em ls_presenca, com o dia em 'AAAA-MM-DD'. A semana
+   Cada presença é um documento em ls_presenca_mkt, com o dia em 'AAAA-MM-DD'. A semana
    é lida por intervalo nesse campo — um campo só, sem índice composto.            */
 
 const firebaseConfig={apiKey:"AIzaSyCogQoTSULCdC1JhTb0IUilWAIA1itBJ8U",authDomain:"loretto-scarpa-l-icr.firebaseapp.com",projectId:"loretto-scarpa-l-icr",storageBucket:"loretto-scarpa-l-icr.firebasestorage.app",messagingSenderId:"428188657366",appId:"1:428188657366:web:258f42f2c0a3813d83cb77"};
@@ -642,7 +642,7 @@ function ouvirMes(){
   const g = gradeDoMes(), alvo = mesDesloc;
   const de = chaveDia(g.ini), ate = chaveDia(g.fim);
   itensMes = []; pintarMes();
-  unsubMes = db.collection('ls_presenca').where('dia','>=',de).where('dia','<=',ate).onSnapshot(s=>{
+  unsubMes = db.collection('ls_presenca_mkt').where('dia','>=',de).where('dia','<=',ate).onSnapshot(s=>{
     if(alvo!==mesDesloc) return;
     itensMes = []; s.forEach(x=>{ const v=x.data(); if(v && v.nome && v.dia) itensMes.push(Object.assign({id:x.id}, v)); });
     itensMes.forEach(i=>conhecidos.add(i.nome));
@@ -676,7 +676,7 @@ function ouvirSemana(){
   if(unsub){ try{unsub();}catch(_){} unsub=null; }
   const d = diasDaSemana(desloc), de = chaveDia(d[0]), ate = chaveDia(d[6]), alvo = desloc;
   itens = []; pintar();
-  unsub = db.collection('ls_presenca').where('dia','>=',de).where('dia','<=',ate).onSnapshot(s=>{
+  unsub = db.collection('ls_presenca_mkt').where('dia','>=',de).where('dia','<=',ate).onSnapshot(s=>{
     if(alvo!==desloc) return;
     itens = []; s.forEach(x=>{ const v=x.data(); if(v && v.nome && v.dia) itens.push(Object.assign({id:x.id}, v)); });
     itens.forEach(i=>conhecidos.add(i.nome));
@@ -686,13 +686,13 @@ function ouvirSemana(){
 function ouvirProxima(){
   if(unsubProx) return;
   const d = diasDaSemana(1);
-  unsubProx = db.collection('ls_presenca').where('dia','>=',chaveDia(d[0])).where('dia','<=',chaveDia(d[6])).limit(1)
+  unsubProx = db.collection('ls_presenca_mkt').where('dia','>=',chaveDia(d[0])).where('dia','<=',chaveDia(d[6])).limit(1)
     .onSnapshot(s=>{ proxVazia = s.empty; pintarLembrete(); }, ()=>{});
 }
 /* nomes das últimas quatro semanas entram como atalho na hora de lançar */
 function carregarConhecidos(){
   const d = diasDaSemana(-4)[0];
-  db.collection('ls_presenca').where('dia','>=',chaveDia(d)).get()
+  db.collection('ls_presenca_mkt').where('dia','>=',chaveDia(d)).get()
     .then(s=>s.forEach(x=>{ const v=x.data(); if(v && v.nome) conhecidos.add(v.nome); })).catch(()=>{});
 }
 window.andar = n => irPara(desloc + n);
@@ -822,7 +822,7 @@ window.salvar = async () => {
   const faltouEm = k => !!form.faltou && k <= hojeK();
   const novo = (pt,k) => Object.assign({nome, obs}, pt, {dia:k, faltou:faltouEm(k), criadoPor:meuEmail, criadoEm:agora});
   try{
-    const lote = db.batch(), col = db.collection('ls_presenca');
+    const lote = db.batch(), col = db.collection('ls_presenca_mkt');
     if(form.id){
       /* corrigindo: a primeira metade fica no mesmo registro, a segunda (se dividiu) nasce */
       const k = [...form.dias][0];
@@ -843,7 +843,7 @@ window.apagar = async () => {
   if(!form || !form.id) return;
   const i = itens.find(x=>x.id===form.id);
   if(!confirm(`Apagar ${i?i.nome:'esta presença'} de ${i?fmtDia(deChave(i.dia)):'deste dia'}?`)) return;
-  try{ await db.collection('ls_presenca').doc(form.id).delete(); toast('Apagado'); fecharFolha(); }
+  try{ await db.collection('ls_presenca_mkt').doc(form.id).delete(); toast('Apagado'); fecharFolha(); }
   catch(e){ console.warn(e); $('fErro').textContent = porQueFalhou(e, 'apagar'); }
 };
 
@@ -852,13 +852,13 @@ window.copiarAnterior = async () => {
   if(!souEditor || itens.length) return;
   const ant = diasDaSemana(desloc-1);
   try{
-    const s = await db.collection('ls_presenca').where('dia','>=',chaveDia(ant[0])).where('dia','<=',chaveDia(ant[6])).get();
+    const s = await db.collection('ls_presenca_mkt').where('dia','>=',chaveDia(ant[0])).where('dia','<=',chaveDia(ant[6])).get();
     if(s.empty){ toast('A semana anterior também está vazia'); return; }
     if(!confirm(`Copiar ${s.size} presença${s.size>1?'s':''} da semana anterior para esta? Dá para corrigir uma a uma depois.`)) return;
     const lote = db.batch(), agora = Date.now();
     s.forEach(x=>{
       const v = x.data(), d = deChave(v.dia); d.setDate(d.getDate()+7);
-      lote.set(db.collection('ls_presenca').doc(), {nome:v.nome, periodo:v.periodo||'horario', funcao:v.funcao||'outra', faltou:false, ini:v.ini||'', fim:v.fim||'',
+      lote.set(db.collection('ls_presenca_mkt').doc(), {nome:v.nome, periodo:v.periodo||'horario', funcao:v.funcao||'outra', faltou:false, ini:v.ini||'', fim:v.fim||'',
         obs:v.obs||'', dia:chaveDia(d), criadoPor:meuEmail, criadoEm:agora, copiadoDe:v.dia});
     });
     await lote.commit();
