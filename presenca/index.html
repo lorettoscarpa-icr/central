@@ -765,6 +765,28 @@ window.abrirEdicao = id => {
   abrirFolha();
 };
 
+/* Por que o erro vem escrito e não genérico:
+
+   "Confira a conexão" mandava a pessoa reiniciar o roteador quando o problema era
+   permissão — e permissão é o que mais recusa escrita aqui. O código do Firestore diz
+   exatamente o que houve; esconder isso custou dias de calendário em branco, com a
+   equipe achando que era internet.                                                   */
+function porQueFalhou(e, oQue){
+  const c = (e && e.code) || '';
+  if(c === 'permission-denied')
+    return 'O banco recusou: a sua conta não tem permissão para ' + oQue + ' aqui. '
+         + 'Não é a sua internet. Mande este aviso para a diretoria — é a regra do '
+         + 'banco que precisa ser publicada com o seu e-mail.';
+  if(c === 'unauthenticated')
+    return 'A sua sessão expirou. Saia e entre de novo pela Central.';
+  if(c === 'unavailable' || c === 'deadline-exceeded')
+    return 'O banco não respondeu. Confira a conexão e tente de novo.';
+  if(c === 'failed-precondition')
+    return 'O banco pediu um índice que não existe. Avise a diretoria (failed-precondition).';
+  return 'Não consegui ' + oQue + '.' + (c ? ' O banco respondeu: ' + c + '.' : '')
+       + ' Tente de novo; se repetir, avise a diretoria.';
+}
+
 window.salvar = async () => {
   if(!form) return;
   const nome = (form.nome || $('fOutra').value).trim().replace(/\s+/g,' ');
@@ -813,7 +835,7 @@ window.salvar = async () => {
     toast(form.id ? 'Corrigido' : (form.dias.size>1 ? `${form.dias.size} dias lançados` : 'Lançado'));
     conhecidos.add(nome);
     fecharFolha();
-  }catch(e){ console.warn(e); err('Não consegui salvar. Confira a conexão e tente de novo.'); }
+  }catch(e){ console.warn(e); err(porQueFalhou(e, 'lançar presença')); }
   $('fSalvar').disabled = false;
 };
 
@@ -822,7 +844,7 @@ window.apagar = async () => {
   const i = itens.find(x=>x.id===form.id);
   if(!confirm(`Apagar ${i?i.nome:'esta presença'} de ${i?fmtDia(deChave(i.dia)):'deste dia'}?`)) return;
   try{ await db.collection('ls_presenca').doc(form.id).delete(); toast('Apagado'); fecharFolha(); }
-  catch(e){ console.warn(e); $('fErro').textContent='Não consegui apagar.'; }
+  catch(e){ console.warn(e); $('fErro').textContent = porQueFalhou(e, 'apagar'); }
 };
 
 /* a semana anterior à que está na tela, dia por dia, sete dias para a frente */
@@ -841,7 +863,7 @@ window.copiarAnterior = async () => {
     });
     await lote.commit();
     toast('Semana copiada');
-  }catch(e){ console.warn(e); toast('Não consegui copiar'); }
+  }catch(e){ console.warn(e); toast(porQueFalhou(e, 'copiar a semana')); }
 };
 
 /* a Central manda "semanaquevem" quando o aviso da sexta é tocado */
